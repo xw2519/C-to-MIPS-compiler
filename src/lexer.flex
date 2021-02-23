@@ -4,8 +4,11 @@
 // Avoid error "error: `fileno' was not declared in this scope"
 extern "C" int fileno(FILE *stream);
 
-#include "maths_parser.tab.hpp"
+#include "parser.tab.hpp"
 %}
+
+A               [a-zA-Z_]
+D               [0-9]
 
 %%
 [/]             { return T_DIVIDE; }
