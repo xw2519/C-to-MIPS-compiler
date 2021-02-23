@@ -79,7 +79,9 @@ OCTADIGIT          [0-7]
 
 [ \t\r\n]+		    { /* whitespace */ }
 .                 { fprintf(stderr, "Invalid token\n"); exit(1); }
+
 %%
+[^\]]*
 
 void yyerror (char const *s)
 {

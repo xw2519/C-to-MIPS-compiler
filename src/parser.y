@@ -5,45 +5,32 @@
 
   extern const Expression *g_root; // A way of getting the AST out
 
-  //! This is to fix problems when generating C++
+  // This is to fix problems when generating C++
   // We are declaring the functions provided by Flex, so
   // that Bison generated code can call them.
   int yylex(void);
   void yyerror(const char *);
 }
 
-// Represents the value associated with any kind of
-// AST node.
 %union{
   const Expression *expr;
   double number;
   std::string *string;
 }
 
-%token T_TIMES T_DIVIDE T_PLUS T_MINUS T_EXPONENT
-%token T_LBRACKET T_RBRACKET
-%token T_LOG T_EXP T_SQRT
-%token T_NUMBER T_VARIABLE
+%token T_MULTIPLY T_DIVIDE T_PLUS T_MINUS T_MODULO
+%token T_BOOLEAN_AND T_BOOLEAN_OR T_BOOLEAN_NOT T_BOOLEAN_XOR 
+%token T_LBRACKET T_RBRACKET T_SQUARE_LBRACKET T_SQUARE_RBRACKET T_CURLY_LBRACKET T_CURLY_RBRACKET
+%token T_GREATER T_LESS T_ASSIGN
+%token T_CHAR T_INT T_LONG T_SIGNED T_FLOAT T_DOUBLE T_VOID T_CONST T_SHORT T_UNSIGNED T_VOLATILE
+%token T_CASE T_DEFAULT T_IF T_ELSE T_SWITCH T_WHILE T_DO T_FOR T_GOTO T_CONTINUE T_BREAK T_RETURN
+%token T_TYPEDEF T_EXTERN T_STATIC T_AUTO T_REGISTER
+%token T_STRUCT T_ENUM T_ELLIPSIS
 
-%type <expr> EXPR TERM FACTOR
-%type <number> T_NUMBER
-%type <string> T_VARIABLE T_LOG T_EXP T_SQRT FUNCTION_NAME
 
 %start ROOT
 
-%left T_PLUS T_MINUS
-%left T_TIMES T_DIVIDE
-%right UNMINUS
-%right T_EXPONENT
-
 %%
-
-/* The TODO notes a are just a guide, and are non-exhaustive.
-   The expectation is that you do each one, then compile and test.
-   Testing should be done using patterns that target the specific
-   feature; the testbench is there to make sure that you haven't
-   broken anything while you added it.
-*/
 
 ROOT : EXPR { g_root = $1; }
 
