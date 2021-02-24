@@ -57,8 +57,6 @@ O                  [0-7]
 "char"					  { return (T_CHAR); }
 "unsigned"				{ return (T_UNSIGNED); }
 "signed"				  { return (T_SIGNED); }         // not in spec
-"long"					  { return (T_LONG); }           // not in spec
-"short"					  { return (T_SHORT); }          // not in spec
 "void"					  { return (T_VOID); }           // not in spec
 
   /* Structures */
@@ -78,8 +76,6 @@ O                  [0-7]
 "sizeof"				  { return (T_SIZEOF); }
 "struct"				  { return (T_STRUCT); }
 "typedef"         { return (T_TYPEDEF); }
-"extern"				  { return (T_EXTERN); }         // not in spec
-"static"				  { return (T_STATIC); }         // not in spec
 "volatile"				{ return (T_VOLATILE); }       // not in spec
 "register"				{ return (T_REGISTER); }       // not in spec
 
