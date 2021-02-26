@@ -1,0 +1,263 @@
+Grammar
+
+    0 $accept: ROOT $end
+
+    1 ROOT: translation_unit
+
+    2 translation_unit: function_definition
+    3                 | translation_unit function_definition
+
+    4 function_definition: type_specifier T_IDENTIFIER '(' parameter_list ')' compound_statement
+
+    5 parameter_list: %empty
+
+    6 compound_statement: '{' statement_list '}'
+    7                   | '{' '}'
+
+    8 statement_list: statement
+    9               | statement_list statement
+
+   10 statement: jump_statement
+   11          | compound_statement
+
+   12 jump_statement: T_RETURN ';'
+
+   13 type_specifier: T_INT
+
+
+Terminals, with rules where they appear
+
+    $end (0) 0
+    '(' (40) 4
+    ')' (41) 4
+    ';' (59) 12
+    '{' (123) 6 7
+    '}' (125) 6 7
+    error (256)
+    T_INT <string> (258) 13
+    T_RETURN <string> (259) 12
+    T_IDENTIFIER <string> (260) 4
+
+
+Nonterminals, with rules where they appear
+
+    $accept (11)
+        on left: 0
+    ROOT (12)
+        on left: 1
+        on right: 0
+    translation_unit <node> (13)
+        on left: 2 3
+        on right: 1 3
+    function_definition <node> (14)
+        on left: 4
+        on right: 2 3
+    parameter_list (15)
+        on left: 5
+        on right: 4
+    compound_statement <statement_node> (16)
+        on left: 6 7
+        on right: 4 11
+    statement_list <statement_node> (17)
+        on left: 8 9
+        on right: 6 9
+    statement <statement_node> (18)
+        on left: 10 11
+        on right: 8 9
+    jump_statement <statement_node> (19)
+        on left: 12
+        on right: 10
+    type_specifier <string> (20)
+        on left: 13
+        on right: 4
+
+
+State 0
+
+    0 $accept: . ROOT $end
+
+    T_INT  shift, and go to state 1
+
+    ROOT                 go to state 2
+    translation_unit     go to state 3
+    function_definition  go to state 4
+    type_specifier       go to state 5
+
+
+State 1
+
+   13 type_specifier: T_INT .
+
+    $default  reduce using rule 13 (type_specifier)
+
+
+State 2
+
+    0 $accept: ROOT . $end
+
+    $end  shift, and go to state 6
+
+
+State 3
+
+    1 ROOT: translation_unit .
+    3 translation_unit: translation_unit . function_definition
+
+    T_INT  shift, and go to state 1
+
+    $default  reduce using rule 1 (ROOT)
+
+    function_definition  go to state 7
+    type_specifier       go to state 5
+
+
+State 4
+
+    2 translation_unit: function_definition .
+
+    $default  reduce using rule 2 (translation_unit)
+
+
+State 5
+
+    4 function_definition: type_specifier . T_IDENTIFIER '(' parameter_list ')' compound_statement
+
+    T_IDENTIFIER  shift, and go to state 8
+
+
+State 6
+
+    0 $accept: ROOT $end .
+
+    $default  accept
+
+
+State 7
+
+    3 translation_unit: translation_unit function_definition .
+
+    $default  reduce using rule 3 (translation_unit)
+
+
+State 8
+
+    4 function_definition: type_specifier T_IDENTIFIER . '(' parameter_list ')' compound_statement
+
+    '('  shift, and go to state 9
+
+
+State 9
+
+    4 function_definition: type_specifier T_IDENTIFIER '(' . parameter_list ')' compound_statement
+
+    $default  reduce using rule 5 (parameter_list)
+
+    parameter_list  go to state 10
+
+
+State 10
+
+    4 function_definition: type_specifier T_IDENTIFIER '(' parameter_list . ')' compound_statement
+
+    ')'  shift, and go to state 11
+
+
+State 11
+
+    4 function_definition: type_specifier T_IDENTIFIER '(' parameter_list ')' . compound_statement
+
+    '{'  shift, and go to state 12
+
+    compound_statement  go to state 13
+
+
+State 12
+
+    6 compound_statement: '{' . statement_list '}'
+    7                   | '{' . '}'
+
+    T_RETURN  shift, and go to state 14
+    '{'       shift, and go to state 12
+    '}'       shift, and go to state 15
+
+    compound_statement  go to state 16
+    statement_list      go to state 17
+    statement           go to state 18
+    jump_statement      go to state 19
+
+
+State 13
+
+    4 function_definition: type_specifier T_IDENTIFIER '(' parameter_list ')' compound_statement .
+
+    $default  reduce using rule 4 (function_definition)
+
+
+State 14
+
+   12 jump_statement: T_RETURN . ';'
+
+    ';'  shift, and go to state 20
+
+
+State 15
+
+    7 compound_statement: '{' '}' .
+
+    $default  reduce using rule 7 (compound_statement)
+
+
+State 16
+
+   11 statement: compound_statement .
+
+    $default  reduce using rule 11 (statement)
+
+
+State 17
+
+    6 compound_statement: '{' statement_list . '}'
+    9 statement_list: statement_list . statement
+
+    T_RETURN  shift, and go to state 14
+    '{'       shift, and go to state 12
+    '}'       shift, and go to state 21
+
+    compound_statement  go to state 16
+    statement           go to state 22
+    jump_statement      go to state 19
+
+
+State 18
+
+    8 statement_list: statement .
+
+    $default  reduce using rule 8 (statement_list)
+
+
+State 19
+
+   10 statement: jump_statement .
+
+    $default  reduce using rule 10 (statement)
+
+
+State 20
+
+   12 jump_statement: T_RETURN ';' .
+
+    $default  reduce using rule 12 (jump_statement)
+
+
+State 21
+
+    6 compound_statement: '{' statement_list '}' .
+
+    $default  reduce using rule 6 (compound_statement)
+
+
+State 22
+
+    9 statement_list: statement_list statement .
+
+    $default  reduce using rule 9 (statement_list)

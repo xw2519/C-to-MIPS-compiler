@@ -1,5 +1,5 @@
-#ifndef ast_node_hpp
-#define ast_node_hpp
+#ifndef AST_NODE_HPP
+#define AST_NODE_HPP
 
 #include <string>
 #include <iostream>
@@ -12,21 +12,18 @@
 #include <stdexcept>
 #include <initializer_list>
 
+class Node;
 
-typedef const Node* Node_Ptr; // Pointer to Node
+typedef const Node* Node_Ptr;
 
 class Node
 {
-protected:
-    std::string type_;
+	public:
+		virtual ~Node () {}
+		virtual void print_structure 	(std::ostream &dst) const =0;
+		virtual void print_C 			(std::ostream &dst, std::string indent) const =0;
+		virtual void print_mips 		(std::ostream &dst) const =0;
 
-public:
-    virtual ~Node() {}
-
-    virtual const std::string &getType() const
-    {
-        return type_;
-    };
 };
 
 #endif

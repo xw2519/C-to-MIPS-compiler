@@ -2,8 +2,8 @@
 
 int main(){
 
-	const ASTNode *root = parse();
-	root->print(std::cout);
+	const Node *root = parse();
+	root->print_mips(std::cout);
 	std::cout << std::endl;
 
 	return 0;
