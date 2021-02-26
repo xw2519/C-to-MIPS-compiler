@@ -5,6 +5,10 @@
 extern "C" int fileno(FILE *stream);
 
 #include "parser.tab.hpp"
+#include "../include/lexer_hack.hpp"
+
+LexerContext context;
+
 %}
 
 A                       [a-zA-Z_]
@@ -48,7 +52,7 @@ OCT                     [0-7]
 [{]               { return (T_CURLY_LBRACKET); }
 [}]               { return (T_CURLY_RBRACKET); }
 [:]               { return (T_COLON); }
-[;]               { return (T_SEMICOLON); }
+[;]               { context.InTypedef=false; return (T_SEMICOLON); }
 
   /* Types */
 "int"					    { return (T_INT); }
@@ -71,11 +75,10 @@ OCT                     [0-7]
 "enum"					  { return (T_ENUM); }
 "sizeof"				  { return (T_SIZEOF); }
 "struct"				  { return (T_STRUCT); }
-"typedef"         { return (T_TYPEDEF); }
+"typedef"         { context.InTypedef=true; return (T_TYPEDEF); }
 
 
-{A}({A}|{DIGIT})* { yylval.string=new std::string(yytext);
-                    return (T_IDENTIFIER); }
+{A}({A}|{DIGIT})* { yylval.string=new std::string(yytext); return lexer_hack(yylval.string); }
 
 [DIGIT]+          { yylval.string = new std::string(yytext);
                     return (T_CONSTANT); }
@@ -89,4 +92,22 @@ void yyerror (char const *s)
 {
   fprintf (stderr, "Parse error : %s\n", s);
   exit(1);
+}
+
+int lexer_hack(std::string text)   // implements lexer hack
+{
+  int was_type = T_IDENTIFIER;
+  for (int i=0; i<context.typeIdentifiers.size(); i++)   // checks if text is ID or TypeID
+  {
+		if(text == context.typeIdentifiers[i])
+    {
+			was_type = T_TYPEIDENTIFIER;
+		}
+	}
+
+  if(context.InTypedef && was_type==T_IDENTIFIER){
+  	context.typeIdentifiers.push_back(text);
+  }
+
+  return was_type;
 }
