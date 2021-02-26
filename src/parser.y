@@ -1,57 +1,34 @@
-%code requires{
-  #include "ast.hpp"
+%token IDENTIFIER CONSTANT STRING_LITERAL SIZEOF
+%token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
+%token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
+%token SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN
+%token XOR_ASSIGN OR_ASSIGN TYPE_NAME
 
-  #include <cassert>
+%token TYPEDEF EXTERN STATIC AUTO REGISTER
+%token CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE CONST VOLATILE VOID
+%token STRUCT UNION ENUM ELLIPSIS
 
-  extern const Expression *g_root; 
+%token CASE DEFAULT IF ELSE SWITCH WHILE DO FOR GOTO CONTINUE BREAK RETURN
 
-  int yylex(void);
-  void yyerror(const char *);
-}
-
-%union{
-  const Expression *expr;
-  double number;
-  std::string *string;
-}
-
-// Assignment Operators
-%token T_ASSIGN
-// Arithmetic Operators
-%token T_MULTIPLY T_DIVIDE T_PLUS T_MINUS T_MODULO
-// Bitwise Operators
-%token T_BITWISE_AND T_BITWISE_XOR T_BITWISE_OR T_BITWISE_SHIFT_LEFT T_BITWISE_SHIFT_RIGHT
-// Logical Operators
-%token T_BOOLEAN_AND T_BOOLEAN_OR T_BOOLEAN_NOT  
-// Characters Operators
-%token T_LBRACKET T_RBRACKET T_SQUARE_LBRACKET T_SQUARE_RBRACKET T_CURLY_LBRACKET T_CURLY_RBRACKET T_COLON T_SEMICOLON
-// Comparison Operators
-%token T_GREATER T_LESS T_EQUAL
-// Types Operators
-%token T_CHAR T_INT T_FLOAT T_DOUBLE T_UNSIGNED 
-// Structures Operators
-%token T_IF T_ELSE T_SWITCH T_WHILE T_FOR T_CONTINUE T_BREAK T_RETURN
-// Keywords Operators
-%token T_TYPEDEF T_STRUCT T_ENUM T_SIZEOF
-// Rules
-%token T_IDENTIFIER T_CONSTANT
-
-%start ROOT
-
+%start translation_unit
 %%
 
 primary_expression
-    : T_IDENTIFIER
-    | T_CONSTANT
-    | '(' expression ')'
-    ;
+	: IDENTIFIER
+	| CONSTANT
+	| STRING_LITERAL
+	| '(' expression ')'
+	;
 
 postfix_expression
 	: primary_expression
 	| postfix_expression '[' expression ']'
 	| postfix_expression '(' ')'
 	| postfix_expression '(' argument_expression_list ')'
-	| postfix_expression '.' T_IDENTIFIER
+	| postfix_expression '.' IDENTIFIER
+	| postfix_expression PTR_OP IDENTIFIER
+	| postfix_expression INC_OP
+	| postfix_expression DEC_OP
 	;
 
 argument_expression_list
@@ -448,15 +425,4 @@ char *s;
 {
 	fflush(stdout);
 	printf("\n%*s\n%*s\n", column, "^", column, s);
-}
-
-%%
-
-const Expression *g_root; // Definition of variable (to match declaration earlier)
-
-const Expression *parseAST()
-{
-  g_root=0;
-  yyparse();
-  return g_root;
 }

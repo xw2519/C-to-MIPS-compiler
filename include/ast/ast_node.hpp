@@ -13,15 +13,15 @@
 #include <initializer_list>
 
 
-typedef const Root* RootPtr; // Pointer to Node
+typedef const Node* Node_Ptr; // Pointer to Node
 
-class Root
+class Node
 {
 protected:
     std::string type_;
 
 public:
-    virtual ~Root() {}
+    virtual ~Node() {}
 
     virtual const std::string &getType() const
     {
