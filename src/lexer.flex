@@ -26,6 +26,7 @@ OCT                     [0-7]
 [%]               { return (T_MODULO); }
 
   /* Bitwise Operators */
+[~]               { return (T_BITWISE_NOT); }
 [&]               { return (T_BITWISE_AND); }
 [|]               { return (T_BITWISE_OR); }
 [\^]              { return (T_BITWISE_XOR); }
@@ -39,11 +40,26 @@ OCT                     [0-7]
 
   /* Comparison */
 [==]              { return (T_EQUAL); }
+[!=]              { return (T_NOT_EQUAL); }
 [>]               { return (T_GREATER); }
 [<]               { return (T_LESS); }
+[<=]              { return (T_LESS_EQUAL); }
+[>=]              { return (T_GREATER_EQUAL); }
 
   /* Assignment */
 [=]               { return (T_ASSIGN); }
+[+=]              { return (T_ADD_ASSIGN); }
+[-=]              { return (T_SUB_ASSIGN); }
+[*=]              { return (T_MUL_ASSIGN); }
+[/=]              { return (T_DIV_ASSIGN); }
+[%=]              { return (T_MOD_ASSIGN); }
+[&=]              { return (T_AND_ASSIGN); }
+[|=]              { return (T_OR_ASSIGN); }
+[^=]              { return (T_XOR_ASSIGN); }
+[<<=]             { return (T_SHIFT_LEFT_ASSIGN); }
+[>>=]             { return (T_SHIFT_RIGHT_ASSIGN); }
+[++]              { return (T_INCREMENT); }
+[--]              { return (T_DECREMENT); }
 
   /* Characters */
 [(]               { return (T_LBRACKET); }
