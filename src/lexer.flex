@@ -70,6 +70,7 @@ OCT                     [0-7]
 [}]               { context.pop_back(); return (T_CURLY_RBRACKET); }
 [:]               { return (T_COLON); }
 [;]               { context.back().InTypedef=false; return (T_SEMICOLON); }
+[...]             { return (T_ELLIPSIS);}
 
   /* Types */
 "int"					    { return (T_INT); }
@@ -81,6 +82,7 @@ OCT                     [0-7]
   /* Structures */
 "if"					    { return (T_IF); }
 "else"					  { return (T_ELSE); }
+"do"              { return (T_DO); }
 "while"					  { return (T_WHILE); }
 "for"					    { return (T_FOR); }
 "switch"				  { return (T_SWITCH); }

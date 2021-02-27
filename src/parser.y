@@ -64,9 +64,9 @@ unary_expression
 	: postfix_expression
 	| INC_OP unary_expression
 	| DEC_OP unary_expression
-	| unary_operator cast_expression
-	| SIZEOF unary_expression
-	| SIZEOF '(' type_name ')'
+	| unary_operator unary_expression
+	| T_SIZEOF unary_expression
+	| T_SIZEOF '(' type_name ')'
 	;
 
 unary_operator
@@ -78,16 +78,11 @@ unary_operator
 	| '!'
 	;
 
-cast_expression
-	: unary_expression
-	| '(' type_name ')' cast_expression
-	;
-
 multiplicative_expression
-	: cast_expression
-	| multiplicative_expression '*' cast_expression
-	| multiplicative_expression '/' cast_expression
-	| multiplicative_expression '%' cast_expression
+	: unary_expression
+	| multiplicative_expression '*' unary_expression
+	| multiplicative_expression '/' unary_expression
+	| multiplicative_expression '%' unary_expression
 	;
 
 additive_expression
@@ -98,22 +93,22 @@ additive_expression
 
 shift_expression
 	: additive_expression
-	| shift_expression LEFT_OP additive_expression
-	| shift_expression RIGHT_OP additive_expression
+	| shift_expression T_BITWISE_SHIFT_LEFT additive_expression
+	| shift_expression T_BITWISE_SHIFT_RIGHT additive_expression
 	;
 
 relational_expression
 	: shift_expression
 	| relational_expression '<' shift_expression
 	| relational_expression '>' shift_expression
-	| relational_expression LE_OP shift_expression
-	| relational_expression GE_OP shift_expression
+	| relational_expression T_LESS_EQUAL shift_expression
+	| relational_expression T_GREATER_EQUAL shift_expression
 	;
 
 equality_expression
 	: relational_expression
-	| equality_expression EQ_OP relational_expression
-	| equality_expression NE_OP relational_expression
+	| equality_expression T_EQUAL relational_expression
+	| equality_expression T_NOT_EQUAL relational_expression
 	;
 
 and_expression
@@ -133,12 +128,12 @@ inclusive_or_expression
 
 logical_and_expression
 	: inclusive_or_expression
-	| logical_and_expression AND_OP inclusive_or_expression
+	| logical_and_expression T_BITWISE_AND inclusive_or_expression
 	;
 
 logical_or_expression
 	: logical_and_expression
-	| logical_or_expression OR_OP logical_and_expression
+	| logical_or_expression T_BITWISE_OR logical_and_expression
 	;
 
 conditional_expression
@@ -180,8 +175,8 @@ declaration
 	;
 
 declaration_specifiers
-	: TYPEDEF
-	| TYPEDEF declaration_specifiers
+	: T_TYPEDEF
+	| T_TYPEDEF declaration_specifiers
 	| type_specifier
 	| type_specifier declaration_specifiers
 	;
@@ -197,20 +192,20 @@ init_declarator
 	;
 
 type_specifier
-	: CHAR
-	| INT
-	| FLOAT
-	| DOUBLE
-	| UNSIGNED
+	: T_CHAR
+	| T_INT
+	| T_FLOAT
+	| T_DOUBLE
+	| T_UNSIGNED
 	| struct_specifier
 	| enum_specifier
-	| TYPE_NAME
+	| T_TYPEIDENTIFIER
 	;
 
 struct_specifier
-	: STRUCT IDENTIFIER '{' struct_declaration_list '}'
-	| STRUCT '{' struct_declaration_list '}'
-	| STRUCT IDENTIFIER
+	: T_STRUCT T_IDENTIFIER '{' struct_declaration_list '}'
+	| T_STRUCT '{' struct_declaration_list '}'
+	| T_STRUCT T_IDENTIFIER
 	;
 
 struct_declaration_list
@@ -239,9 +234,9 @@ struct_declarator
 	;
 
 enum_specifier
-	: ENUM '{' enumerator_list '}'
-	| ENUM IDENTIFIER '{' enumerator_list '}'
-	| ENUM IDENTIFIER
+	: T_ENUM '{' enumerator_list '}'
+	| T_ENUM T_IDENTIFIER '{' enumerator_list '}'
+	| T_ENUM T_IDENTIFIER
 	;
 
 enumerator_list
@@ -250,8 +245,8 @@ enumerator_list
 	;
 
 enumerator
-	: IDENTIFIER
-	| IDENTIFIER '=' constant_expression
+	: T_IDENTIFIER
+	| T_IDENTIFIER '=' constant_expression
 	;
 
 declarator
@@ -260,7 +255,7 @@ declarator
 	;
 
 direct_declarator
-	: IDENTIFIER
+	: T_IDENTIFIER
 	| '(' declarator ')'
 	| direct_declarator '[' constant_expression ']'
 	| direct_declarator '[' ']'
@@ -276,7 +271,7 @@ pointer
 
 parameter_type_list
 	: parameter_list
-	| parameter_list ',' ELLIPSIS
+	| parameter_list ',' T_ELLIPSIS
 	;
 
 parameter_list
@@ -291,8 +286,8 @@ parameter_declaration
 	;
 
 identifier_list
-	: IDENTIFIER
-	| identifier_list ',' IDENTIFIER
+	: T_IDENTIFIER
+	| identifier_list ',' T_IDENTIFIER
 	;
 
 type_name
@@ -339,9 +334,9 @@ statement
 	;
 
 labeled_statement
-	: IDENTIFIER ':' statement
-	| CASE constant_expression ':' statement
-	| DEFAULT ':' statement
+	: T_IDENTIFIER ':' statement
+	| T_CASE constant_expression ':' statement
+	| T_DEFAULT ':' statement
 	;
 
 compound_statement
@@ -373,17 +368,17 @@ selection_statement
 	;
 
 iteration_statement
-	: WHILE '(' expression ')' statement
-	| DO statement WHILE '(' expression ')' ';'
-	| FOR '(' expression_statement expression_statement ')' statement
-	| FOR '(' expression_statement expression_statement expression ')' statement
+	: T_WHILE '(' expression ')' statement
+	| T_DO statement T_WHILE '(' expression ')' ';'
+	| T_FOR '(' expression_statement expression_statement ')' statement
+	| T_FOR '(' expression_statement expression_statement expression ')' statement
 	;
 
 jump_statement
-	: CONTINUE ';'
-	| BREAK ';'
-	| RETURN ';'
-	| RETURN expression ';'
+	: T_CONTINUE ';'
+	| T_BREAK ';'
+	| T_RETURN ';'
+	| T_RETURN expression ';'
 	;
 
 translation_unit
