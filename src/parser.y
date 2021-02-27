@@ -180,12 +180,10 @@ declaration
 	;
 
 declaration_specifiers
-	: storage_class_specifier
-	| storage_class_specifier declaration_specifiers
+	: TYPEDEF
+	| TYPEDEF declaration_specifiers
 	| type_specifier
 	| type_specifier declaration_specifiers
-	| type_qualifier
-	| type_qualifier declaration_specifiers
 	;
 
 init_declarator_list
@@ -198,38 +196,21 @@ init_declarator
 	| declarator '=' initializer
 	;
 
-storage_class_specifier
-	: TYPEDEF
-	| EXTERN
-	| STATIC
-	| AUTO
-	| REGISTER
-	;
-
 type_specifier
-	: VOID
-	| CHAR
-	| SHORT
+	: CHAR
 	| INT
-	| LONG
 	| FLOAT
 	| DOUBLE
-	| SIGNED
 	| UNSIGNED
-	| struct_or_union_specifier
+	| struct_specifier
 	| enum_specifier
 	| TYPE_NAME
 	;
 
-struct_or_union_specifier
-	: struct_or_union IDENTIFIER '{' struct_declaration_list '}'
-	| struct_or_union '{' struct_declaration_list '}'
-	| struct_or_union IDENTIFIER
-	;
-
-struct_or_union
-	: STRUCT
-	| UNION
+struct_specifier
+	: STRUCT IDENTIFIER '{' struct_declaration_list '}'
+	| STRUCT '{' struct_declaration_list '}'
+	| STRUCT IDENTIFIER
 	;
 
 struct_declaration_list
@@ -244,8 +225,6 @@ struct_declaration
 specifier_qualifier_list
 	: type_specifier specifier_qualifier_list
 	| type_specifier
-	| type_qualifier specifier_qualifier_list
-	| type_qualifier
 	;
 
 struct_declarator_list
@@ -275,11 +254,6 @@ enumerator
 	| IDENTIFIER '=' constant_expression
 	;
 
-type_qualifier
-	: CONST
-	| VOLATILE
-	;
-
 declarator
 	: pointer direct_declarator
 	| direct_declarator
@@ -297,16 +271,8 @@ direct_declarator
 
 pointer
 	: '*'
-	| '*' type_qualifier_list
 	| '*' pointer
-	| '*' type_qualifier_list pointer
 	;
-
-type_qualifier_list
-	: type_qualifier
-	| type_qualifier_list type_qualifier
-	;
-
 
 parameter_type_list
 	: parameter_list
@@ -414,8 +380,7 @@ iteration_statement
 	;
 
 jump_statement
-	: GOTO IDENTIFIER ';'
-	| CONTINUE ';'
+	: CONTINUE ';'
 	| BREAK ';'
 	| RETURN ';'
 	| RETURN expression ';'

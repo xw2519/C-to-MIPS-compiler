@@ -84,6 +84,8 @@ OCT                     [0-7]
 "while"					  { return (T_WHILE); }
 "for"					    { return (T_FOR); }
 "switch"				  { return (T_SWITCH); }
+"case"				    { return (T_CASE); }
+"default"				  { return (T_DEFAULT); }
 "break"					  { return (T_BREAK); }
 "continue"				{ return (T_CONTINUE); }
 "return"			  	{ return (T_RETURN); }
