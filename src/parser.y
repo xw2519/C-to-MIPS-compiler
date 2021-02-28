@@ -25,7 +25,8 @@
 // Logical Operators
 %token T_LOGICAL_AND T_LOGICAL_OR T_LOGICAL_NOT
 // Characters Operators
-%token T_LBRACKET T_RBRACKET T_SQUARE_LBRACKET T_SQUARE_RBRACKET T_CURLY_LBRACKET T_CURLY_RBRACKET T_COLON T_SEMICOLON
+%token T_LBRACKET T_RBRACKET T_SQUARE_LBRACKET T_SQUARE_RBRACKET T_CURLY_LBRACKET T_CURLY_RBRACKET
+%token T_ELLIPSIS T_COLON T_SEMICOLON
 // Comparison Operators
 %token T_GREATER T_GREATER_EQUAL T_LESS T_LESS_EQUAL T_EQUAL T_NOT_EQUAL
 // Types Operators
@@ -62,8 +63,8 @@ argument_expression_list
 
 unary_expression
 	: postfix_expression
-	| INC_OP unary_expression
-	| DEC_OP unary_expression
+	| T_INCREMENT unary_expression
+	| T_DECREMENT unary_expression
 	| unary_operator unary_expression
 	| T_SIZEOF unary_expression
 	| T_SIZEOF '(' type_name ')'
@@ -169,39 +170,6 @@ constant_expression
 	: conditional_expression
 	;
 
-declaration
-	: declaration_specifiers ';'
-	| declaration_specifiers init_declarator_list ';'
-	;
-
-declaration_specifiers
-	: T_TYPEDEF
-	| T_TYPEDEF declaration_specifiers
-	| type_specifier
-	| type_specifier declaration_specifiers
-	;
-
-init_declarator_list
-	: init_declarator
-	| init_declarator_list ',' init_declarator
-	;
-
-init_declarator
-	: declarator
-	| declarator '=' initializer
-	;
-
-type_specifier
-	: T_CHAR
-	| T_INT
-	| T_FLOAT
-	| T_DOUBLE
-	| T_UNSIGNED
-	| struct_specifier
-	| enum_specifier
-	| T_TYPEIDENTIFIER
-	;
-
 struct_specifier
 	: T_STRUCT T_IDENTIFIER '{' struct_declaration_list '}'
 	| T_STRUCT '{' struct_declaration_list '}'
@@ -247,21 +215,6 @@ enumerator_list
 enumerator
 	: T_IDENTIFIER
 	| T_IDENTIFIER '=' constant_expression
-	;
-
-declarator
-	: pointer direct_declarator
-	| direct_declarator
-	;
-
-direct_declarator
-	: T_IDENTIFIER
-	| '(' declarator ')'
-	| direct_declarator '[' constant_expression ']'
-	| direct_declarator '[' ']'
-	| direct_declarator '(' parameter_type_list ')'
-	| direct_declarator '(' identifier_list ')'
-	| direct_declarator '(' ')'
 	;
 
 pointer
@@ -324,20 +277,6 @@ initializer_list
 	| initializer_list ',' initializer
 	;
 
-statement
-	: labeled_statement
-	| compound_statement
-	| expression_statement
-	| selection_statement
-	| iteration_statement
-	| jump_statement
-	;
-
-labeled_statement
-	: T_IDENTIFIER ':' statement
-	| T_CASE constant_expression ':' statement
-	| T_DEFAULT ':' statement
-	;
 
 compound_statement
 	: '{' '}'
@@ -356,15 +295,30 @@ statement_list
 	| statement_list statement
 	;
 
+statement
+	: labeled_statement
+	| compound_statement
+	| expression_statement
+	| selection_statement
+	| iteration_statement
+	| jump_statement
+	;
+
+labeled_statement
+	: T_IDENTIFIER ':' statement
+	| T_CASE constant_expression ':' statement
+	| T_DEFAULT ':' statement
+	;
+
 expression_statement
 	: ';'
 	| expression ';'
 	;
 
 selection_statement
-	: IF '(' expression ')' statement
-	| IF '(' expression ')' statement ELSE statement
-	| SWITCH '(' expression ')' statement
+	: T_IF '(' expression ')' statement
+	| T_IF '(' expression ')' statement ELSE statement
+	| T_SWITCH '(' expression ')' statement
 	;
 
 iteration_statement
@@ -381,21 +335,63 @@ jump_statement
 	| T_RETURN expression ';'
 	;
 
-translation_unit
-	: external_declaration
-	| translation_unit external_declaration
-	;
+
+ROOT : translation_unit                                                                { g_root = $1; }
+
+translation_unit : external_declaration                                                { $$ = new TranslationUnit($1); }
+                 | translation_unit external_declaration                               { $$ = new TranslationUnit($1, $2); }
 
 external_declaration
-	: function_definition
-	| declaration
+  : function_definition
+  | declaration
+  ;
+
+declaration
+	: declaration_specifiers ';'
+	| declaration_specifiers init_declarator_list ';'
 	;
 
-function_definition
-	: declaration_specifiers declarator declaration_list compound_statement
-	| declaration_specifiers declarator compound_statement
-	| declarator declaration_list compound_statement
-	| declarator compound_statement
+declaration_specifiers
+	: T_TYPEDEF
+	| T_TYPEDEF declaration_specifiers
+	| type_specifier
+	| type_specifier declaration_specifiers
+	;
+
+init_declarator_list
+	: init_declarator
+	| init_declarator_list ',' init_declarator
+	;
+
+type_specifier : T_CHAR                                                                { $$ = new PrimitiveType(T_CHAR); }
+               | T_INT                                                                 { $$ = new PrimitiveType(T_INT); }
+               | T_FLOAT                                                               { $$ = new PrimitiveType(T_FLOAT); }
+               | T_DOUBLE                                                              { $$ = new PrimitiveType(T_DOUBLE); }
+               | T_UNSIGNED                                                            { $$ = new PrimitiveType(T_UNSIGNED); }
+               | T_TYPEIDENTIFIER                                                      { $$ = new TypeIDType($1); }
+               | struct_specifier                                                      { $$ = new StructType($1); }
+               | enum_specifier                                                        { $$ = new EnumType($1); }
+
+init_declarator
+	: declarator
+	| declarator '=' initializer
+	;
+
+function_definition : declaration_specifiers declarator compound_statement             { $$ = new FunctionDefinition($1, $2, $3); }
+
+declarator
+	: pointer direct_declarator
+	| direct_declarator
+	;
+
+direct_declarator
+	: T_IDENTIFIER
+	| '(' declarator ')'
+	| direct_declarator '[' constant_expression ']'
+	| direct_declarator '[' ']'
+	| direct_declarator '(' parameter_type_list ')'
+	| direct_declarator '(' identifier_list ')'
+	| direct_declarator '(' ')'
 	;
 
 %%
