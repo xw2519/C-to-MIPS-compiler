@@ -1,3 +1,7 @@
 a.out
 .vscode/settings.json
-bin/c_compiler
+bin/*
+*.o
+*.output 
+*.yy.cpp
+*.tab.cpp
