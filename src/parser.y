@@ -26,7 +26,7 @@
 %token T_LOGICAL_AND T_LOGICAL_OR T_LOGICAL_NOT
 // Characters Operators
 %token T_LBRACKET T_RBRACKET T_SQUARE_LBRACKET T_SQUARE_RBRACKET T_CURLY_LBRACKET T_CURLY_RBRACKET
-%token T_ELLIPSIS T_COLON T_SEMICOLON T_DOT T_COMMA T_ARROW
+%token T_ELLIPSIS T_COLON T_SEMICOLON T_DOT T_COMMA T_ARROW T_REFERENCE T_DEREFERENCE
 // Comparison Operators
 %token T_GREATER T_GREATER_EQUAL T_LESS T_LESS_EQUAL T_EQUAL T_NOT_EQUAL
 // Types Operators
@@ -45,114 +45,87 @@
 primary_expression : T_IDENTIFIER                                                                  { $$ = new PrimaryExpression(T_IDENTIFIER, $1); }
                    | T_CONSTANT                                                                    { $$ = new PrimaryExpression(T_CONSTANT, $1); }
                    | T_STRING_LITERAL                                                              { $$ = new PrimaryExpression(T_STRING_LITERAL, $1); }
-                   | '(' assignment_expression ')'                                                 { $$ = new PrimaryExpression($2); }
+                   | T_LBRACKET assignment_expression T_RBRACKET                                   { $$ = new PrimaryExpression($2); }
 
 postfix_expression : primary_expression                                                            { $$ = new PostfixExpression($1); }
-                   | postfix_expression '[' assignment_expression ']'                              { $$ = new ArrayPostfixExpression($1, $3); }
-                   | postfix_expression '(' ')'                                                    { $$ = new FunctionPostfixExpression($1, T_VOID); }
-                   | postfix_expression '(' argument_expression_list ')'                           { $$ = new FunctionPostfixExpression($1, $3); }
-                   | postfix_expression '.' T_IDENTIFIER                                           { $$ = new DotPostfixExpression($1, $3); }
-                   | postfix_expression T_ARROW T_IDENTIFIER                                       { $$ = new ArrowPostfixExpression($1, $3); }
-                   | postfix_expression T_INCREMENT                                                { $$ = new IncrementPostfixExpression($1); }
-                   | postfix_expression T_DECREMENT                                                { $$ = new DecrementPostfixExpression($1); }
+                   | postfix_expression T_SQUARE_LBRACKET assignment_expression T_SQUARE_RBRACKET  { $$ = new ArrayPostfixExpression($1, $3); }
+                   | postfix_expression T_LBRACKET T_RBRACKET                                      { $$ = new FunctionPostfixExpression($1); }
+                   | postfix_expression T_LBRACKET argument_expression_list T_RBRACKET             { $$ = new FunctionPostfixExpression($1, $3); }
+                   | postfix_expression T_DOT T_IDENTIFIER                                         { $$ = new PostfixExpression(T_DOT, $1, $3); }
+                   | postfix_expression T_ARROW T_IDENTIFIER                                       { $$ = new PostfixExpression(T_ARROW, $1, $3); }
+                   | postfix_expression T_INCREMENT                                                { $$ = new PostfixExpression(T_INCREMENT, $1); }
+                   | postfix_expression T_DECREMENT                                                { $$ = new PostfixExpression(T_DECREMENT, $1); }
 
 argument_expression_list : assignment_expression                                                   { $$ = new ArgumentExpressionList($1); }
                          | argument_expression_list T_COMMA assignment_expression                  { $$ = new ArgumentExpressionList($1, $3); }
 
-unary_expression
-	: postfix_expression
-	| T_INCREMENT unary_expression
-	| T_DECREMENT unary_expression
-	| unary_operator unary_expression
-	| T_SIZEOF unary_expression
-	| T_SIZEOF '(' type_name ')'
-	;
+unary_expression : postfix_expression                                                              { $$ = new UnaryExpression($1); }
+                 | T_INCREMENT unary_expression                                                    { $$ = new UnaryExpression(T_INCREMENT, $2); }
+                 | T_DECREMENT unary_expression                                                    { $$ = new UnaryExpression(T_DECREMENT, $2); }
+                 | unary_operator unary_expression                                                 { $$ = new UnaryExpression($1, $2); }
+                 | T_SIZEOF unary_expression                                                       { $$ = new UnaryExpression(T_SIZEOF, $2); }
+                 | T_SIZEOF T_LBRACKET type_name T_RBRACKET                                        { $$ = new UnaryExpression(T_SIZEOF, $3); }
 
-unary_operator
-	: T_DIVIDE
-	| T_MULTIPLY
-	| T_PLUS
-	| T_MINUS
-	| T_BITWISE_NOT
-	| T_LOGICAL_NOT
-	;
+unary_operator : T_BITWISE_AND                                                                     { $$ = new UnaryOperator(T_REFERENCE); }
+               | T_MULTIPLY                                                                        { $$ = new UnaryOperator(T_DEREFERENCE); }
+               | T_PLUS                                                                            { $$ = new UnaryOperator(T_PLUS); }
+               | T_MINUS                                                                           { $$ = new UnaryOperator(T_MINUS); }
+               | T_BITWISE_NOT                                                                     { $$ = new UnaryOperator(T_BITWISE_NOT); }
+               | T_LOGICAL_NOT                                                                     { $$ = new UnaryOperator(T_LOGICAL_NOT); }
 
-multiplicative_expression
-	: unary_expression
-	| multiplicative_expression '*' unary_expression
-	| multiplicative_expression '/' unary_expression
-	| multiplicative_expression '%' unary_expression
-	;
+multiplicative_expression : unary_expression                                                       { $$ = new MultiplicativeExpression($1); }
+                          | multiplicative_expression T_MULTIPLY unary_expression                  { $$ = new MultiplicativeExpression(T_MULTIPLY, $1, $3); }
+                          | multiplicative_expression T_DIVIDE unary_expression                    { $$ = new MultiplicativeExpression(T_DIVIDE, $1, $3); }
+                          | multiplicative_expression T_MODULO unary_expression                    { $$ = new MultiplicativeExpression(T_MODULO, $1, $3); }
 
-additive_expression
-	: multiplicative_expression
-	| additive_expression '+' multiplicative_expression
-	| additive_expression '-' multiplicative_expression
-	;
+additive_expression : multiplicative_expression                                                    { $$ = new AdditiveExpression($1); }
+                    | additive_expression T_PLUS multiplicative_expression                         { $$ = new AdditiveExpression(T_PLUS, $1, $3); }
+                    | additive_expression T_MINUS multiplicative_expression                        { $$ = new AdditiveExpression(T_MINUS, $1, $3); }
 
-shift_expression
-	: additive_expression
-	| shift_expression T_BITWISE_SHIFT_LEFT additive_expression
-	| shift_expression T_BITWISE_SHIFT_RIGHT additive_expression
-	;
+shift_expression : additive_expression                                                             { $$ = new ShiftExpression($1); }
+                 | shift_expression T_BITWISE_SHIFT_LEFT additive_expression                       { $$ = new ShiftExpression(T_BITWISE_SHIFT_LEFT, $1, $3); }
+                 | shift_expression T_BITWISE_SHIFT_RIGHT additive_expression                      { $$ = new ShiftExpression(T_BITWISE_SHIFT_RIGHT, $1, $3); }
 
-relational_expression
-	: shift_expression
-	| relational_expression '<' shift_expression
-	| relational_expression '>' shift_expression
-	| relational_expression T_LESS_EQUAL shift_expression
-	| relational_expression T_GREATER_EQUAL shift_expression
-	;
+relational_expression : shift_expression                                                           { $$ = new RelationalExpression($1); }
+                      | relational_expression T_LESS shift_expression                              { $$ = new RelationalExpression(T_LESS, $1, $3); }
+                      | relational_expression T_GREATER shift_expression                           { $$ = new RelationalExpression(T_GREATER, $1, $3); }
+                      | relational_expression T_LESS_EQUAL shift_expression                        { $$ = new RelationalExpression(T_LESS_EQUAL, $1, $3); }
+                      | relational_expression T_GREATER_EQUAL shift_expression                     { $$ = new RelationalExpression(T_GREATER_EQUAL, $1, $3); }
 
-equality_expression
-	: relational_expression
-	| equality_expression T_EQUAL relational_expression
-	| equality_expression T_NOT_EQUAL relational_expression
-	;
+equality_expression : relational_expression                                                        { $$ = new EqualityExpression($1); }
+                    | equality_expression T_EQUAL relational_expression                            { $$ = new EqualityExpression(T_EQUAL, $1, $3); }
+                    | equality_expression T_NOT_EQUAL relational_expression                        { $$ = new EqualityExpression(T_NOT_EQUAL, $1, $3); }
 
-and_expression
-	: equality_expression
-	| and_expression '&' equality_expression
-	;
+and_expression : equality_expression
+               | and_expression T_BITWISE_AND equality_expression
 
-exclusive_or_expression
-	: and_expression
-	| exclusive_or_expression '^' and_expression
-	;
+exclusive_or_expression : and_expression
+                        | exclusive_or_expression T_BITWISE_XOR and_expression
 
-inclusive_or_expression
-	: exclusive_or_expression
-	| inclusive_or_expression '|' exclusive_or_expression
-	;
+inclusive_or_expression : exclusive_or_expression
+                        | inclusive_or_expression T_BITWISE_OR exclusive_or_expression
 
-logical_and_expression
-	: inclusive_or_expression
-	| logical_and_expression T_BITWISE_AND inclusive_or_expression
-	;
+logical_and_expression : inclusive_or_expression
+                       | logical_and_expression T_BITWISE_AND inclusive_or_expression
 
-constant_expression
-	: logical_and_expression
-	| constant_expression T_BITWISE_OR logical_and_expression
-	;
+constant_expression : logical_and_expression
+                    | constant_expression T_BITWISE_OR logical_and_expression
 
-assignment_expression
-	: constant_expression
-	| unary_expression assignment_operator assignment_expression
-	;
+assignment_expression : constant_expression
+                      | unary_expression assignment_operator assignment_expression
 
-assignment_operator
-	: T_ASSIGN
-  | T_ADD_ASSIGN
-  | T_SUB_ASSIGN
-	| T_MUL_ASSIGN
-	| T_DIV_ASSIGN
-	| T_MOD_ASSIGN
-	| T_SHIFT_LEFT_ASSIGN
-	| T_SHIFT_RIGHT_ASSIGN
-	| T_AND_ASSIGN
-  | T_OR_ASSIGN
-	| T_XOR_ASSIGN
-	;
+assignment_operator : T_ASSIGN
+                    | T_ADD_ASSIGN
+                    | T_SUB_ASSIGN
+                    | T_MUL_ASSIGN
+                    | T_DIV_ASSIGN
+                    | T_MOD_ASSIGN
+                    | T_SHIFT_LEFT_ASSIGN
+                    | T_SHIFT_RIGHT_ASSIGN
+                    | T_AND_ASSIGN
+                    | T_OR_ASSIGN
+                    | T_XOR_ASSIGN
+
 
 struct_specifier
 	: T_STRUCT T_IDENTIFIER '{' struct_declaration_list '}'
