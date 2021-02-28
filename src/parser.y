@@ -45,10 +45,10 @@
 primary_expression : T_IDENTIFIER                                                                  { $$ = new PrimaryExpression(T_IDENTIFIER, $1); }
                    | T_CONSTANT                                                                    { $$ = new PrimaryExpression(T_CONSTANT, $1); }
                    | T_STRING_LITERAL                                                              { $$ = new PrimaryExpression(T_STRING_LITERAL, $1); }
-                   | '(' expression ')'                                                            { $$ = new PrimaryExpression($2); }
+                   | '(' assignment_expression ')'                                                 { $$ = new PrimaryExpression($2); }
 
 postfix_expression : primary_expression                                                            { $$ = new PostfixExpression($1); }
-                   | postfix_expression '[' expression ']'                                         { $$ = new ArrayPostfixExpression($1, $3); }
+                   | postfix_expression '[' assignment_expression ']'                              { $$ = new ArrayPostfixExpression($1, $3); }
                    | postfix_expression '(' ')'                                                    { $$ = new FunctionPostfixExpression($1, T_VOID); }
                    | postfix_expression '(' argument_expression_list ')'                           { $$ = new FunctionPostfixExpression($1, $3); }
                    | postfix_expression '.' T_IDENTIFIER                                           { $$ = new DotPostfixExpression($1, $3); }
@@ -130,13 +130,13 @@ logical_and_expression
 	| logical_and_expression T_BITWISE_AND inclusive_or_expression
 	;
 
-logical_or_expression
+constant_expression
 	: logical_and_expression
-	| logical_or_expression T_BITWISE_OR logical_and_expression
+	| constant_expression T_BITWISE_OR logical_and_expression
 	;
 
 assignment_expression
-	: logical_or_expression
+	: constant_expression
 	| unary_expression assignment_operator assignment_expression
 	;
 
@@ -152,15 +152,6 @@ assignment_operator
 	| T_AND_ASSIGN
   | T_OR_ASSIGN
 	| T_XOR_ASSIGN
-	;
-
-expression
-	: assignment_expression
-	| expression T_COMMA assignment_expression
-	;
-
-constant_expression
-	: logical_or_expression
 	;
 
 struct_specifier
@@ -294,27 +285,27 @@ labeled_statement
 
 expression_statement
 	: ';'
-	| expression ';'
+	| assignment_expression ';'
 	;
 
 selection_statement
-	: T_IF '(' expression ')' statement
-	| T_IF '(' expression ')' statement ELSE statement
-	| T_SWITCH '(' expression ')' statement
+	: T_IF '(' assignment_expression ')' statement
+	| T_IF '(' assignment_expression ')' statement ELSE statement
+	| T_SWITCH '(' assignment_expression ')' statement
 	;
 
 iteration_statement
-	: T_WHILE '(' expression ')' statement
-	| T_DO statement T_WHILE '(' expression ')' ';'
+	: T_WHILE '(' assignment_expression ')' statement
+	| T_DO statement T_WHILE '(' assignment_expression ')' ';'
 	| T_FOR '(' expression_statement expression_statement ')' statement
-	| T_FOR '(' expression_statement expression_statement expression ')' statement
+	| T_FOR '(' expression_statement expression_statement assignment_expression ')' statement
 	;
 
 jump_statement
 	: T_CONTINUE ';'
 	| T_BREAK ';'
 	| T_RETURN ';'
-	| T_RETURN expression ';'
+	| T_RETURN assignment_expression ';'
 	;
 
 
