@@ -23,18 +23,23 @@ $31	        $ra	        Return Address											(Not used for normal use)
 
 ------------------------------------------------------------------------------------------------------------
 
+$4  - $7				Procedure arguments
 $8 	- $15				Temporary registers that can be overwritten by called procedures
 $16 - $23				Temporary registers but cannot be overwritten by procedures	
 $24	- $25				Temporary registers 
 
 */
 
-static int global_variable_counter;
-static int local_variable_counter;
+extern int global_variable_counter;
+extern int local_variable_counter;
 
 struct Context
 {
 	private:
+		// Register availability tracker
+		bool register_availability_tracker[32]; // Register $0 to $31
+
+		// Parameter list storage for function arguments 
 		std::vector <std::string> parameter_list;
 
 		// Mapping of global and local bindings with binding name as the key
@@ -43,9 +48,6 @@ struct Context
 
 		// Mapping of variable to location in memory with variable name as the key
 		std::map <std::string, int> variable_location;
-
-		// Register availability tracker
-		bool register_availability_tracker[32]; // Register $0 to $31
 	
 	public:
 		~Context () {}
