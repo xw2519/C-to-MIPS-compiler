@@ -19,7 +19,7 @@
 %token T_ASSIGN T_ADD_ASSIGN T_SUB_ASSIGN T_MUL_ASSIGN T_DIV_ASSIGN T_MOD_ASSIGN T_INCREMENT T_DECREMENT
 %token T_AND_ASSIGN T_OR_ASSIGN T_XOR_ASSIGN T_SHIFT_LEFT_ASSIGN T_SHIFT_RIGHT_ASSIGN
 // Arithmetic Operators
-%token T_MULTIPLY T_DIVIDE T_PLUS T_MINUS T_MODULO
+%token T_DIVIDE T_MULTIPLY T_MODULO T_PLUS T_MINUS
 // Bitwise Operators
 %token T_BITWISE_NOT T_BITWISE_AND T_BITWISE_XOR T_BITWISE_OR T_BITWISE_SHIFT_LEFT T_BITWISE_SHIFT_RIGHT
 // Logical Operators
@@ -56,8 +56,8 @@ postfix_expression : primary_expression                                         
                    | postfix_expression T_INCREMENT                                                { $$ = new IncrementPostfixExpression($1); }
                    | postfix_expression T_DECREMENT                                                { $$ = new DecrementPostfixExpression($1); }
 
-argument_expression_list : assignment_expression                                                   { $$ = new argument_expression_list($1); }
-                         | argument_expression_list T_COMMA assignment_expression                  { $$ = new argument_expression_list($1, $3); }
+argument_expression_list : assignment_expression                                                   { $$ = new ArgumentExpressionList($1); }
+                         | argument_expression_list T_COMMA assignment_expression                  { $$ = new ArgumentExpressionList($1, $3); }
 
 unary_expression
 	: postfix_expression
@@ -69,10 +69,10 @@ unary_expression
 	;
 
 unary_operator
-	: '&'
-	| '*'
-	| '+'
-	| '-'
+	: T_DIVIDE
+	| T_MULTIPLY
+	| T_PLUS
+	| T_MINUS
 	| T_BITWISE_NOT
 	| T_LOGICAL_NOT
 	;
@@ -201,10 +201,8 @@ enumerator
 	| T_IDENTIFIER '=' constant_expression
 	;
 
-pointer
-	: '*'
-	| '*' pointer
-	;
+pointer : '*'                                                                                      { $$ = new Pointer(); }
+        | '*' pointer                                                                              { $$ = new Pointer($2); }
 
 parameter_type_list
 	: parameter_list
