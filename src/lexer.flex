@@ -1,3 +1,7 @@
+  /*
+  Contents and terms are derived from the ANSI C grammer specification
+  */
+
 %option noyywrap
 
 %{
@@ -32,6 +36,7 @@ Alphabet	[a-zA-Z_]
 [}]                                 { return (T_CURLY_RBRACKET); }
 [:]                                 { return (T_COLON); }
 [;]                                 { return (T_SEMICOLON); }
+[,]                                 { return (T_COMMA); }
 
   /* Arithmetic Operators */
 [/]                                 { return (T_DIVIDE); }
@@ -44,19 +49,18 @@ Alphabet	[a-zA-Z_]
 [==]                                { return (T_EQUAL); }
 [>]                                 { return (T_GREATER); }
 [<]                                 { return (T_LESS); }
-[<=]				                        { return (T_LESS_EQUAL); }
-[>=]				                        { return (T_GREATER_EQUAL); }
+[\<=]				                        { return (T_LESS_EQUAL); }
+[\>=]				                        { return (T_GREATER_EQUAL); }
+[!=]				                        { return (T_NOT_EQUAL);	}
+
 
   /* Assignment */
 [=]                                 { return (T_ASSIGN); }
-
-
 [++]				                        { return (T_INCREMENT); }
 
-
-{Alphabet}({Alphabet}|{Decimal})*   { yylval.string = new std::string(yytext); return (T_IDENTIFIER); }
-{Decimal}+							            { yylval.int_num=strtod(yytext, 0); return (T_CONSTANT); }
-[Alphabet]?["](\\.|[^\\"\n])*["]		{ yylval.string = new std::string(yytext);	return (T_LITERAL); }
+{Alphabet}({Alphabet}|{Decimal})*   { yylval.string  = new std::string(yytext); return (T_IDENTIFIER); }
+{Decimal}+							            { yylval.int_num = strtod(yytext, 0);       return (T_CONSTANT); }
+[Alphabet]?["](\\.|[^\\"\n])*["]		{ yylval.string  = new std::string(yytext);	return (T_LITERAL); }
 
 [ \t\r\n]+		                      {;}
 
@@ -69,3 +73,4 @@ void yyerror (char const *s)
   fprintf (stderr, "Parse error : %s\n", s);
   exit(1);
 }
+

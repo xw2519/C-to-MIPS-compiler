@@ -4,6 +4,7 @@
 #include <vector>
 #include <map>
 #include <cassert>
+#include <iostream>
 
 /*
 $0	        $zero	    Hard-wired to 0
@@ -20,9 +21,53 @@ $30	        $fp	        Frame Pointer
 $31	        $ra	        Return Address
 */
 
-struct Ast_Context
-{
+class Node;
 
+
+typedef const Node* Node_Ptr;
+
+struct TranslateContext{
+	std::vector<std::string> global_var;
+};
+
+
+struct Context{
+	std::vector< std::pair<std::string,std::string> > var_bindings_stack; //global,local : <var_name,memloc>, 
+																		  //most recent represents the one visible 
+																		  //to the scope
+	int temp_reg_free = 0; 	//t0-t9
+	int saved_reg_free = 0;	//s0-s7
+	std::string curr_dest_reg = "t0";
+
+
+
+
+	void reset_free_reg(){
+		temp_reg_free = 0;
+		saved_reg_free = 0;
+		curr_dest_reg = "t0";
+	}
+
+	std::string get_dest_reg(){
+		return curr_dest_reg;
+	}
+
+	std::string alloc_free_reg(){
+		if(temp_reg_free <= 9){
+			temp_reg_free++;
+			curr_dest_reg = "t"+std::to_string(temp_reg_free);
+			return curr_dest_reg;
+		}
+		else if(saved_reg_free <= 7){
+			curr_dest_reg = "s"+std::to_string(saved_reg_free);
+			saved_reg_free++;
+			return curr_dest_reg;
+		}
+		else{
+			std::cout << "Out of registers" << std::endl;
+			return "NULL";
+		}
+	}
 };
 
 

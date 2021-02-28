@@ -12,6 +12,8 @@
 #include <stdexcept>
 #include <initializer_list>
 
+#include "ast_context.hpp"
+
 class Node;
 
 typedef const Node* Node_Ptr;
@@ -20,10 +22,18 @@ class Node
 {
 	public:
 		virtual ~Node () {}
-		virtual void print_structure 	(std::ostream &dst) const =0;
-		virtual void print_C 			(std::ostream &dst, std::string indent) const =0;
-		virtual void print_mips 		(std::ostream &dst) const =0;
 
+		virtual void print_structure 	(std::ostream &dst, int m) const =0;
+
+		virtual void print_C 			(std::ostream &dst, std::string indent) const
+		{
+			std::cerr << "Node.hpp: 'print_C' not implemented on " << typeid(this).name() << "\n";
+		}
+		
+		virtual void print_MIPS 		(std::ostream &dst, Context& ctx) const 
+		{
+			std::cerr<<"ASTNode::MIPS compilation is not implemented by type "<<typeid(this).name()<<"\n";
+		}
 };
 
 #endif

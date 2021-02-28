@@ -44,26 +44,60 @@
 extern int yydebug;
 #endif
 /* "%code requires" blocks.  */
-#line 1 "src/parser.y"
+#line 5 "src/parser.y"
 
 #include "ast.hpp"
 #include <cassert>
+#include <vector>
 
 extern const Node *root; // Definition of variable (to match declaration earlier)
 
-T_INT yylex(void);
+int yylex(void);
 void yyerror(const char *);
 
-#line 58 "src/parser.tab.hpp"
+#line 59 "src/parser.tab.hpp"
 
 /* Token type.  */
 #ifndef YYTOKENTYPE
 # define YYTOKENTYPE
   enum yytokentype
   {
-    T_INT = 258,
-    T_RETURN = 259,
-    T_IDENTIFIER = 260
+    T_ASSIGN = 258,
+    T_INCREMENT = 259,
+    T_MULTIPLY = 260,
+    T_DIVIDE = 261,
+    T_PLUS = 262,
+    T_MINUS = 263,
+    T_MODULO = 264,
+    T_LBRACKET = 265,
+    T_RBRACKET = 266,
+    T_SQUARE_LBRACKET = 267,
+    T_SQUARE_RBRACKET = 268,
+    T_CURLY_LBRACKET = 269,
+    T_CURLY_RBRACKET = 270,
+    T_COLON = 271,
+    T_SEMICOLON = 272,
+    T_COMMA = 273,
+    T_GREATER = 274,
+    T_GREATER_EQUAL = 275,
+    T_LESS = 276,
+    T_LESS_EQUAL = 277,
+    T_EQUAL = 278,
+    T_NOT_EQUAL = 279,
+    T_INT = 280,
+    T_VOID = 281,
+    T_IF = 282,
+    T_ELSE = 283,
+    T_SWITCH = 284,
+    T_WHILE = 285,
+    T_FOR = 286,
+    T_CONTINUE = 287,
+    T_BREAK = 288,
+    T_RETURN = 289,
+    T_IDENTIFIER = 290,
+    T_CONSTANT = 291,
+    INC_OP = 292,
+    T_LITERAL = 293
   };
 #endif
 
@@ -71,13 +105,22 @@ void yyerror(const char *);
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 11 "src/parser.y"
+#line 17 "src/parser.y"
 
-	const Node 	*node;
-	Statement 	*statement_node;
-	std::string *string;
+	const Node 		*node;
+	Declarator 		*declarator_node;
+	Declaration 	*declaration_node;
+	Statement 		*statement_node;
+	Expression 		*expression_node;
+	std::string 	*string;
+	int 			int_num;
 
-#line 81 "src/parser.tab.hpp"
+	std::vector<Expression*>* 	argument_list_vector;
+	std::vector<Statement*>* 	statement_list_vector;
+	std::vector<Declaration*>* 	declaration_list_vector;
+	std::vector<Declarator*>* 	declarator_list_vector;
+
+#line 124 "src/parser.tab.hpp"
 
 };
 typedef union YYSTYPE YYSTYPE;
