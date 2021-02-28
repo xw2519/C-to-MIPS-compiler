@@ -8,14 +8,23 @@
   #include "parser.tab.hpp"
 %}
 
-Decimal	  [0-9]
-Alphabet	[a-zA-Z_]
+
+D			  [0-9]
+L			  [a-zA-Z_]
+H			  [a-fA-F0-9]
+E			  [Ee][+-]?{D}+
+FS			(f|F|l|L)
+IS			(u|U|l|L)*
+
 
 %%
+  /* Comments (To be done at a later date) */
+  // "/*"			{ comment(); }
 
   /* Types */
-"int"				                        { return T_INT; }
-"void"							                { return T_VOID; }
+"int"				                        { return (T_INT); }
+"void"							                { return (T_VOID); }
+
 
   /* Structures */
 "if"					                      { return (T_IF); }
@@ -26,6 +35,7 @@ Alphabet	[a-zA-Z_]
 "break"					                    { return (T_BREAK); }
 "continue"				                  { return (T_CONTINUE); }
 "return"			  	                  { return (T_RETURN); }
+
 
   /* Characters */
 [(]                                 { return (T_LBRACKET); }
@@ -38,6 +48,7 @@ Alphabet	[a-zA-Z_]
 [;]                                 { return (T_SEMICOLON); }
 [,]                                 { return (T_COMMA); }
 
+
   /* Arithmetic Operators */
 [/]                                 { return (T_DIVIDE); }
 [*]                                 { return (T_MULTIPLY); }
@@ -45,28 +56,30 @@ Alphabet	[a-zA-Z_]
 [-]                                 { return (T_MINUS); }
 [%]                                 { return (T_MODULO); }
 
+
   /* Comparison */
-[==]                                { return (T_EQUAL); }
+[=][=]                              { return (T_EQUAL); }
 [>]                                 { return (T_GREATER); }
 [<]                                 { return (T_LESS); }
-[\<=]				                        { return (T_LESS_EQUAL); }
-[\>=]				                        { return (T_GREATER_EQUAL); }
-[!=]				                        { return (T_NOT_EQUAL);	}
+[<][=]				                      { return (T_LESS_EQUAL); }
+[>][=]				                      { return (T_GREATER_EQUAL); }
+[!][=]				                      { return (T_NOT_EQUAL);	}
 
 
   /* Assignment */
 [=]                                 { return (T_ASSIGN); }
-[++]				                        { return (T_INCREMENT); }
+[+][+]				                      { return (T_INCREMENT); }
 
-{Alphabet}({Alphabet}|{Decimal})*   { yylval.string  = new std::string(yytext); return (T_IDENTIFIER); }
-{Decimal}+							            { yylval.int_num = strtod(yytext, 0);       return (T_CONSTANT); }
-[Alphabet]?["](\\.|[^\\"\n])*["]		{ yylval.string  = new std::string(yytext);	return (T_LITERAL); }
 
-[ \t\r\n]+		                      {;}
-
+  /* Other */
+{L}({L}|{D})*                       { yylval.string  = new std::string(yytext); return (T_IDENTIFIER); }
+{D}+							                  { yylval.int_num = strtod(yytext, 0);       return (T_CONSTANT); }
+[L]?["](\\.|[^\\"\n])*["]		        { yylval.string  = new std::string(yytext);	return (T_LITERAL); }
+[ \t\r\n]+		                      { ; }
 .                                   { fprintf(stderr, "Invalid token\n"); exit(1); }
 
 %%
+
 
 void yyerror (char const *s)
 {

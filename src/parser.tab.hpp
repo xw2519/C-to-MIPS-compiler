@@ -44,13 +44,13 @@
 extern int yydebug;
 #endif
 /* "%code requires" blocks.  */
-#line 5 "src/parser.y"
+#line 7 "src/parser.y"
 
 #include "ast.hpp"
 #include <cassert>
 #include <vector>
 
-extern const Node *root; // Definition of variable (to match declaration earlier)
+extern const Node *root; 
 
 int yylex(void);
 void yyerror(const char *);
@@ -105,7 +105,7 @@ void yyerror(const char *);
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 17 "src/parser.y"
+#line 19 "src/parser.y"
 
 	const Node 		*node;
 	Declarator 		*declarator_node;
