@@ -13,7 +13,7 @@ context.push_back(LexerContext());
 %}
 
 A                       [a-zA-Z_]
-DIGIT                   [0-9]
+D                       [0-9]
 HEX                     [0-9A-Fa-f]
 OCT                     [0-7]
 
@@ -99,12 +99,21 @@ OCT                     [0-7]
 "typedef"         { context.back().InTypedef=true; return (T_TYPEDEF); }
 
 
-{A}({A}|{DIGIT})* { yylval.string=new std::string(yytext); return lexer_hack(yylval.string); }
+{A}({A}|{D})*                      { yylval.string=new std::string(yytext); return lexer_hack(yylval.string); }   // IDs and TypeIDs
 
-[DIGIT]+          { yylval.string = new std::string(yytext); return (T_CONSTANT); }
+{D}*\.{D}+([Ee][+-]?{D}+)?[Ff]?    { yylval.string = new std::string(yytext); return (T_CONSTANT); }              // Floating constants
+{D}+([Ee][+-]?{D}+)[Ff]?           { yylval.string = new std::string(yytext); return (T_CONSTANT); }
 
-[ \t\r\n]+		    { /* whitespace */ }
-.                 { fprintf(stderr, "Invalid token\n"); exit(1); }
+[1-9][\d]*[Uu]?                    { yylval.string = new std::string(yytext); return (T_CONSTANT); }              // Integer constants
+[0][OCT]*[Uu]?                     { yylval.string = new std::string(to_string(stoi(yytext, 0, 8))); return (T_CONSTANT); }
+[0][Xx]{HEX}+[Uu]?                 { yylval.string = new std::string(to_string(stoi(yytext, 0, 16))); return (T_CONSTANT); }
+
+\'(\\.|[^'\\\n])*\'                { yylval.string = new std::string(yytext); return (T_CONSTANT); }              // Character constants
+
+\"(\\.|[^'\\\n])*\"                { yylval.string = new std::string(yytext); return (T_STRING_LITERAL); }        // String literals
+
+[ \t\r\n]+		                     { /* whitespace */ }
+.                                  { fprintf(stderr, "Invalid token\n"); exit(1); }
 
 %%
 
