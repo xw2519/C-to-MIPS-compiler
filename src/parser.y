@@ -3,15 +3,15 @@
 
   #include <cassert>
 
-  extern const Expression *g_root;
+  extern const Node *root;
 
   int yylex(void);
   void yyerror(const char *);
 }
 
 %union{
-  const Expression *expr;
-  double number;
+  const Node *node;
+  Statement *statement_node;
   std::string *string;
 }
 
@@ -26,40 +26,38 @@
 %token T_LOGICAL_AND T_LOGICAL_OR T_LOGICAL_NOT
 // Characters Operators
 %token T_LBRACKET T_RBRACKET T_SQUARE_LBRACKET T_SQUARE_RBRACKET T_CURLY_LBRACKET T_CURLY_RBRACKET
-%token T_ELLIPSIS T_COLON T_SEMICOLON
+%token T_ELLIPSIS T_COLON T_SEMICOLON T_DOT T_COMMA T_ARROW
 // Comparison Operators
 %token T_GREATER T_GREATER_EQUAL T_LESS T_LESS_EQUAL T_EQUAL T_NOT_EQUAL
 // Types Operators
 %token T_CHAR T_INT T_FLOAT T_DOUBLE T_UNSIGNED
 // Structures Operators
-%token T_IF T_ELSE T_SWITCH T_WHILE T_FOR T_CONTINUE T_BREAK T_RETURN
+%token T_SWITCH T_WHILE T_FOR T_IF T_ELSE T_CONTINUE T_BREAK T_RETURN
 // Keywords Operators
 %token T_TYPEDEF T_STRUCT T_ENUM T_SIZEOF
 // Rules
-%token T_IDENTIFIER T_CONSTANT
+%token T_IDENTIFIER T_CONSTANT T_STRING_LITERAL
 
 %start ROOT
 
 %%
 
-primary_expression
-    : T_IDENTIFIER
-    | T_CONSTANT
-    | '(' expression ')'
-    ;
+primary_expression : T_IDENTIFIER                                                                  { $$ = new PrimaryExpression(T_IDENTIFIER, $1); }
+                   | T_CONSTANT                                                                    { $$ = new PrimaryExpression(T_CONSTANT, $1); }
+                   | T_STRING_LITERAL                                                              { $$ = new PrimaryExpression(T_STRING_LITERAL, $1); }
+                   | '(' expression ')'                                                            { $$ = new PrimaryExpression($2); }
 
-postfix_expression
-	: primary_expression
-	| postfix_expression '[' expression ']'
-	| postfix_expression '(' ')'
-	| postfix_expression '(' argument_expression_list ')'
-	| postfix_expression '.' T_IDENTIFIER
-	;
+postfix_expression : primary_expression                                                            { $$ = new PostfixExpression($1); }
+                   | postfix_expression '[' expression ']'                                         { $$ = new ArrayPostfixExpression($1, $3); }
+                   | postfix_expression '(' ')'                                                    { $$ = new FunctionPostfixExpression($1, T_VOID); }
+                   | postfix_expression '(' argument_expression_list ')'                           { $$ = new FunctionPostfixExpression($1, $3); }
+                   | postfix_expression '.' T_IDENTIFIER                                           { $$ = new DotPostfixExpression($1, $3); }
+                   | postfix_expression T_ARROW T_IDENTIFIER                                       { $$ = new ArrowPostfixExpression($1, $3); }
+                   | postfix_expression T_INCREMENT                                                { $$ = new IncrementPostfixExpression($1); }
+                   | postfix_expression T_DECREMENT                                                { $$ = new DecrementPostfixExpression($1); }
 
-argument_expression_list
-	: assignment_expression
-	| argument_expression_list ',' assignment_expression
-	;
+argument_expression_list : assignment_expression                                                   { $$ = new argument_expression_list($1); }
+                         | argument_expression_list T_COMMA assignment_expression                  { $$ = new argument_expression_list($1, $3); }
 
 unary_expression
 	: postfix_expression
@@ -75,8 +73,8 @@ unary_operator
 	| '*'
 	| '+'
 	| '-'
-	| '~'
-	| '!'
+	| T_BITWISE_NOT
+	| T_LOGICAL_NOT
 	;
 
 multiplicative_expression
@@ -137,13 +135,8 @@ logical_or_expression
 	| logical_or_expression T_BITWISE_OR logical_and_expression
 	;
 
-conditional_expression
-	: logical_or_expression
-	| logical_or_expression '?' expression ':' conditional_expression
-	;
-
 assignment_expression
-	: conditional_expression
+	: logical_or_expression
 	| unary_expression assignment_operator assignment_expression
 	;
 
@@ -163,11 +156,11 @@ assignment_operator
 
 expression
 	: assignment_expression
-	| expression ',' assignment_expression
+	| expression T_COMMA assignment_expression
 	;
 
 constant_expression
-	: conditional_expression
+	: logical_or_expression
 	;
 
 struct_specifier
@@ -192,7 +185,7 @@ specifier_qualifier_list
 
 struct_declarator_list
 	: struct_declarator
-	| struct_declarator_list ',' struct_declarator
+	| struct_declarator_list T_COMMA struct_declarator
 	;
 
 struct_declarator
@@ -209,7 +202,7 @@ enum_specifier
 
 enumerator_list
 	: enumerator
-	| enumerator_list ',' enumerator
+	| enumerator_list T_COMMA enumerator
 	;
 
 enumerator
@@ -224,12 +217,12 @@ pointer
 
 parameter_type_list
 	: parameter_list
-	| parameter_list ',' T_ELLIPSIS
+	| parameter_list T_COMMA T_ELLIPSIS
 	;
 
 parameter_list
 	: parameter_declaration
-	| parameter_list ',' parameter_declaration
+	| parameter_list T_COMMA parameter_declaration
 	;
 
 parameter_declaration
@@ -240,7 +233,7 @@ parameter_declaration
 
 identifier_list
 	: T_IDENTIFIER
-	| identifier_list ',' T_IDENTIFIER
+	| identifier_list T_COMMA T_IDENTIFIER
 	;
 
 type_name
@@ -264,17 +257,6 @@ direct_abstract_declarator
 	| '(' parameter_type_list ')'
 	| direct_abstract_declarator '(' ')'
 	| direct_abstract_declarator '(' parameter_type_list ')'
-	;
-
-initializer
-	: assignment_expression
-	| '{' initializer_list '}'
-	| '{' initializer_list ',' '}'
-	;
-
-initializer_list
-	: initializer
-	| initializer_list ',' initializer
 	;
 
 
@@ -336,10 +318,10 @@ jump_statement
 	;
 
 
-ROOT : translation_unit                                                                { g_root = $1; }
+ROOT : translation_unit                                                                            { g_root = $1; }
 
-translation_unit : external_declaration                                                { $$ = new TranslationUnit($1); }
-                 | translation_unit external_declaration                               { $$ = new TranslationUnit($1, $2); }
+translation_unit : external_declaration                                                            { $$ = new TranslationUnit($1); }
+                 | translation_unit external_declaration                                           { $$ = new TranslationUnit($1, $2); }
 
 external_declaration
   : function_definition
@@ -360,24 +342,35 @@ declaration_specifiers
 
 init_declarator_list
 	: init_declarator
-	| init_declarator_list ',' init_declarator
+	| init_declarator_list T_COMMA init_declarator
 	;
 
-type_specifier : T_CHAR                                                                { $$ = new PrimitiveType(T_CHAR); }
-               | T_INT                                                                 { $$ = new PrimitiveType(T_INT); }
-               | T_FLOAT                                                               { $$ = new PrimitiveType(T_FLOAT); }
-               | T_DOUBLE                                                              { $$ = new PrimitiveType(T_DOUBLE); }
-               | T_UNSIGNED                                                            { $$ = new PrimitiveType(T_UNSIGNED); }
-               | T_TYPEIDENTIFIER                                                      { $$ = new TypeIDType($1); }
-               | struct_specifier                                                      { $$ = new StructType($1); }
-               | enum_specifier                                                        { $$ = new EnumType($1); }
+type_specifier : T_CHAR                                                                            { $$ = new PrimitiveType(T_CHAR); }
+               | T_INT                                                                             { $$ = new PrimitiveType(T_INT); }
+               | T_FLOAT                                                                           { $$ = new PrimitiveType(T_FLOAT); }
+               | T_DOUBLE                                                                          { $$ = new PrimitiveType(T_DOUBLE); }
+               | T_UNSIGNED                                                                        { $$ = new PrimitiveType(T_UNSIGNED); }
+               | T_TYPEIDENTIFIER                                                                  { $$ = new TypeIDType($1); }
+               | struct_specifier                                                                  { $$ = new StructType($1); }
+               | enum_specifier                                                                    { $$ = new EnumType($1); }
 
 init_declarator
 	: declarator
 	| declarator '=' initializer
 	;
 
-function_definition : declaration_specifiers declarator compound_statement             { $$ = new FunctionDefinition($1, $2, $3); }
+initializer
+	: assignment_expression
+	| '{' initializer_list '}'
+	| '{' initializer_list T_COMMA '}'
+	;
+
+initializer_list
+	: initializer
+	| initializer_list T_COMMA initializer
+	;
+
+function_definition : declaration_specifiers declarator compound_statement                         { $$ = new FunctionDefinition($1, $2, $3); }
 
 declarator
 	: pointer direct_declarator
@@ -409,11 +402,11 @@ char *s;
 
 %%
 
-const Expression *g_root; // Definition of variable (to match declaration earlier)
+const Node *root; // Definition of variable (to match declaration earlier)
 
-const Expression *parseAST()
+const Node *parse()
 {
-  g_root=0;
+  root=0;
   yyparse();
-  return g_root;
+  return root;
 }

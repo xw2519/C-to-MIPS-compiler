@@ -71,6 +71,9 @@ OCT                     [0-7]
 [:]               { return (T_COLON); }
 [;]               { context.back().InTypedef=false; return (T_SEMICOLON); }
 [...]             { return (T_ELLIPSIS);}
+[.]               { return (T_DOT); }
+[,]               { return (T_COMMA); }
+[->]              { return (T_ARROW); }
 
   /* Types */
 "int"					    { return (T_INT); }
