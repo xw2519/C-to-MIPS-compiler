@@ -42,57 +42,57 @@
 
 %%
 /* Expressions */
-primary_expression : T_IDENTIFIER                                                                  { $$ = new PrimaryExpression(T_IDENTIFIER, *$1); }
-                   | T_CONSTANT                                                                    { $$ = new PrimaryExpression(T_CONSTANT, *$1); }
-                   | T_STRING_LITERAL                                                              { $$ = new PrimaryExpression(T_STRING_LITERAL, *$1); }
+primary_expression : T_IDENTIFIER                                                                  { $$ = new PrimaryExpression(IDENTIFIER, *$1); }
+                   | T_CONSTANT                                                                    { $$ = new PrimaryExpression(CONSTANT, *$1); }
+                   | T_STRING_LITERAL                                                              { $$ = new PrimaryExpression(STRING_LITERAL, *$1); }
                    | T_LBRACKET assignment_expression T_RBRACKET                                   { $$ = new PrimaryExpression($2); }
 
 postfix_expression : primary_expression                                                            { $$ = new PostfixExpression($1); }
                    | postfix_expression T_SQUARE_LBRACKET assignment_expression T_SQUARE_RBRACKET  { $$ = new ArrayPostfixExpression($1, $3); }
                    | postfix_expression T_LBRACKET T_RBRACKET                                      { $$ = new FunctionPostfixExpression($1); }
                    | postfix_expression T_LBRACKET argument_expression_list T_RBRACKET             { $$ = new FunctionPostfixExpression($1, $3); }
-                   | postfix_expression T_DOT T_IDENTIFIER                                         { $$ = new PostfixExpression(T_DOT, $1, *$3); }
-                   | postfix_expression T_ARROW T_IDENTIFIER                                       { $$ = new PostfixExpression(T_ARROW, $1, *$3); }
-                   | postfix_expression T_INCREMENT                                                { $$ = new PostfixExpression(T_INCREMENT, $1); }
-                   | postfix_expression T_DECREMENT                                                { $$ = new PostfixExpression(T_DECREMENT, $1); }
+                   | postfix_expression T_DOT T_IDENTIFIER                                         { $$ = new PostfixExpression(DOT, $1, *$3); }
+                   | postfix_expression T_ARROW T_IDENTIFIER                                       { $$ = new PostfixExpression(ARROW, $1, *$3); }
+                   | postfix_expression T_INCREMENT                                                { $$ = new PostfixExpression(INCREMENT, $1); }
+                   | postfix_expression T_DECREMENT                                                { $$ = new PostfixExpression(DECREMENT, $1); }
 
 argument_expression_list : assignment_expression                                                   { $$ = new ArgumentExpressionList($1); }
                          | argument_expression_list T_COMMA assignment_expression                  { $$ = new ArgumentExpressionList($1, $3); }
 
 unary_expression : postfix_expression                                                              { $$ = new UnaryExpression($1); }
-                 | T_INCREMENT unary_expression                                                    { $$ = new UnaryExpression(T_INCREMENT, $2); }
-                 | T_DECREMENT unary_expression                                                    { $$ = new UnaryExpression(T_DECREMENT, $2); }
-                 | T_BITWISE_AND unary_expression                                                  { $$ = new UnaryExpression(T_REFERENCE, $2); }
-                 | T_MULTIPLY unary_expression                                                     { $$ = new UnaryExpression(T_DEREFERENCE, $2); }
+                 | T_INCREMENT unary_expression                                                    { $$ = new UnaryExpression(INCREMENT, $2); }
+                 | T_DECREMENT unary_expression                                                    { $$ = new UnaryExpression(DECREMENT, $2); }
+                 | T_BITWISE_AND unary_expression                                                  { $$ = new UnaryExpression(REFERENCE, $2); }
+                 | T_MULTIPLY unary_expression                                                     { $$ = new UnaryExpression(DEREFERENCE, $2); }
                  | T_PLUS unary_expression                                                         { $$ = $2; }
-                 | T_MINUS unary_expression                                                        { $$ = new UnaryExpression(T_MINUS, $2); }
-                 | T_BITWISE_NOT unary_expression                                                  { $$ = new UnaryExpression(T_BITWISE_NOT, $2); }
-                 | T_LOGICAL_NOT unary_expression                                                  { $$ = new UnaryExpression(T_LOGICAL_NOT, $2); }
-                 | T_SIZEOF unary_expression                                                       { $$ = new UnaryExpression(T_SIZEOF, $2); }
-                 | T_SIZEOF T_LBRACKET type_name T_RBRACKET                                        { $$ = new UnaryExpression(T_SIZEOF, $3); }
+                 | T_MINUS unary_expression                                                        { $$ = new UnaryExpression(MINUS, $2); }
+                 | T_BITWISE_NOT unary_expression                                                  { $$ = new UnaryExpression(BITWISE_NOT, $2); }
+                 | T_LOGICAL_NOT unary_expression                                                  { $$ = new UnaryExpression(LOGICAL_NOT, $2); }
+                 | T_SIZEOF unary_expression                                                       { $$ = new UnaryExpression(SIZEOF, $2); }
+                 | T_SIZEOF T_LBRACKET type_name T_RBRACKET                                        { $$ = new UnaryExpression(SIZEOF, $3); }
 
 multiplicative_expression : unary_expression                                                       { $$ = new MultiplicativeExpression($1); }
-                          | multiplicative_expression T_MULTIPLY unary_expression                  { $$ = new MultiplicativeExpression(T_MULTIPLY, $1, $3); }
-                          | multiplicative_expression T_DIVIDE unary_expression                    { $$ = new MultiplicativeExpression(T_DIVIDE, $1, $3); }
-                          | multiplicative_expression T_MODULO unary_expression                    { $$ = new MultiplicativeExpression(T_MODULO, $1, $3); }
+                          | multiplicative_expression T_MULTIPLY unary_expression                  { $$ = new MultiplicativeExpression(MULTIPLY, $1, $3); }
+                          | multiplicative_expression T_DIVIDE unary_expression                    { $$ = new MultiplicativeExpression(DIVIDE, $1, $3); }
+                          | multiplicative_expression T_MODULO unary_expression                    { $$ = new MultiplicativeExpression(MODULO, $1, $3); }
 
 additive_expression : multiplicative_expression                                                    { $$ = new AdditiveExpression($1); }
-                    | additive_expression T_PLUS multiplicative_expression                         { $$ = new AdditiveExpression(T_PLUS, $1, $3); }
-                    | additive_expression T_MINUS multiplicative_expression                        { $$ = new AdditiveExpression(T_MINUS, $1, $3); }
+                    | additive_expression T_PLUS multiplicative_expression                         { $$ = new AdditiveExpression(PLUS, $1, $3); }
+                    | additive_expression T_MINUS multiplicative_expression                        { $$ = new AdditiveExpression(MINUS, $1, $3); }
 
 shift_expression : additive_expression                                                             { $$ = new ShiftExpression($1); }
-                 | shift_expression T_BITWISE_SHIFT_LEFT additive_expression                       { $$ = new ShiftExpression(T_BITWISE_SHIFT_LEFT, $1, $3); }
-                 | shift_expression T_BITWISE_SHIFT_RIGHT additive_expression                      { $$ = new ShiftExpression(T_BITWISE_SHIFT_RIGHT, $1, $3); }
+                 | shift_expression T_BITWISE_SHIFT_LEFT additive_expression                       { $$ = new ShiftExpression(BITWISE_SHIFT_LEFT, $1, $3); }
+                 | shift_expression T_BITWISE_SHIFT_RIGHT additive_expression                      { $$ = new ShiftExpression(BITWISE_SHIFT_RIGHT, $1, $3); }
 
 relational_expression : shift_expression                                                           { $$ = new RelationalExpression($1); }
-                      | relational_expression T_LESS shift_expression                              { $$ = new RelationalExpression(T_LESS, $1, $3); }
-                      | relational_expression T_GREATER shift_expression                           { $$ = new RelationalExpression(T_GREATER, $1, $3); }
-                      | relational_expression T_LESS_EQUAL shift_expression                        { $$ = new RelationalExpression(T_LESS_EQUAL, $1, $3); }
-                      | relational_expression T_GREATER_EQUAL shift_expression                     { $$ = new RelationalExpression(T_GREATER_EQUAL, $1, $3); }
+                      | relational_expression T_LESS shift_expression                              { $$ = new RelationalExpression(LESS, $1, $3); }
+                      | relational_expression T_GREATER shift_expression                           { $$ = new RelationalExpression(GREATER, $1, $3); }
+                      | relational_expression T_LESS_EQUAL shift_expression                        { $$ = new RelationalExpression(LESS_EQUAL, $1, $3); }
+                      | relational_expression T_GREATER_EQUAL shift_expression                     { $$ = new RelationalExpression(GREATER_EQUAL, $1, $3); }
 
 equality_expression : relational_expression                                                        { $$ = new EqualityExpression($1); }
-                    | equality_expression T_EQUAL relational_expression                            { $$ = new EqualityExpression(T_EQUAL, $1, $3); }
-                    | equality_expression T_NOT_EQUAL relational_expression                        { $$ = new EqualityExpression(T_NOT_EQUAL, $1, $3); }
+                    | equality_expression T_EQUAL relational_expression                            { $$ = new EqualityExpression(EQUAL, $1, $3); }
+                    | equality_expression T_NOT_EQUAL relational_expression                        { $$ = new EqualityExpression(NOT_EQUAL, $1, $3); }
 
 and_expression : equality_expression                                                               { $$ = new AndExpression($1); }
                | and_expression T_BITWISE_AND equality_expression                                  { $$ = new AndExpression($1, $3); }
@@ -110,17 +110,17 @@ constant_expression : logical_and_expression                                    
                     | constant_expression T_BITWISE_OR logical_and_expression                      { $$ = new ConstantExpression($1, $3); }
 
 assignment_expression : constant_expression                                                        { $$ = new AssignmentExpression($1); }
-                      | unary_expression T_ASSIGN assignment_expression                            { $$ = new AssignmentExpression(T_ASSIGN, $1, $3); }
-                      | unary_expression T_ADD_ASSIGN assignment_expression                        { $$ = new AssignmentExpression(T_ADD_ASSIGN, $1, $3); }
-                      | unary_expression T_SUB_ASSIGN assignment_expression                        { $$ = new AssignmentExpression(T_SUB_ASSIGN, $1, $3); }
-                      | unary_expression T_MUL_ASSIGN assignment_expression                        { $$ = new AssignmentExpression(T_MUL_ASSIGN, $1, $3); }
-                      | unary_expression T_DIV_ASSIGN assignment_expression                        { $$ = new AssignmentExpression(T_DIV_ASSIGN, $1, $3); }
-                      | unary_expression T_MOD_ASSIGN assignment_expression                        { $$ = new AssignmentExpression(T_MOD_ASSIGN, $1, $3); }
-                      | unary_expression T_SHIFT_LEFT_ASSIGN assignment_expression                 { $$ = new AssignmentExpression(T_SHIFT_LEFT_ASSIGN, $1, $3); }
-                      | unary_expression T_SHIFT_RIGHT_ASSIGN assignment_expression                { $$ = new AssignmentExpression(T_SHIFT_RIGHT_ASSIGN, $1, $3); }
-                      | unary_expression T_AND_ASSIGN assignment_expression                        { $$ = new AssignmentExpression(T_AND_ASSIGN, $1, $3); }
-                      | unary_expression T_OR_ASSIGN assignment_expression                         { $$ = new AssignmentExpression(T_OR_ASSIGN, $1, $3); }
-                      | unary_expression T_XOR_ASSIGN assignment_expression                        { $$ = new AssignmentExpression(T_XOR_ASSIGN, $1, $3); }
+                      | unary_expression T_ASSIGN assignment_expression                            { $$ = new AssignmentExpression(ASSIGN, $1, $3); }
+                      | unary_expression T_ADD_ASSIGN assignment_expression                        { $$ = new AssignmentExpression(ADD_ASSIGN, $1, $3); }
+                      | unary_expression T_SUB_ASSIGN assignment_expression                        { $$ = new AssignmentExpression(SUB_ASSIGN, $1, $3); }
+                      | unary_expression T_MUL_ASSIGN assignment_expression                        { $$ = new AssignmentExpression(MUL_ASSIGN, $1, $3); }
+                      | unary_expression T_DIV_ASSIGN assignment_expression                        { $$ = new AssignmentExpression(DIV_ASSIGN, $1, $3); }
+                      | unary_expression T_MOD_ASSIGN assignment_expression                        { $$ = new AssignmentExpression(MOD_ASSIGN, $1, $3); }
+                      | unary_expression T_SHIFT_LEFT_ASSIGN assignment_expression                 { $$ = new AssignmentExpression(SHIFT_LEFT_ASSIGN, $1, $3); }
+                      | unary_expression T_SHIFT_RIGHT_ASSIGN assignment_expression                { $$ = new AssignmentExpression(SHIFT_RIGHT_ASSIGN, $1, $3); }
+                      | unary_expression T_AND_ASSIGN assignment_expression                        { $$ = new AssignmentExpression(AND_ASSIGN, $1, $3); }
+                      | unary_expression T_OR_ASSIGN assignment_expression                         { $$ = new AssignmentExpression(OR_ASSIGN, $1, $3); }
+                      | unary_expression T_XOR_ASSIGN assignment_expression                        { $$ = new AssignmentExpression(XOR_ASSIGN, $1, $3); }
 
 /* Structs and Enums */
 struct_specifier : T_STRUCT T_IDENTIFIER T_CURLY_LBRACKET struct_declaration_list T_CURLY_RBRACKET { $$ = new StructSpecifier(*$2, $4); }
