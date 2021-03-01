@@ -86,51 +86,36 @@ class Add_Expression : public Operator
 	public:
 		Add_Expression(Expression* _left, Expression* _right) : Operator(_left, _right) {}
 
-		virtual void print_MIPS(std::ostream &dst, Context& context, int destination_register) const override
+		virtual void print_MIPS(std::ostream &dst, Context& context) const override
 		{
-			// Find available registers to allocate and reserve it for the operation
-			std::vector<int> available_registers = context.list_available_temprorary_registers(); 
-            context.set_unavaiable(available_registers[0]);  
 
-			// Release registers used in this operation
-			context.set_avaiable(available_registers[0]);
-            context.set_avaiable(available_registers[1]);
 		}
 };
 
 class Sub_Expression : public Operator
 {
 	public:
-		Sub_Expression(Expression* _left, Expression* _right) : Operator(_left,_right) {}
+		Sub_Expression(Expression* _left, Expression* _right) : Operator(_left, _right) {}
 
-		virtual void print_MIPS(std::ostream &dst, Context& context, int destination_register) const override
+		virtual void print_MIPS(std::ostream &dst, Context& context) const override
 		{
-            // Find available registers to allocate and reserve it for the operation
-			std::vector<int> available_registers = context.list_available_temprorary_registers(); 
-            context.set_unavaiable(available_registers[0]);  
-            
-			// Compiler left and right branches
-            left->print_MIPS(dst, context, destination_register);
-            right->print_MIPS(dst, context, available_registers[0]);
 
-			// Print MIPS assembly
-            dst << "\t"<< "sub"<< "\t" << "$" << destination_register << ", $" << destination_register << ", $" << available_registers[0] << "\t#Subtraction"<< std::endl;
-
-            // Release registers used in this operation
-			context.set_avaiable(available_registers[0]);
-		}	
+		}
 };
 
 class Multiply_Expression : public Operator
 {
 	public:
 		Multiply_Expression(Expression* _left, Expression* _right) : Operator(_left,_right) {}
+
+
 };
 
 class Divide_Expression : public Operator
 {
 	public:
 		Divide_Expression(Expression* _left, Expression* _right) : Operator(_left,_right) {}
+
 };
 
 

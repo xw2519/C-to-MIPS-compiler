@@ -52,7 +52,7 @@ void yyerror(const char *);
 
 /* ------------------------------------					Type					------------------------------------ */
 
-%type <node> translation_unit 
+%type <node> program 
 %type <node> function_definition
 %type <node> global_declaration
 
@@ -87,10 +87,10 @@ void yyerror(const char *);
 
 /* ------------------------------------					Base definitions					------------------------------------ */
 
-ROOT 							: 	translation_unit											{ root = $1; }
+ROOT 							: 	program														{ root = $1; }
 
-translation_unit 				: 	function_definition					  						{ $$ = $1; }
-								| 	translation_unit function_definition   						{ $$ = new Translation_Unit($1,$2); }
+program 						: 	function_definition					  						{ $$ = $1; }
+								| 	program function_definition   								{ $$ = new Program($1,$2); }
 
 global_declaration				:	function_definition											{ $$ = $1; }
 								|	declaration 												{ $$ = $1; }
@@ -125,11 +125,11 @@ expression 				:	assignment_expression
 
 primary_expression		: 	T_CONSTANT														{ $$ = new Constant($1); }
 						| 	T_IDENTIFIER		 											{ $$ = new Identifier(*$1);	}	
-						| 	T_LITERAL			 											{ $$ = new String_Literal(*$1); }	
+						| 	T_LITERAL			 											{ $$ = new StringLiteral(*$1); }	
 						| 	T_LBRACKET expression T_RBRACKET								{ $$ = $2; }		
 
 postfix_expression		:	primary_expression	
-						|	primary_expression	INC_OP										{ $$ = new Post_Increment_Expression($1); }
+						|	primary_expression INC_OP										{ $$ = new Post_Increment_Expression($1); }
 						|	primary_expression T_LBRACKET T_RBRACKET						{ $$ = new Function_Call_Expression($1) ; }
 						|	primary_expression T_LBRACKET argument_list T_RBRACKET			{ $$ = new Function_Call_Expression($1, $3); }
 

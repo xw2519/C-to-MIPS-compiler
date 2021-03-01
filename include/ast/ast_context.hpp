@@ -6,6 +6,8 @@
 #include <string>
 #include <iostream>
 
+typedef std::pair<std::string, int> type_location;
+
 /*
 
 $0	        $zero	    Hard-wired to 0 										(Not used for normal use)
@@ -30,9 +32,7 @@ $24	- $25				Temporary registers
 
 */
 
-extern int global_variable_counter;
-extern int local_variable_counter;
-
+/* ------------------------------------								Context Functions							------------------------------------ */
 struct Context
 {
 	private:
@@ -42,12 +42,15 @@ struct Context
 		// Parameter list storage for function arguments 
 		std::vector <std::string> parameter_list;
 
-		// Mapping of global and local bindings with binding name as the key
-		std::map <std::string, int> global_binding;
-		std::map <std::string, int> local_binding;
-
 		// Mapping of variable to location in memory with variable name as the key
-		std::map <std::string, int> variable_location;
+		std::map <std::string, type_location> variable_location;
+
+		// Pointers
+		int stack_pointer;
+		int frame_pointer;
+
+		// Scope
+		std::string scope;
 	
 	public:
 		~Context () {}
@@ -67,9 +70,6 @@ struct Context
 				}
         	}
 
-			// Set up variable counters
-			global_variable_counter = 0;
-			local_variable_counter = 0;
 		}
 
 		/* ------------------------------------						General Register Functions					------------------------------------ */
@@ -110,15 +110,22 @@ struct Context
 
 		void set_avaiable (int register_ID) 
 		{
-        	// std::cerr << "Set available: " << register_ID << std::endl;
         	register_availability_tracker[register_ID] = true;
+			frame_pointer += 4;
+			//variable_counter--;
     	}
 
 		void set_unavaiable (int register_ID) 
 		{
-        	// std::cerr<< "Set unavailable: " << register_ID << std::endl;
         	register_availability_tracker[register_ID] = false;
+			frame_pointer -= 4;
+			//variable_counter++;
     	}
+
+		int return_frame_pointer () 
+		{
+			return frame_pointer;
+		}
 
 		/* ------------------------------------					Temprorary Register Functions					------------------------------------ */
 
@@ -226,59 +233,70 @@ struct Context
 			parameter_list.clear();
     	}
 
+		/* ------------------------------------					  Frame Pointer Functions					------------------------------------ */
+
+		int decrease_frame_pointer() 
+		{
+			frame_pointer -= 4;
+		}
+
+		int increase_frame_pointer() 
+		{
+			frame_pointer += 4;
+		}
+
+
 		/* ------------------------------------					Variable Register Functions					------------------------------------ */
 
-		int find_variable_location (std::string variable) 
+		type_location find_variable_location (std::string variable) 
 		{
-			if (variable_location.find(variable) != variable_location.end())
+			if (variable_location.count(variable))
 			{
-				return (variable_location.find(variable)->second);
+				return variable_location[variable];
 			}
 			else
 			{
-				return -1; // Return -1 if no matching term is found
+				throw("Error: Variable not declared");
 			}
     	}
 
-		void store_variable (int location, std::string variable) 
+		void store_variable (std::string variable) // Only local for now
 		{
 			// Remove the old variable location
         	variable_location.erase(variable); 
 
+			// Increase variable count
+			//variable_counter++;
+
 			// Place new variable and location into map
-			variable_location.emplace(variable, location); 
+			variable_location[variable] = std::make_pair("local", frame_pointer);
     	}
 
 		void delete_variable(std::string variable) 
 		{ 
+			// Decrease variable count
+			//variable_counter--;
+
+			// Erase variable
 			variable_location.erase(variable); 
 		}
 
-		/* ------------------------------------					Local Register Functions					------------------------------------ */
+		/* ------------------------------------						Scope Functions							------------------------------------ */
 
-		void store_local_variable (std::string variable) 
+		std::string return_scope ()
 		{
-			++local_variable_counter;
-        	local_binding.emplace(variable, local_variable_counter);
-    	}
+			return scope;
+		}
 
-		void delete_local_variable (std::string variable) 
+		void set_scope_local () 
 		{
-        	local_binding.erase(variable);
-    	}
+			scope = "local";
+		}
 
-		/* ------------------------------------					Global Register Functions					------------------------------------ */
-
-		void store_global_variable (std::string variable) 
-		{	
-			++global_variable_counter;
-        	global_binding.emplace(variable, global_variable_counter);
-    	}
-
-		void delete_global_variable (std::string variable) 
+		void set_scope_global () 
 		{
-        	global_binding.erase(variable);
-    	}
+			scope = "global";
+		}
 
 };
 

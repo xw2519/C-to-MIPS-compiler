@@ -1,7 +1,7 @@
 #ifndef AST_NODE_HPP
 #define AST_NODE_HPP
 
-/* -------------------------------- 				Libraries 				-------------------------------- */
+/* -------------------------------- 				   Libraries 					-------------------------------- */
 
 #include <string>
 #include <iostream>
@@ -15,20 +15,24 @@
 #include <initializer_list>
 
 
-/* -------------------------------- 			Custom header files 		-------------------------------- */
+/* -------------------------------- 			  Custom header files 				-------------------------------- */
 
 #include "ast_context.hpp"
 
 
-/* -------------------------------- 			  Static variables		 	-------------------------------- */
+/* -------------------------------- 			  External variables		 		-------------------------------- */
 
-static int scope;
-static int variable_counter;
+// Scope
+extern int scope;
 
-static std::vector<std::string> global_variables; 
+// Variable counter
+extern int variable_counter;
+
+// Global variables
+extern std::vector<std::string> global_variables; 
 
 
-/* -------------------------------- 			     Node class		 		-------------------------------- */
+/* -------------------------------- 			      Node class		 			 -------------------------------- */
 class Node;
 
 typedef const Node* Node_Ptr;
@@ -38,10 +42,12 @@ class Node
 	public:
 		virtual ~Node () {}
 
-		virtual void print_MIPS (std::ostream &dst, Context& ctx, int destination_register) const 
+		virtual void print_MIPS (std::ostream &dst, Context& context) const 
 		{
 			std::cerr << "Ast_node.hpp: 'print_MIPS' not implemented on " << typeid(this).name() << "\n";
 		}
 };
+
+
 
 #endif

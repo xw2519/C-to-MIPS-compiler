@@ -1,7 +1,7 @@
 CPPFLAGS += -std=c++11 -W -Wall -g -Wno-unused-parameter
 CPPFLAGS += -I include
  
-all : src/parser.tab.cpp src/parser.tab.hpp src/lexer.yy.cpp bin/c_compiler
+all : src/parser.tab.cpp src/parser.tab.hpp src/lexer.yy.cpp bin/c_compiler compiler 
 
 src/parser.tab.cpp src/parser.tab.hpp : src/parser.y
 	@echo "Compiling Parser"
