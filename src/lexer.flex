@@ -70,7 +70,6 @@ OCT                     [0-7]
 [}]               { context.pop_back(); return (T_CURLY_RBRACKET); }
 [:]               { return (T_COLON); }
 [;]               { context.back().InTypedef=false; return (T_SEMICOLON); }
-[...]             { return (T_ELLIPSIS);}
 [.]               { return (T_DOT); }
 [,]               { return (T_COMMA); }
 [->]              { return (T_ARROW); }

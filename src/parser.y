@@ -26,7 +26,7 @@
 %token T_LOGICAL_AND T_LOGICAL_OR T_LOGICAL_NOT
 // Characters Operators
 %token T_LBRACKET T_RBRACKET T_SQUARE_LBRACKET T_SQUARE_RBRACKET T_CURLY_LBRACKET T_CURLY_RBRACKET
-%token T_ELLIPSIS T_COLON T_SEMICOLON T_DOT T_COMMA T_ARROW T_REFERENCE T_DEREFERENCE
+%token T_COLON T_SEMICOLON T_DOT T_COMMA T_ARROW T_REFERENCE T_DEREFERENCE
 // Comparison Operators
 %token T_GREATER T_GREATER_EQUAL T_LESS T_LESS_EQUAL T_EQUAL T_NOT_EQUAL
 // Types Operators
@@ -152,9 +152,6 @@ enumerator_list : enumerator                                                    
 enumerator : T_IDENTIFIER                                                                          { $$ = new Enumerator(*$1); }
            | T_IDENTIFIER T_ASSIGN constant_expression                                             { $$ = new Enumerator(*$1, $3); }
 
-parameter_type_list : parameter_list
-                    | parameter_list T_COMMA T_ELLIPSIS
-
 parameter_list
 	: parameter_declaration
 	| parameter_list T_COMMA parameter_declaration
@@ -189,9 +186,9 @@ direct_abstract_declarator
 	| direct_abstract_declarator '[' ']'
 	| direct_abstract_declarator '[' constant_expression ']'
 	| '(' ')'
-	| '(' parameter_type_list ')'
+	| '(' parameter_list ')'
 	| direct_abstract_declarator '(' ')'
-	| direct_abstract_declarator '(' parameter_type_list ')'
+	| direct_abstract_declarator '(' parameter_list ')'
 	;
 
 pointer : '*'                                                                                      { $$ = new Pointer(); }
@@ -299,7 +296,7 @@ direct_declarator
 	| '(' declarator ')'
 	| direct_declarator '[' constant_expression ']'
 	| direct_declarator '[' ']'
-	| direct_declarator '(' parameter_type_list ')'
+	| direct_declarator '(' parameter_list ')'
 	| direct_declarator '(' identifier_list ')'
 	| direct_declarator '(' ')'
 	;
