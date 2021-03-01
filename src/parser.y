@@ -64,7 +64,7 @@ unary_expression : postfix_expression                                           
                  | T_DECREMENT unary_expression                                                    { $$ = new UnaryExpression(T_DECREMENT, $2); }
                  | T_BITWISE_AND unary_expression                                                  { $$ = new UnaryExpression(T_REFERENCE, $2); }
                  | T_MULTIPLY unary_expression                                                     { $$ = new UnaryExpression(T_DEREFERENCE, $2); }
-                 | T_PLUS unary_expression                                                         { $$ = $1; }
+                 | T_PLUS unary_expression                                                         { $$ = $2; }
                  | T_MINUS unary_expression                                                        { $$ = new UnaryExpression(T_MINUS, $2); }
                  | T_BITWISE_NOT unary_expression                                                  { $$ = new UnaryExpression(T_BITWISE_NOT, $2); }
                  | T_LOGICAL_NOT unary_expression                                                  { $$ = new UnaryExpression(T_LOGICAL_NOT, $2); }
@@ -152,44 +152,32 @@ enumerator_list : enumerator                                                    
 enumerator : T_IDENTIFIER                                                                          { $$ = new Enumerator(*$1); }
            | T_IDENTIFIER T_ASSIGN constant_expression                                             { $$ = new Enumerator(*$1, $3); }
 
-parameter_list
-	: parameter_declaration
-	| parameter_list T_COMMA parameter_declaration
-	;
+parameter_list : parameter_declaration                                                             { $$ = new ParameterList($1); }
+               | parameter_list T_COMMA parameter_declaration                                      { $$ = new ParameterList($1, $3); }
 
-parameter_declaration
-	: declaration_specifiers declarator
-	| declaration_specifiers abstract_declarator
-	| declaration_specifiers
-	;
+parameter_declaration : declaration_specifiers declarator                                          { $$ = new ParameterDeclaration($1, $2); }
+                      | declaration_specifiers abstract_declarator                                 { $$ = new ParameterDeclaration($1, $2); }
+                      | declaration_specifiers                                                     { $$ = new ParameterDeclaration($1); }
 
-identifier_list
-	: T_IDENTIFIER
-	| identifier_list T_COMMA T_IDENTIFIER
-	;
+identifier_list : T_IDENTIFIER                                                                     { $$ = new IdentifierList(*$1); }
+                | identifier_list T_COMMA T_IDENTIFIER                                             { $$ = new IdentifierList($1, *$3); }
 
-type_name
-	: specifier_qualifier_list
-	| specifier_qualifier_list abstract_declarator
-	;
+type_name : specifier_qualifier_list                                                               { $$ = new TypeName($1); }
+          | specifier_qualifier_list abstract_declarator                                           { $$ = new TypeName($1, $2); }
 
-abstract_declarator
-	: pointer
-	| direct_abstract_declarator
-	| pointer direct_abstract_declarator
-	;
+abstract_declarator : pointer
+                    | direct_abstract_declarator
+                    | pointer direct_abstract_declarator
 
-direct_abstract_declarator
-	: '(' abstract_declarator ')'
-	| '[' ']'
-	| '[' constant_expression ']'
-	| direct_abstract_declarator '[' ']'
-	| direct_abstract_declarator '[' constant_expression ']'
-	| '(' ')'
-	| '(' parameter_list ')'
-	| direct_abstract_declarator '(' ')'
-	| direct_abstract_declarator '(' parameter_list ')'
-	;
+direct_abstract_declarator : T_LBRACKET abstract_declarator T_RBRACKET
+                           | T_SQUARE_LBRACKET T_SQUARE_RBRACKET
+                           | '[' constant_expression ']'
+                           | direct_abstract_declarator '[' ']'
+                           | direct_abstract_declarator '[' constant_expression ']'
+                           | '(' ')'
+                           | '(' parameter_list ')'
+                           | direct_abstract_declarator '(' ')'
+                           | direct_abstract_declarator '(' parameter_list ')'
 
 pointer : '*'                                                                                      { $$ = new Pointer(); }
         | '*' pointer                                                                              { $$ = new Pointer($2); }
@@ -201,10 +189,10 @@ compound_statement : T_CURLY_LBRACKET T_CURLY_RBRACKET                          
                    | T_CURLY_LBRACKET declaration_list statement_list T_CURLY_RBRACKET             { $$ = new CompoundStatement($2, $3); }
 
 declaration_list : declaration                                                                     { $$ = new DeclarationList($1); }
-                 | declaration_list declaration                                                    { $$ = new DeclarationList($1); }
+                 | declaration_list declaration                                                    { $$ = new DeclarationList($1, $2); }
 
-statement_list : statement                                                                         { $$ = new StatementList($1); }
-               | statement_list statement                                                          { $$ = new StatementList($1); }
+statement_list : statement                                                                         { $$ = new std::vector<Statement*>{$1}; }
+               | statement_list statement                                                          { $$ = $1->push_back($2); }
 
 statement : labeled_statement                                                                      { $$ = $1; }
           | compound_statement                                                                     { $$ = $1; }
@@ -213,25 +201,25 @@ statement : labeled_statement                                                   
           | iteration_statement                                                                    { $$ = $1; }
           | jump_statement                                                                         { $$ = $1; }
 
-labeled_statement : T_CASE constant_expression T_COLON statement                                   { $$ = new Statement(T_CASE, $2, $4); }
-                  | T_DEFAULT T_COLON statement                                                    { $$ = new Statement(T_DEFAULT, $3); }
+labeled_statement : T_CASE constant_expression T_COLON statement                                   { $$ = new Statement(CASE, $2, $4); }
+                  | T_DEFAULT T_COLON statement                                                    { $$ = new Statement(DEFAULT, $3); }
 
-expression_statement : T_SEMICOLON                                                                 { $$ = new Statement(T_SEMICOLON); }
-                     | assignment_expression T_SEMICOLON                                           { $$ = new Statement(T_SEMICOLON, $1); }
+expression_statement : T_SEMICOLON                                                                 { $$ = new Statement(EXPR_STMT); }
+                     | assignment_expression T_SEMICOLON                                           { $$ = new Statement(EXPR_STMT, $1); }
 
-selection_statement : T_IF T_LBRACKET assignment_expression T_RBRACKET statement                   { $$ = new Statement(T_IF, $3, $5); }
-                    | T_IF T_LBRACKET assignment_expression T_RBRACKET statement T_ELSE statement  { $$ = new Statement(T_ELSE, $3, $5, $7); }
-                    | T_SWITCH T_LBRACKET assignment_expression T_RBRACKET statement               { $$ = new Statement(T_SWITCH, $3, $5); }
+selection_statement : T_IF T_LBRACKET assignment_expression T_RBRACKET statement                   { $$ = new Statement(IF, $3, $5); }
+                    | T_IF T_LBRACKET assignment_expression T_RBRACKET statement T_ELSE statement  { $$ = new Statement(ELSE, $3, $5, $7); }
+                    | T_SWITCH T_LBRACKET assignment_expression T_RBRACKET statement               { $$ = new Statement(SWITCH, $3, $5); }
 
-iteration_statement : T_WHILE T_LBRACKET assignment_expression T_RBRACKET statement                                         { $$ = new Statement(T_DO, $3, $4, $6); }
-                    | T_DO statement T_WHILE T_LBRACKET assignment_expression T_RBRACKET T_SEMICOLON                        { $$ = new Statement(T_WHILE, $2, $5); }
-                    | T_FOR T_LBRACKET expression_statement expression_statement T_RBRACKET statement                       { $$ = new Statement(T_FOR, $3, $4, $6); }
-                    | T_FOR T_LBRACKET expression_statement expression_statement assignment_expression T_RBRACKET statement { $$ = new Statement(T_FOR, $3, $4, $5, $7); }
+iteration_statement : T_WHILE T_LBRACKET assignment_expression T_RBRACKET statement                                         { $$ = new Statement(WHILE, $3, $5); }
+                    | T_DO statement T_WHILE T_LBRACKET assignment_expression T_RBRACKET T_SEMICOLON                        { $$ = new Statement(DO, $5, $2); }
+                    | T_FOR T_LBRACKET expression_statement expression_statement T_RBRACKET statement                       { $$ = new Statement(FOR, $3, $4, $6); }
+                    | T_FOR T_LBRACKET expression_statement expression_statement assignment_expression T_RBRACKET statement { $$ = new Statement(FOR, $3, $4, $5, $7); }
 
-jump_statement : T_CONTINUE T_SEMICOLON                                                            { $$ = new Statement(T_CONTINUE); }
-               | T_BREAK T_SEMICOLON                                                               { $$ = new Statement(T_BREAK); }
-               | T_RETURN T_SEMICOLON                                                              { $$ = new Statement(T_RETURN); }
-               | T_RETURN assignment_expression T_SEMICOLON                                        { $$ = new Statement(T_RETURN, $2); }
+jump_statement : T_CONTINUE T_SEMICOLON                                                            { $$ = new Statement(CONTINUE); }
+               | T_BREAK T_SEMICOLON                                                               { $$ = new Statement(BREAK); }
+               | T_RETURN T_SEMICOLON                                                              { $$ = new Statement(RETURN); }
+               | T_RETURN assignment_expression T_SEMICOLON                                        { $$ = new Statement(RETURN, $2); }
 
 
 ROOT : translation_unit                                                                            { root = $1; }
