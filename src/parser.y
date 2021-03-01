@@ -42,17 +42,17 @@
 
 %%
 
-primary_expression : T_IDENTIFIER                                                                  { $$ = new PrimaryExpression(T_IDENTIFIER, $1); }
-                   | T_CONSTANT                                                                    { $$ = new PrimaryExpression(T_CONSTANT, $1); }
-                   | T_STRING_LITERAL                                                              { $$ = new PrimaryExpression(T_STRING_LITERAL, $1); }
+primary_expression : T_IDENTIFIER                                                                  { $$ = new PrimaryExpression(T_IDENTIFIER, *$1); }
+                   | T_CONSTANT                                                                    { $$ = new PrimaryExpression(T_CONSTANT, *$1); }
+                   | T_STRING_LITERAL                                                              { $$ = new PrimaryExpression(T_STRING_LITERAL, *$1); }
                    | T_LBRACKET assignment_expression T_RBRACKET                                   { $$ = new PrimaryExpression($2); }
 
 postfix_expression : primary_expression                                                            { $$ = new PostfixExpression($1); }
                    | postfix_expression T_SQUARE_LBRACKET assignment_expression T_SQUARE_RBRACKET  { $$ = new ArrayPostfixExpression($1, $3); }
                    | postfix_expression T_LBRACKET T_RBRACKET                                      { $$ = new FunctionPostfixExpression($1); }
                    | postfix_expression T_LBRACKET argument_expression_list T_RBRACKET             { $$ = new FunctionPostfixExpression($1, $3); }
-                   | postfix_expression T_DOT T_IDENTIFIER                                         { $$ = new PostfixExpression(T_DOT, $1, $3); }
-                   | postfix_expression T_ARROW T_IDENTIFIER                                       { $$ = new PostfixExpression(T_ARROW, $1, $3); }
+                   | postfix_expression T_DOT T_IDENTIFIER                                         { $$ = new PostfixExpression(T_DOT, $1, *$3); }
+                   | postfix_expression T_ARROW T_IDENTIFIER                                       { $$ = new PostfixExpression(T_ARROW, $1, *$3); }
                    | postfix_expression T_INCREMENT                                                { $$ = new PostfixExpression(T_INCREMENT, $1); }
                    | postfix_expression T_DECREMENT                                                { $$ = new PostfixExpression(T_DECREMENT, $1); }
 
@@ -62,16 +62,14 @@ argument_expression_list : assignment_expression                                
 unary_expression : postfix_expression                                                              { $$ = new UnaryExpression($1); }
                  | T_INCREMENT unary_expression                                                    { $$ = new UnaryExpression(T_INCREMENT, $2); }
                  | T_DECREMENT unary_expression                                                    { $$ = new UnaryExpression(T_DECREMENT, $2); }
-                 | unary_operator unary_expression                                                 { $$ = new UnaryExpression($1, $2); }
+                 | T_BITWISE_AND unary_expression                                                  { $$ = new UnaryExpression(T_REFERENCE, $2); }
+                 | T_MULTIPLY unary_expression                                                     { $$ = new UnaryExpression(T_DEREFERENCE, $2); }
+                 | T_PLUS unary_expression                                                         { $$ = $1; }
+                 | T_MINUS unary_expression                                                        { $$ = new UnaryExpression(T_MINUS, $2); }
+                 | T_BITWISE_NOT unary_expression                                                  { $$ = new UnaryExpression(T_BITWISE_NOT, $2); }
+                 | T_LOGICAL_NOT unary_expression                                                  { $$ = new UnaryExpression(T_LOGICAL_NOT, $2); }
                  | T_SIZEOF unary_expression                                                       { $$ = new UnaryExpression(T_SIZEOF, $2); }
                  | T_SIZEOF T_LBRACKET type_name T_RBRACKET                                        { $$ = new UnaryExpression(T_SIZEOF, $3); }
-
-unary_operator : T_BITWISE_AND                                                                     { $$ = new UnaryOperator(T_REFERENCE); }
-               | T_MULTIPLY                                                                        { $$ = new UnaryOperator(T_DEREFERENCE); }
-               | T_PLUS                                                                            { $$ = new UnaryOperator(T_PLUS); }
-               | T_MINUS                                                                           { $$ = new UnaryOperator(T_MINUS); }
-               | T_BITWISE_NOT                                                                     { $$ = new UnaryOperator(T_BITWISE_NOT); }
-               | T_LOGICAL_NOT                                                                     { $$ = new UnaryOperator(T_LOGICAL_NOT); }
 
 multiplicative_expression : unary_expression                                                       { $$ = new MultiplicativeExpression($1); }
                           | multiplicative_expression T_MULTIPLY unary_expression                  { $$ = new MultiplicativeExpression(T_MULTIPLY, $1, $3); }
@@ -96,91 +94,66 @@ equality_expression : relational_expression                                     
                     | equality_expression T_EQUAL relational_expression                            { $$ = new EqualityExpression(T_EQUAL, $1, $3); }
                     | equality_expression T_NOT_EQUAL relational_expression                        { $$ = new EqualityExpression(T_NOT_EQUAL, $1, $3); }
 
-and_expression : equality_expression
-               | and_expression T_BITWISE_AND equality_expression
+and_expression : equality_expression                                                               { $$ = new AndExpression($1); }
+               | and_expression T_BITWISE_AND equality_expression                                  { $$ = new AndExpression($1, $3); }
 
-exclusive_or_expression : and_expression
-                        | exclusive_or_expression T_BITWISE_XOR and_expression
+exclusive_or_expression : and_expression                                                           { $$ = new ExclusiveOrExpression($1); }
+                        | exclusive_or_expression T_BITWISE_XOR and_expression                     { $$ = new ExclusiveOrExpression($1, $3); }
 
-inclusive_or_expression : exclusive_or_expression
-                        | inclusive_or_expression T_BITWISE_OR exclusive_or_expression
+inclusive_or_expression : exclusive_or_expression                                                  { $$ = new InclusiveOrExpression($1); }
+                        | inclusive_or_expression T_BITWISE_OR exclusive_or_expression             { $$ = new InclusiveOrExpression($1, $3); }
 
-logical_and_expression : inclusive_or_expression
-                       | logical_and_expression T_BITWISE_AND inclusive_or_expression
+logical_and_expression : inclusive_or_expression                                                   { $$ = new LogicalAndExpression($1); }
+                       | logical_and_expression T_BITWISE_AND inclusive_or_expression              { $$ = new LogicalAndExpression($1, $3); }
 
-constant_expression : logical_and_expression
-                    | constant_expression T_BITWISE_OR logical_and_expression
+constant_expression : logical_and_expression                                                       { $$ = new ConstantExpression($1); }
+                    | constant_expression T_BITWISE_OR logical_and_expression                      { $$ = new ConstantExpression($1, $3); }
 
-assignment_expression : constant_expression
-                      | unary_expression assignment_operator assignment_expression
-
-assignment_operator : T_ASSIGN
-                    | T_ADD_ASSIGN
-                    | T_SUB_ASSIGN
-                    | T_MUL_ASSIGN
-                    | T_DIV_ASSIGN
-                    | T_MOD_ASSIGN
-                    | T_SHIFT_LEFT_ASSIGN
-                    | T_SHIFT_RIGHT_ASSIGN
-                    | T_AND_ASSIGN
-                    | T_OR_ASSIGN
-                    | T_XOR_ASSIGN
+assignment_expression : constant_expression                                                        { $$ = new AssignmentExpression($1); }
+                      | unary_expression T_ASSIGN assignment_expression                            { $$ = new AssignmentExpression(T_ASSIGN, $1, $3); }
+                      | unary_expression T_ADD_ASSIGN assignment_expression                        { $$ = new AssignmentExpression(T_ADD_ASSIGN, $1, $3); }
+                      | unary_expression T_SUB_ASSIGN assignment_expression                        { $$ = new AssignmentExpression(T_SUB_ASSIGN, $1, $3); }
+                      | unary_expression T_MUL_ASSIGN assignment_expression                        { $$ = new AssignmentExpression(T_MUL_ASSIGN, $1, $3); }
+                      | unary_expression T_DIV_ASSIGN assignment_expression                        { $$ = new AssignmentExpression(T_DIV_ASSIGN, $1, $3); }
+                      | unary_expression T_MOD_ASSIGN assignment_expression                        { $$ = new AssignmentExpression(T_MOD_ASSIGN, $1, $3); }
+                      | unary_expression T_SHIFT_LEFT_ASSIGN assignment_expression                 { $$ = new AssignmentExpression(T_SHIFT_LEFT_ASSIGN, $1, $3); }
+                      | unary_expression T_SHIFT_RIGHT_ASSIGN assignment_expression                { $$ = new AssignmentExpression(T_SHIFT_RIGHT_ASSIGN, $1, $3); }
+                      | unary_expression T_AND_ASSIGN assignment_expression                        { $$ = new AssignmentExpression(T_AND_ASSIGN, $1, $3); }
+                      | unary_expression T_OR_ASSIGN assignment_expression                         { $$ = new AssignmentExpression(T_OR_ASSIGN, $1, $3); }
+                      | unary_expression T_XOR_ASSIGN assignment_expression                        { $$ = new AssignmentExpression(T_XOR_ASSIGN, $1, $3); }
 
 
-struct_specifier
-	: T_STRUCT T_IDENTIFIER '{' struct_declaration_list '}'
-	| T_STRUCT '{' struct_declaration_list '}'
-	| T_STRUCT T_IDENTIFIER
-	;
+struct_specifier : T_STRUCT T_IDENTIFIER T_CURLY_LBRACKET struct_declaration_list T_CURLY_RBRACKET { $$ = new StructSpecifier(*$2, $4); }
+                 | T_STRUCT T_CURLY_LBRACKET struct_declaration_list T_CURLY_RBRACKET              { $$ = new StructSpecifier($3); }
+                 | T_STRUCT T_IDENTIFIER                                                           { $$ = new StructSpecifier(*$2); }
 
-struct_declaration_list
-	: struct_declaration
-	| struct_declaration_list struct_declaration
-	;
+struct_declaration_list : struct_declaration                                                       { $$ = new StructDeclarationList($1); }
+                        | struct_declaration_list struct_declaration                               { $$ = new StructDeclarationList($1, $2); }
 
-struct_declaration
-	: specifier_qualifier_list struct_declarator_list ';'
-	;
+struct_declaration : specifier_qualifier_list struct_declarator_list T_SEMICOLON                   { $$ = new StructDeclaration($1, $2); }
 
-specifier_qualifier_list
-	: type_specifier specifier_qualifier_list
-	| type_specifier
-	;
+specifier_qualifier_list : type_specifier                                                          { $$ = new SpecifierQualifierList($1); }
+                         | type_specifier specifier_qualifier_list                                 { $$ = new SpecifierQualifierList($1, $2); }
 
-struct_declarator_list
-	: struct_declarator
-	| struct_declarator_list T_COMMA struct_declarator
-	;
+struct_declarator_list : struct_declarator                                                         { $$ = new StructDeclatatorList($1); }
+                       | struct_declarator_list T_COMMA struct_declarator                          { $$ = new StructDeclatatorList($1, $3); }
 
-struct_declarator
-	: declarator
-	| ':' constant_expression
-	| declarator ':' constant_expression
-	;
+struct_declarator : declarator                                                                     { $$ = new StructDeclatator($1); }
+                  | T_COLON constant_expression                                                    { $$ = new StructDeclatator($2); }
+                  | declarator T_COLON constant_expression                                         { $$ = new StructDeclatator($1, $3); }
 
-enum_specifier
-	: T_ENUM '{' enumerator_list '}'
-	| T_ENUM T_IDENTIFIER '{' enumerator_list '}'
-	| T_ENUM T_IDENTIFIER
-	;
+enum_specifier : T_ENUM T_CURLY_LBRACKET enumerator_list T_CURLY_RBRACKET                          { $$ = new EnumSpecifier($3); }
+               | T_ENUM T_IDENTIFIER T_CURLY_LBRACKET enumerator_list T_CURLY_RBRACKET             { $$ = new EnumSpecifier(*$2, $4); }
+               | T_ENUM T_IDENTIFIER                                                               { $$ = new EnumSpecifier(*$2); }
 
-enumerator_list
-	: enumerator
-	| enumerator_list T_COMMA enumerator
-	;
+enumerator_list : enumerator                                                                       { $$ = new EnumeratorList($1); }
+                | enumerator_list T_COMMA enumerator                                               { $$ = new EnumeratorList($1, $3); }
 
-enumerator
-	: T_IDENTIFIER
-	| T_IDENTIFIER '=' constant_expression
-	;
+enumerator : T_IDENTIFIER                                                                          { $$ = new Enumerator(*$1); }
+           | T_IDENTIFIER T_ASSIGN constant_expression                                             { $$ = new Enumerator(*$1, $3); }
 
-pointer : '*'                                                                                      { $$ = new Pointer(); }
-        | '*' pointer                                                                              { $$ = new Pointer($2); }
-
-parameter_type_list
-	: parameter_list
-	| parameter_list T_COMMA T_ELLIPSIS
-	;
+parameter_type_list : parameter_list
+                    | parameter_list T_COMMA T_ELLIPSIS
 
 parameter_list
 	: parameter_declaration
@@ -220,6 +193,9 @@ direct_abstract_declarator
 	| direct_abstract_declarator '(' ')'
 	| direct_abstract_declarator '(' parameter_type_list ')'
 	;
+
+pointer : '*'                                                                                      { $$ = new Pointer(); }
+        | '*' pointer                                                                              { $$ = new Pointer($2); }
 
 
 compound_statement : T_CURLY_LBRACKET T_CURLY_RBRACKET                                             { $$ = new CompoundStatement(); }
@@ -270,8 +246,8 @@ external_declaration : function_definition                                      
                      | declaration                                                                 { $$ = $1; }
 
 declaration
-	: declaration_specifiers ';'
-	| declaration_specifiers init_declarator_list ';'
+	: declaration_specifiers T_SEMICOLON
+	| declaration_specifiers init_declarator_list T_SEMICOLON
 	;
 
 declaration_specifiers
@@ -297,7 +273,7 @@ type_specifier : T_CHAR                                                         
 
 init_declarator
 	: declarator
-	| declarator '=' initializer
+	| declarator T_ASSIGN initializer
 	;
 
 initializer
