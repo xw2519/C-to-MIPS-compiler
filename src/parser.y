@@ -183,16 +183,16 @@ pointer : '*'                                                                   
         | '*' pointer                                                                              { $$ = new Pointer($2); }
 
 
-compound_statement : T_CURLY_LBRACKET T_CURLY_RBRACKET                                             { $$ = new CompoundStatement(); }
-                   | T_CURLY_LBRACKET statement_list T_CURLY_RBRACKET                              { $$ = new CompoundStatement($2); }
-                   | T_CURLY_LBRACKET declaration_list T_CURLY_RBRACKET                            { $$ = new CompoundStatement($2); }
-                   | T_CURLY_LBRACKET declaration_list statement_list T_CURLY_RBRACKET             { $$ = new CompoundStatement($2, $3); }
+compound_statement : T_CURLY_LBRACKET T_CURLY_RBRACKET                                             { $$ = new Statement(COMPOUND); }
+                   | T_CURLY_LBRACKET statement_list T_CURLY_RBRACKET                              { $$ = new Statement(COMPOUND, vector<Declaration*>*, $2); }
+                   | T_CURLY_LBRACKET declaration_list T_CURLY_RBRACKET                            { $$ = new Statement(COMPOUND, $2, vector<Statement*>*); }
+                   | T_CURLY_LBRACKET declaration_list statement_list T_CURLY_RBRACKET             { $$ = new Statement(COMPOUND, $2, $3); }
 
-declaration_list : declaration                                                                     { $$ = new DeclarationList($1); }
-                 | declaration_list declaration                                                    { $$ = new DeclarationList($1, $2); }
+declaration_list : declaration                                                                     { $$ = new std::vector<Declaration*>{$1}; }
+                 | declaration_list declaration                                                    { $1->push_back($2); $$ = $1; }
 
 statement_list : statement                                                                         { $$ = new std::vector<Statement*>{$1}; }
-               | statement_list statement                                                          { $$ = $1->push_back($2); }
+               | statement_list statement                                                          { $1->push_back($2); $$ = $1; }
 
 statement : labeled_statement                                                                      { $$ = $1; }
           | compound_statement                                                                     { $$ = $1; }
