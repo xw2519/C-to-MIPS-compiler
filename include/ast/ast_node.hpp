@@ -13,8 +13,6 @@
 #include <initializer_list>
 
 
-typedef const Root* RootPtr; // Pointer to Node
-
 class Root
 {
 protected:
@@ -26,7 +24,13 @@ public:
     virtual const std::string &getType() const
     {
         return type_;
-    };
-};
+    }
+
+    virtual void print_mips (std::ostream &dst, Context& ctx, int destination_register) const
+		{
+			std::cerr << "Ast_node.hpp: 'print_MIPS' not implemented on " << typeid(this).name() << "\n";
+		}
+
+}
 
 #endif
