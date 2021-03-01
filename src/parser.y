@@ -41,7 +41,7 @@
 %start ROOT
 
 %%
-
+/* Expressions */
 primary_expression : T_IDENTIFIER                                                                  { $$ = new PrimaryExpression(T_IDENTIFIER, *$1); }
                    | T_CONSTANT                                                                    { $$ = new PrimaryExpression(T_CONSTANT, *$1); }
                    | T_STRING_LITERAL                                                              { $$ = new PrimaryExpression(T_STRING_LITERAL, *$1); }
@@ -122,7 +122,7 @@ assignment_expression : constant_expression                                     
                       | unary_expression T_OR_ASSIGN assignment_expression                         { $$ = new AssignmentExpression(T_OR_ASSIGN, $1, $3); }
                       | unary_expression T_XOR_ASSIGN assignment_expression                        { $$ = new AssignmentExpression(T_XOR_ASSIGN, $1, $3); }
 
-
+/* Structs and Enums */
 struct_specifier : T_STRUCT T_IDENTIFIER T_CURLY_LBRACKET struct_declaration_list T_CURLY_RBRACKET { $$ = new StructSpecifier(*$2, $4); }
                  | T_STRUCT T_CURLY_LBRACKET struct_declaration_list T_CURLY_RBRACKET              { $$ = new StructSpecifier($3); }
                  | T_STRUCT T_IDENTIFIER                                                           { $$ = new StructSpecifier(*$2); }
@@ -165,24 +165,24 @@ identifier_list : T_IDENTIFIER                                                  
 type_name : specifier_qualifier_list                                                               { $$ = new TypeName($1); }
           | specifier_qualifier_list abstract_declarator                                           { $$ = new TypeName($1, $2); }
 
-abstract_declarator : pointer
-                    | direct_abstract_declarator
-                    | pointer direct_abstract_declarator
+abstract_declarator : pointer                                                                      { $$ = new AbstractDeclarator($1); }
+                    | direct_abstract_declarator                                                   { $$ = new AbstractDeclarator($1); }
+                    | pointer direct_abstract_declarator                                           { $$ = new AbstractDeclarator($1, $2); }
 
-direct_abstract_declarator : T_LBRACKET abstract_declarator T_RBRACKET
-                           | T_SQUARE_LBRACKET T_SQUARE_RBRACKET
-                           | '[' constant_expression ']'
-                           | direct_abstract_declarator '[' ']'
-                           | direct_abstract_declarator '[' constant_expression ']'
-                           | '(' ')'
-                           | '(' parameter_list ')'
-                           | direct_abstract_declarator '(' ')'
-                           | direct_abstract_declarator '(' parameter_list ')'
+direct_abstract_declarator : T_LBRACKET abstract_declarator T_RBRACKET                                            { $$ = new DirectAbstractDeclarator($2); }
+                           | T_SQUARE_LBRACKET T_SQUARE_RBRACKET                                                  { $$ = new DirectAbstractDeclarator(SQUARE); }
+                           | T_SQUARE_LBRACKET constant_expression T_SQUARE_RBRACKET                              { $$ = new DirectAbstractDeclarator($2); }
+                           | direct_abstract_declarator T_SQUARE_LBRACKET T_SQUARE_RBRACKET                       { $$ = new DirectAbstractDeclarator(SQUARE, $1); }
+                           | direct_abstract_declarator T_SQUARE_LBRACKET constant_expression T_SQUARE_RBRACKET   { $$ = new DirectAbstractDeclarator($1, $3); }
+                           | T_LBRACKET T_RBRACKET                                                                { $$ = new DirectAbstractDeclarator(ROUND); }
+                           | T_LBRACKET parameter_list T_RBRACKET                                                 { $$ = new DirectAbstractDeclarator($2); }
+                           | direct_abstract_declarator T_LBRACKET T_RBRACKET                                     { $$ = new DirectAbstractDeclarator(ROUND, $1); }
+                           | direct_abstract_declarator T_LBRACKET parameter_list T_RBRACKET                      { $$ = new DirectAbstractDeclarator($1, $3); }
 
-pointer : '*'                                                                                      { $$ = new Pointer(); }
-        | '*' pointer                                                                              { $$ = new Pointer($2); }
+pointer : T_MULTIPLY                                                                               { $$ = new Pointer(); }
+        | T_MULTIPLY pointer                                                                       { $$ = new Pointer($2); }
 
-
+/* Statements */
 compound_statement : T_CURLY_LBRACKET T_CURLY_RBRACKET                                             { $$ = new Statement(COMPOUND); }
                    | T_CURLY_LBRACKET statement_list T_CURLY_RBRACKET                              { $$ = new Statement(COMPOUND, vector<Declaration*>*, $2); }
                    | T_CURLY_LBRACKET declaration_list T_CURLY_RBRACKET                            { $$ = new Statement(COMPOUND, $2, vector<Statement*>*); }
@@ -221,7 +221,7 @@ jump_statement : T_CONTINUE T_SEMICOLON                                         
                | T_RETURN T_SEMICOLON                                                              { $$ = new Statement(RETURN); }
                | T_RETURN assignment_expression T_SEMICOLON                                        { $$ = new Statement(RETURN, $2); }
 
-
+/* Root */
 ROOT : translation_unit                                                                            { root = $1; }
 
 translation_unit : external_declaration                                                            { $$ = new TranslationUnit($1); }
@@ -230,22 +230,16 @@ translation_unit : external_declaration                                         
 external_declaration : function_definition                                                         { $$ = $1; }
                      | declaration                                                                 { $$ = $1; }
 
-declaration
-	: declaration_specifiers T_SEMICOLON
-	| declaration_specifiers init_declarator_list T_SEMICOLON
-	;
+declaration : declaration_specifiers T_SEMICOLON                                                   { $$ = new Declaration($1); }
+            | declaration_specifiers init_declarator_list T_SEMICOLON                              { $$ = new Declaration($1, $2); }
 
-declaration_specifiers
-	: T_TYPEDEF
-	| T_TYPEDEF declaration_specifiers
-	| type_specifier
-	| type_specifier declaration_specifiers
-	;
+declaration_specifiers : T_TYPEDEF                                                                 { $$ = new DeclarationSpecifiers(); }
+                       | T_TYPEDEF declaration_specifiers                                          { $$ = new DeclarationSpecifiers($2); }
+                       | type_specifier                                                            { $$ = new DeclarationSpecifiers($1); }
+                       | type_specifier declaration_specifiers                                     { $$ = new DeclarationSpecifiers($1, $2); }
 
-init_declarator_list
-	: init_declarator
-	| init_declarator_list T_COMMA init_declarator
-	;
+init_declarator_list : init_declarator                                                             { $$ = new std::vector<init_declarator*>{$1}; }
+                     | init_declarator_list T_COMMA init_declarator                                { $1.push_back($3); $$ = $1; }
 
 type_specifier : T_CHAR                                                                            { $$ = new PrimitiveType(T_CHAR); }
                | T_INT                                                                             { $$ = new PrimitiveType(T_INT); }
@@ -253,41 +247,31 @@ type_specifier : T_CHAR                                                         
                | T_DOUBLE                                                                          { $$ = new PrimitiveType(T_DOUBLE); }
                | T_UNSIGNED                                                                        { $$ = new PrimitiveType(T_UNSIGNED); }
                | T_TYPEIDENTIFIER                                                                  { $$ = new TypeIDType($1); }
-               | struct_specifier                                                                  { $$ = new StructType($1); }
+               | struct_specifier                                                                  { $$ = new StructType(*$1); }
                | enum_specifier                                                                    { $$ = new EnumType($1); }
 
-init_declarator
-	: declarator
-	| declarator T_ASSIGN initializer
-	;
+init_declarator : declarator                                                                       { $$ = InitDeclarator($1); }
+                | declarator T_ASSIGN initializer                                                  { $$ = InitDeclarator($1, $3); }
 
-initializer
-	: assignment_expression
-	| '{' initializer_list '}'
-	| '{' initializer_list T_COMMA '}'
-	;
+initializer : assignment_expression                                                                { $$ = new Initializer($1); }
+            | T_CURLY_LBRACKET initializer_list T_CURLY_RBRACKET                                   { $$ = new Initializer($2); }
+            | T_CURLY_LBRACKET initializer_list T_COMMA T_CURLY_RBRACKET                           { $$ = new Initializer($2); }
 
-initializer_list
-	: initializer
-	| initializer_list T_COMMA initializer
-	;
+initializer_list : initializer                                                                     { $$ = new std::vector<initializer*>{$1}; }
+                 | initializer_list T_COMMA initializer                                            { $1.push_back($3); $$ = $1; }
 
 function_definition : declaration_specifiers declarator compound_statement                         { $$ = new FunctionDefinition($1, $2, $3); }
 
-declarator
-	: pointer direct_declarator
-	| direct_declarator
-	;
+declarator : pointer direct_declarator                                                             { $$ = new Declarator($1, $2); }
+           | direct_declarator                                                                     { $$ = new Declarator($1); }
 
-direct_declarator
-	: T_IDENTIFIER
-	| '(' declarator ')'
-	| direct_declarator '[' constant_expression ']'
-	| direct_declarator '[' ']'
-	| direct_declarator '(' parameter_list ')'
-	| direct_declarator '(' identifier_list ')'
-	| direct_declarator '(' ')'
-	;
+direct_declarator : T_IDENTIFIER                                                                   { $$ = DirectDeclarator(*$1); }
+                  | T_LBRACKET declarator T_RBRACKET                                               { $$ = DirectDeclarator($2); }
+                  | direct_declarator T_SQUARE_LBRACKET constant_expression T_SQUARE_RBRACKET      { $$ = DirectDeclarator($1, $3); }
+                  | direct_declarator T_SQUARE_LBRACKET T_SQUARE_RBRACKET                          { $$ = DirectDeclarator(SQUARE, $1); }
+                  | direct_declarator T_LBRACKET parameter_list T_RBRACKET                         { $$ = DirectDeclarator($1, $3); }
+                  | direct_declarator T_LBRACKET identifier_list T_RBRACKET                        { $$ = DirectDeclarator($1, $3); }
+                  | direct_declarator T_LBRACKET T_RBRACKET                                        { $$ = DirectDeclarator(ROUND, $1); }
 
 %%
 #include <stdio.h>
