@@ -46,9 +46,9 @@ primary_expression : T_IDENTIFIER                                               
                    | T_CONSTANT                                                                    { $$ = new IntegralConstant(*$1); }
                    | T_FLOAT_CONSTANT                                                              { $$ = new FloatConstant(*$1); }
                    | T_STRING_LITERAL                                                              { $$ = new StringLiteral(*$1); }
-                   | T_LBRACKET assignment_expression T_RBRACKET                                   { $$ = new PrimaryExpression($2); }
+                   | T_LBRACKET assignment_expression T_RBRACKET                                   { $$ = $2; }
 
-postfix_expression : primary_expression                                                            { $$ = new PostfixExpression($1); }
+postfix_expression : primary_expression                                                            { $$ = $1; }
                    | postfix_expression T_SQUARE_LBRACKET assignment_expression T_SQUARE_RBRACKET  { $$ = new ArrayPostfixExpression($1, $3); }
                    | postfix_expression T_LBRACKET T_RBRACKET                                      { $$ = new FunctionPostfixExpression($1); }
                    | postfix_expression T_LBRACKET argument_expression_list T_RBRACKET             { $$ = new FunctionPostfixExpression($1, $3); }

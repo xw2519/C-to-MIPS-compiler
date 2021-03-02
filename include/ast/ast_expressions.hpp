@@ -19,8 +19,9 @@ protected:
 public:
     virtual ~Expression()
     {}
-    // Tell and expression to print itself to the given stream
+    virtual double evaluate() const =0;
     virtual void print(std::ostream &dst) const =0;
+    virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const =0;
 };
 
 /* -------------------------------- Primatives -------------------------------- */
@@ -28,9 +29,11 @@ public:
 class Constant : public Expression
 {
 	public:
+    virtual double evaluate() const override =0;
+
 		virtual void print(std::ostream &dst) const override =0;
 
-		virtual void print_mips(std::ostream &dst, Context &context) const override =0;
+		virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const override =0;
 };
 
 class IntegralConstant : public Constant
@@ -58,6 +61,11 @@ class IntegralConstant : public Constant
       }else{
         value = stoi(value)
       }
+    }
+
+    virtual double evaluate() const override
+    {
+      return value;
     }
 
 		virtual void print(std::ostream &dst) const override
@@ -94,14 +102,19 @@ class FloatConstant : public Constant
 			dst << value;
 		}
 
-    virtual void print_mips_float(std::ostream &dst, Context &context, std::string destReg, std::string freeReg) const override
+    virtual double evaluate() const override
+    {
+      return value;
+    }
+
+    virtual void print_mips_float(std::ostream &dst, Context &context, std::string destReg, std::string freeReg) const
 		{
       std::string label = context.make_float_label(value);
       dst << "lui " << freeReg << ",%hi(" << label << ")" << std::endl;
 			dst << "lwc1 " << destReg << ",%lo(" << label << ")(" << freeReg << ")" << std::endl;
 		}
 
-		virtual void print_mips_double(std::ostream &dst, Context &context, std::string destReg1, std::string destReg2, std::string freeReg) const override
+		virtual void print_mips_double(std::ostream &dst, Context &context, std::string destReg1, std::string destReg2, std::string freeReg) const
 		{
       std::string label = context.make_double_label(value);
       dst << "lui " << freeReg << ",%hi(" << label << ")" << std::endl;
@@ -118,12 +131,12 @@ class StringLiteral : public Expression
 	public:
 		String_Literal(std::string _string) : value(_string) {}
 
-		virtual void print_structure(std::ostream &dst) const override
+		virtual void print(std::ostream &dst) const override
 		{
 			dst << value;
 		}
 
-		virtual void print_mips_array(std::ostream &dst, Context &context, int _addr, std::string destReg) const override
+		virtual void print_mips_array(std::ostream &dst, Context &context, int _addr, std::string destReg) const
 		{
       char current;
       int addr = _addr;
@@ -154,7 +167,7 @@ class StringLiteral : public Expression
       }
 		}
 
-    virtual void print_mips_pointer(std::ostream &dst, Context &context, std::string destReg) const override
+    virtual void print_mips_pointer(std::ostream &dst, Context &context, std::string destReg) const
 		{
       std::string label = context.make_literal_label(value);
       dst << "lui " << destReg << ",%hi(" << label << ")" << std::endl;
@@ -181,13 +194,13 @@ class Identifier : public Expression
       dst << "lw " << destReg << "," << addr << "($fp)" << std::endl;
 		}
 
-    virtual void print_mips_float(std::ostream &dst, Context &context, std::string destReg) const override
+    virtual void print_mips_float(std::ostream &dst, Context &context, std::string destReg) const
 		{
       int addr = context.id_to_addr(value);
       dst << "lwc1 " << destReg << "," << addr << "($fp)" << std::endl;
 		}
 
-    virtual void print_mips_double(std::ostream &dst, Context &context, std::string destReg1, std::string destReg2) const override
+    virtual void print_mips_double(std::ostream &dst, Context &context, std::string destReg1, std::string destReg2) const
 		{
       int addr = context.id_to_addr(value);
       dst << "lwc1 " << destReg1 << "," << (addr+4) << "($fp)" << std::endl;
@@ -195,19 +208,16 @@ class Identifier : public Expression
 		}
 };
 
-/* -------------------------------- Unary Expression -------------------------------- */
-
-class Unary_Expression : public Expression
-{
-	protected:
-		Expression* expression;
-
-	public:
-		Unary_Expression(Expression* _expression) : expression(_expression) {}
-};
-
 
 /* -------------------------------- Post-fix Expression -------------------------------- */
+
+class ArrayPostfixExpression : public Expression
+{
+  public:
+    ArrayPostfixExpression(Expression* postfix_expr, Expression* assignment_expr){
+      int length = assignment_expr.evaluate();
+    }
+};
 
 class Post_Increment_Expression : public Unary_Expression
 {
@@ -226,6 +236,19 @@ class Function_Call_Expression : public Unary_Expression{
 		: Unary_Expression(_expression), argument_list(_argument_list) {}
 
 };
+
+
+/* -------------------------------- Unary Expression -------------------------------- */
+
+class Unary_Expression : public Expression
+{
+	protected:
+		Expression* expression;
+
+	public:
+		Unary_Expression(Expression* _expression) : expression(_expression) {}
+};
+
 
 /* -------------------------------- Assignment Expression -------------------------------- */
 
