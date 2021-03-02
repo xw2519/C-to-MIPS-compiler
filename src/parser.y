@@ -42,9 +42,10 @@
 
 %%
 /* Expressions */
-primary_expression : T_IDENTIFIER                                                                  { $$ = new PrimaryExpression(IDENTIFIER, *$1); }
-                   | T_CONSTANT                                                                    { $$ = new PrimaryExpression(CONSTANT, *$1); }
-                   | T_STRING_LITERAL                                                              { $$ = new PrimaryExpression(STRING_LITERAL, *$1); }
+primary_expression : T_IDENTIFIER                                                                  { $$ = new Identifier(*$1); }
+                   | T_CONSTANT                                                                    { $$ = new IntegralConstant(*$1); }
+                   | T_FLOAT_CONSTANT                                                              { $$ = new FloatConstant(*$1); }
+                   | T_STRING_LITERAL                                                              { $$ = new StringLiteral(*$1); }
                    | T_LBRACKET assignment_expression T_RBRACKET                                   { $$ = new PrimaryExpression($2); }
 
 postfix_expression : primary_expression                                                            { $$ = new PostfixExpression($1); }

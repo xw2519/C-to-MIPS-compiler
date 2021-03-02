@@ -3,7 +3,7 @@
 
 #include "ast_node.hpp"
 
-enum ExpressionEnum { IDENTIFIER, CONSTANT, STRING_LITERAL, DOT, ARROW, INCREMENT, DECREMENT, REFERENCE, DEREFERENCE,
+enum ExpressionEnum { INT, CHAR, UNSIGNED, FLOAT, DOUBLE, STRING_LITERAL, DOT, ARROW, INCREMENT, DECREMENT, REFERENCE, DEREFERENCE,
                       PLUS, MINUS, BITWISE_NOT, LOGICAL_NOT, SIZEOF, MULTIPLY, DIVIDE, MODULO, BITWISE_SHIFT_LEFT, BITWISE_SHIFT_RIGHT,
                       LESS, GREATER, LESS_EQUAL, GREATER_EQUAL, EQUAL, NOT_EQUAL, ASSIGN, ADD_ASSIGN, SUB_ASSIGN, MUL_ASSIGN,
                       DIV_ASSIGN, MOD_ASSIGN, SHIFT_LEFT_ASSIGN, SHIFT_RIGHT_ASSIGN, AND_ASSIGN, OR_ASSIGN, XOR_ASSIGN };
@@ -13,11 +13,13 @@ enum ExpressionEnum { IDENTIFIER, CONSTANT, STRING_LITERAL, DOT, ARROW, INCREMEN
 
 class Expression
 {
+protected:
+  ExpressionEnum type;
+
 public:
     virtual ~Expression()
     {}
-
-    //! Tell and expression to print itself to the given stream
+    // Tell and expression to print itself to the given stream
     virtual void print(std::ostream &dst) const =0;
 };
 
@@ -25,31 +27,92 @@ public:
 
 class Constant : public Expression
 {
-	private:
-    ExpressionEnum type;
+	public:
+		virtual void print(std::ostream &dst) const override =0;
+
+		virtual void print_mips(std::ostream &dst, Context &context) const override =0;
+};
+
+class IntegralConstant : public Constant
+{
+  protected:
+    long value;
 
 	public:
-		Constant(ExpressionEnum _type, int _value)
-    : value(_value)
-    , type(_type)
-    {}
+		IntegralConstant(std::string _value)
+    {
+      if((_value.back()=='u')||(_value.back()=='U')){
+        type = UNSIGNED;
+      }else if(_value.front()=='\''){
+        type = CHAR;
+      }else{
+        type = INT;
+      }
+
+      if(type==CHAR){
+        value = _value[_value.size()-2];
+      }else if((_value[1] == 'x') || (_value[1] == 'X')){
+        value = stoi(_value, 0, 16);
+      }else if(_value.front() == '0'){
+        value = stoi(_value, 0, 8);
+      }else{
+        value = stoi(value)
+      }
+    }
 
 		virtual void print(std::ostream &dst) const override
 		{
 			dst << value;
 		}
 
-		virtual void print_mips(std::ostream &dst, Context &context) const override
+		virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const override
 		{
-			std::string destReg = context.get_dest_reg();
-      int val = ;
-			dst << "li $" << destReg << "," << val << std::endl;
+      dst << "li " << destReg << "," << (value&&(0x00000000FFFF0000)) << std::endl;
+      dst << "ori " << destReg << "," << destReg << ",0x" << std::hex << (value%65536) << std::dec << std::endl;
+		}
+};
+
+class FloatConstant : public Constant
+{
+  protected:
+    double value;
+
+	public:
+    FloatConstant(std::string _value)
+    {
+      if((_value.back()=='f') || (_value.back()=='F')){
+        type = FLOAT;
+      }else{
+        type = DOUBLE;
+      }
+
+      value = stof(_value);
+    }
+
+		virtual void print(std::ostream &dst) const override
+		{
+			dst << value;
+		}
+
+    virtual void print_mips_float(std::ostream &dst, Context &context, std::string destReg, std::string freeReg) const override
+		{
+      std::string label = context.make_float_label(value);
+      dst << "lui " << freeReg << ",%hi(" << label << ")" << std::endl;
+			dst << "lwc1 " << destReg << ",%lo(" << label << ")(" << freeReg << ")" << std::endl;
+		}
+
+		virtual void print_mips_double(std::ostream &dst, Context &context, std::string destReg1, std::string destReg2, std::string freeReg) const override
+		{
+      std::string label = context.make_double_label(value);
+      dst << "lui " << freeReg << ",%hi(" << label << ")" << std::endl;
+			dst << "lwc1 " << destReg1 << ",%lo(" << label << "+4)(" << freeReg << ")" << std::endl;
+      dst << "lwc1 " << destReg2 << ",%lo(" << label << ")(" << freeReg << ")" << std::endl;
 		}
 };
 
 class StringLiteral : public Expression
 {
-	private:
+  protected:
 		std::string value;
 
 	public:
@@ -60,7 +123,7 @@ class StringLiteral : public Expression
 			dst << value;
 		}
 
-		virtual void print_mips_array(std::ostream &dst, Context &context, std::string destReg, int _addr) const override
+		virtual void print_mips_array(std::ostream &dst, Context &context, int _addr, std::string destReg) const override
 		{
       char current;
       int addr = _addr;
@@ -73,17 +136,17 @@ class StringLiteral : public Expression
           out.push_back(0);
         }
         if(out.size()==4){
-          dst << "li $" << destReg << "," << ((256*out[0]+out[1])*65536) << std::endl;
-          dst << "ori $" << destReg << ",$" << destReg << ",0x" << std::hex << 256*out[2]+out[3] << std::dec << std::endl;
-          dst << "sw $" << destReg << "," << addr << "($fp)" << std::endl;
+          dst << "li " << destReg << "," << ((256*out[0]+out[1])*65536) << std::endl;
+          dst << "ori " << destReg << "," << destReg << ",0x" << std::hex << 256*out[2]+out[3] << std::dec << std::endl;
+          dst << "sw " << destReg << "," << addr << "($fp)" << std::endl;
           addr += 4;
           out.clear();
         }
       }
 
       if(out.size()>=2){
-        dst << "li $" << destReg << "," << (256*out[0]+out[1]) << std::endl;
-        dst << "sh $" << destReg << "," << addr << "($fp)" << std::endl;
+        dst << "li " << destReg << "," << (256*out[0]+out[1]) << std::endl;
+        dst << "sh " << destReg << "," << addr << "($fp)" << std::endl;
         addr += 2;
       }
       if(out.size()==1){
@@ -91,21 +154,21 @@ class StringLiteral : public Expression
       }
 		}
 
-    virtual void print_mips_pointer(std::ostream &dst, Context &context) const override
+    virtual void print_mips_pointer(std::ostream &dst, Context &context, std::string destReg) const override
 		{
-      std::string label = context.make_literal_label("$LC", value);
-      dst << "lui $" << destReg << ",%hi(" << label << ")" << std::endl;
-      dst << "addiu $" << destReg << ",$" << destReg << ",%lo(" << label << ")" << std::endl;
+      std::string label = context.make_literal_label(value);
+      dst << "lui " << destReg << ",%hi(" << label << ")" << std::endl;
+      dst << "addiu " << destReg << "," << destReg << ",%lo(" << label << ")" << std::endl;
 		}
 };
 
 class Identifier : public Expression
 {
-	private:
+  protected:
 		std::string value;
 
 	public:
-		Identifier(std::string _ID) : value(_ID) {}
+		Identifier(std::string &_ID) : value(_ID) {}
 
 		virtual void print(std::ostream &dst) const override
 		{
@@ -115,7 +178,20 @@ class Identifier : public Expression
 		virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const override
 		{
       int addr = context.id_to_addr(value);
-      dst << "lw $" << destReg << "," << addr << "($fp)" << std::endl;
+      dst << "lw " << destReg << "," << addr << "($fp)" << std::endl;
+		}
+
+    virtual void print_mips_float(std::ostream &dst, Context &context, std::string destReg) const override
+		{
+      int addr = context.id_to_addr(value);
+      dst << "lwc1 " << destReg << "," << addr << "($fp)" << std::endl;
+		}
+
+    virtual void print_mips_double(std::ostream &dst, Context &context, std::string destReg1, std::string destReg2) const override
+		{
+      int addr = context.id_to_addr(value);
+      dst << "lwc1 " << destReg1 << "," << (addr+4) << "($fp)" << std::endl;
+      dst << "lwc1 " << destReg2 << "," << addr << "($fp)" << std::endl;
 		}
 };
 
