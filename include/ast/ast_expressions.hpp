@@ -24,7 +24,7 @@ public:
     virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const =0;
 };
 
-/* -------------------------------- Primatives -------------------------------- */
+/* -------------------------------- Primitives -------------------------------- */
 
 class Constant : public Expression
 {
@@ -107,19 +107,19 @@ class FloatConstant : public Constant
       return value;
     }
 
-    virtual void print_mips_float(std::ostream &dst, Context &context, std::string destReg, std::string freeReg) const
+    virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const override
 		{
       std::string label = context.make_float_label(value);
+      std::string freeReg = context.alloc_reg(INT);
       dst << "lui " << freeReg << ",%hi(" << label << ")" << std::endl;
-			dst << "lwc1 " << destReg << ",%lo(" << label << ")(" << freeReg << ")" << std::endl;
-		}
-
-		virtual void print_mips_double(std::ostream &dst, Context &context, std::string destReg1, std::string destReg2, std::string freeReg) const
-		{
-      std::string label = context.make_double_label(value);
-      dst << "lui " << freeReg << ",%hi(" << label << ")" << std::endl;
-			dst << "lwc1 " << destReg1 << ",%lo(" << label << "+4)(" << freeReg << ")" << std::endl;
-      dst << "lwc1 " << destReg2 << ",%lo(" << label << ")(" << freeReg << ")" << std::endl;
+      if(type==FLOAT){
+        dst << "lwc1 " << destReg << ",%lo(" << label << ")(" << freeReg << ")" << std::endl;
+      }else{
+        std::string destReg2 = context.next_reg(FLOAT, destReg);
+        dst << "lwc1 " << destReg << ",%lo(" << label << "+4)(" << freeReg << ")" << std::endl;
+        dst << "lwc1 " << destReg2 << ",%lo(" << label << ")(" << freeReg << ")" << std::endl;
+      }
+      context.dealloc_reg(freeReg);
 		}
 };
 
@@ -188,6 +188,11 @@ class Identifier : public Expression
 			dst << value;
 		}
 
+    virtual std::string evaluate() const
+    {
+      return value;
+    }
+
 		virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const override
 		{
       int addr = context.id_to_addr(value);
@@ -213,9 +218,55 @@ class Identifier : public Expression
 
 class ArrayPostfixExpression : public Expression
 {
+  protected:
+    Expression* postfix_expr;
+    Expression* assignment_expr;
+
   public:
-    ArrayPostfixExpression(Expression* postfix_expr, Expression* assignment_expr){
-      int length = assignment_expr.evaluate();
+    ArrayPostfixExpression(Expression* _postfix_expr, Expression* _assignment_expr)
+    : postfix_expr(_postfix_expr)
+    , assignment_expr(_assignment_expr)
+    {}
+    ~ArrayPostfixExpression()
+    {
+      delete postfix_expr;
+      delete assignment_expr;
+    }
+    virtual std::string evaluate() const
+    {
+      return postfix_expr.evaluate();
+    }
+    virtual void print(std::ostream &dst) const override
+    {
+      dst << postfix_expr.evaluate();
+    }
+    virtual void print_mips_read(std::ostream &dst, Context &context, std::string destReg) const
+    {
+      std::string freeReg1 = context.alloc_reg(INT);
+      assignment_expr.print_mips(dst, context, freeReg1);
+
+      std::string freeReg2 = context.alloc_reg(INT);
+      postfix_expr.print_mips(dst, context, freeReg2);
+
+      dst << "addu " << destReg << "," << freeReg1 << "," << freeReg2 << std::endl;
+      dst << "sll " << destReg << "," << destReg << ",2" << std::endl;
+      dst << "lw " << destReg << ",0(" << destReg << ")" << std::endl;
+      context.dealloc_reg(freeReg1);
+      context.dealloc_reg(freeReg2);
+    }
+    virtual void print_mips_write(std::ostream &dst, Context &context, std::string srcReg) const
+    {
+      std::string freeReg1 = context.alloc_reg(INT);
+      assignment_expr.print_mips(dst, context, freeReg1);
+
+      std::string freeReg2 = context.alloc_reg(INT);
+      postfix_expr.print_mips(dst, context, freeReg2);
+
+      dst << "addu " << freeReg1 << "," << freeReg1 << "," << freeReg2 << std::endl;
+      dst << "sll " << freeReg1 << "," << freeReg1 << ",2" << std::endl;
+      dst << "sw " << srcReg << ",0(" << freeReg1 << ")" << std::endl;
+      context.dealloc_reg(freeReg1);
+      context.dealloc_reg(freeReg2);
     }
 };
 
