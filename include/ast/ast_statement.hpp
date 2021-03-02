@@ -13,6 +13,14 @@ class Expression_Statement : public Statement
 
 	public:
 		Expression_Statement( Expression* _expression ) : expression(_expression) {}
+
+		virtual void print_MIPS(std::ostream &dst, Context& context) const override
+		{
+
+			expression->print_MIPS(dst, context);
+
+		}
+
 };
 
 class Compound_Statement : public Statement
@@ -24,6 +32,26 @@ class Compound_Statement : public Statement
 	public:
 		Compound_Statement(std::vector<Declaration*>* _declaration_list = NULL, std::vector<Statement*>* _statement_list = NULL)
 		:statement_list(_statement_list), declaration_list(_declaration_list) {}
+
+		virtual void print_MIPS(std::ostream &dst, Context& context) const override
+		{
+			Context sub_context = Context(context);
+
+			if(declaration_list != NULL)
+			{
+				for(auto it=declaration_list->begin(); it!=declaration_list->end(); it++)
+				{
+					(*it)->print_MIPS(dst, sub_context);
+				}
+			}
+
+			if(statement_list != NULL)
+			{
+				for(auto it=statement_list->begin(); it!=statement_list->end(); it++){
+					(*it)->print_MIPS(dst, sub_context);
+				}
+			}
+		}
 };
 
 class Condition_If_Statement : public Statement

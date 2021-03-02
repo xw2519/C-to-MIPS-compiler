@@ -6,7 +6,8 @@
 #include <string>
 #include <iostream>
 
-typedef std::pair<std::string, int> type_location;
+static int local_variable_counter;
+static int global_variable_counter;
 
 /*
 
@@ -42,25 +43,32 @@ struct Context
 		// Parameter list storage for function arguments 
 		std::vector <std::string> parameter_list;
 
-		// Mapping of variable to location in memory with variable name as the key
-		std::map <std::string, type_location> variable_location;
+		// Variable
+		std::map <std::string, int> local_variables; // Name, Location
 
 		// Pointers
-		int stack_pointer;
-		int frame_pointer;
+		int stack_pointer_tracker;
+		int frame_pointer_tracker;
 
 		// Scope
-		std::string scope;
+		std::string scope_tracker;
+
+
 	
 	public:
 		~Context () {}
 
 		Context () 
 		{
+			local_variable_counter = 0;
+			global_variable_counter = 0;
+
 			// Initialise the register availability tracker
+			// TRUE : Available 
+			// FALSE: Unavailable
 			for (int i = 0; i < 32; i++) 
 			{
-				if (i <= 3 || i >= 26) // TRUE: Available and FALSE: Unavailable
+				if (i <= 3 || i >= 26) 
 				{
 					register_availability_tracker[i] = false;
 				}
@@ -111,21 +119,12 @@ struct Context
 		void set_avaiable (int register_ID) 
 		{
         	register_availability_tracker[register_ID] = true;
-			frame_pointer += 4;
-			//variable_counter--;
     	}
 
 		void set_unavaiable (int register_ID) 
 		{
         	register_availability_tracker[register_ID] = false;
-			frame_pointer -= 4;
-			//variable_counter++;
     	}
-
-		int return_frame_pointer () 
-		{
-			return frame_pointer;
-		}
 
 		/* ------------------------------------					Temprorary Register Functions					------------------------------------ */
 
@@ -179,21 +178,11 @@ struct Context
 
 		std::vector<int> list_available_constant_registers () 
 		{
-			std::vector<int> available_constant_registers;
 
-			for (int i = 16; i <= 23; i++) 
-			{
-				if (register_availability_tracker[i] == false) 
-				{
-					available_constant_registers.push_back(i);
-				}
-        	}    
-
-        	return available_constant_registers;
     	}
 
 		/* ------------------------------------					Parameter Register Functions				------------------------------------ */
-
+		/*
 		std::vector<int> list_available_parameter_registers () 
 		{
 			std::vector<int> available_parameter_register;
@@ -232,71 +221,34 @@ struct Context
 
 			parameter_list.clear();
     	}
+		*/
 
 		/* ------------------------------------					  Frame Pointer Functions					------------------------------------ */
-
-		int decrease_frame_pointer() 
+		
+		int get_frame_pointer()
 		{
-			frame_pointer -= 4;
+			return frame_pointer_tracker;
 		}
 
-		int increase_frame_pointer() 
+		void decrease_frame_pointer() 
 		{
-			frame_pointer += 4;
+			frame_pointer_tracker -= 4;
 		}
 
-
+		void increase_frame_pointer() 
+		{
+			frame_pointer_tracker += 4;
+		}
+		
+	
 		/* ------------------------------------					Variable Register Functions					------------------------------------ */
 
-		type_location find_variable_location (std::string variable) 
-		{
-			if (variable_location.count(variable))
-			{
-				return variable_location[variable];
-			}
-			else
-			{
-				throw("Error: Variable not declared");
-			}
-    	}
 
-		void store_variable (std::string variable) // Only local for now
-		{
-			// Remove the old variable location
-        	variable_location.erase(variable); 
 
-			// Increase variable count
-			//variable_counter++;
-
-			// Place new variable and location into map
-			variable_location[variable] = std::make_pair("local", frame_pointer);
-    	}
-
-		void delete_variable(std::string variable) 
-		{ 
-			// Decrease variable count
-			//variable_counter--;
-
-			// Erase variable
-			variable_location.erase(variable); 
-		}
 
 		/* ------------------------------------						Scope Functions							------------------------------------ */
 
-		std::string return_scope ()
-		{
-			return scope;
-		}
 
-		void set_scope_local () 
-		{
-			scope = "local";
-		}
-
-		void set_scope_global () 
-		{
-			scope = "global";
-		}
 
 };
 

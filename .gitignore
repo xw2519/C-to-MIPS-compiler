@@ -5,3 +5,4 @@ bin/*
 *.output 
 *.yy.cpp
 *.tab.cpp
+include/ast/ast_expression.hpp

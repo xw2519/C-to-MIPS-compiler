@@ -2,7 +2,6 @@
 
 int main()
 {
-
 	const Node *root = parse();
 
 	Context context;

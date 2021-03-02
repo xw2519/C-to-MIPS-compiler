@@ -47,24 +47,56 @@ class Function_Call_Expression : public Unary_Expression{
 		Function_Call_Expression(Expression *_expression, std::vector<Expression*>* _argument_list = NULL)
 		: Unary_Expression(_expression), argument_list(_argument_list) {}
 
+		virtual void print_MIPS(std::ostream &dst, Context& context) const override
+		{
+			dst << " Function_Call_Expression " << std::endl;
+		}
+
 };
 
-/* -------------------------------- Assignment Expression -------------------------------- */
+/* -------------------------------- Assignment Expressions -------------------------------- */
 
 class Assignment_Expression : public Expression // Base class
 {
 	protected:
-		Expression* lvalue;
+		Expression* left_value;
 		Expression* expression;
 			
 	public:
-		Assignment_Expression(Expression* _lvalue, Expression* _expression) : lvalue(_lvalue), expression(_expression) {}
+		Assignment_Expression(Expression* _left_value, Expression* _expression) : left_value(_left_value), expression(_expression) {}
 };
 
 class Direct_Assignment : public Assignment_Expression
 {
 	public:
-		Direct_Assignment(Expression* _lvalue, Expression* _expr) : Assignment_Expression(_lvalue, _expr) {}
+		Direct_Assignment(Expression* _left_value, Expression* _expression) : Assignment_Expression(_left_value, _expression) {}
+
+		virtual void print_MIPS(std::ostream &dst, Context& context) const override
+		{
+			// Track destination variable location
+			int destination_frame_pointer = context.get_frame_pointer();
+
+			// Execute left value 
+			left_value->print_MIPS(dst, context);	
+
+			// Allocate stack
+			std::vector<int> temp_registers = context.list_available_temprorary_registers();
+			context.set_unavaiable(temp_registers[0]);
+			local_variable_counter++;
+			context.decrease_frame_pointer();
+
+			
+			// Execute expressions on right hand side
+			expression->print_MIPS(dst, context);
+
+			// Print assembly
+			dst << "\t" << "sw" << "\t" << "$" << "v0" << ", " << 8 << "($fp)" <<std::endl;
+
+			// Deallocate stack
+			context.increase_frame_pointer();
+			local_variable_counter--;
+			context.set_avaiable(temp_registers[0]);
+		}
 };
 
 /* -------------------------------- Operator Expression -------------------------------- */

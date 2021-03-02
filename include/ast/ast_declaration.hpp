@@ -26,74 +26,59 @@ class Program : public Node
 };
 
 
-class Declarator : public Node
+class External_Declaration : public Node {};
+
+class Declarator : public External_Declaration
 {
 	private:
 		std::string ID;
 		Expression *initialisation_expression;
 
 	public:
-		std::string getID()
+
+		Declarator (std::string _ID, Expression *_initialisation_expression = NULL) 
+		: ID(_ID), initialisation_expression(_initialisation_expression) {}
+
+		std::string getID() 
 		{
 			return ID;
 		}
 
-		Declarator (std::string _ID = "", Expression *initialisation_expression = NULL) 
-		: ID(_ID), initialisation_expression(initialisation_expression) {}
-
-		virtual void print_MIPS (std::ostream &dst, Context& context)
+		void print_MIPS(std::ostream &dst, Context& context) const override
 		{
-			if (context.return_scope() == "global")
+			if (initialisation_expression != NULL)
 			{
+				// Execute expression
+				initialisation_expression->print_MIPS(dst, context);
 
-			}
-			else
-			{
-				context.store_variable(ID);
-
-				dst << "sw $0," << context.find_variable_location(ID).first << "($fp)" << std::endl;
-
-				if (initialisation_expression != NULL)
-				{
-					std::string tempReg_r = "v1";
-
-					initialisation_expression->print_MIPS(dst, context);
-
-					dst << "lw $v0," << context.decrease_frame_pointer() << "($fp)" << std::endl;
-
-					dst << "sw $v0," << "," << context.find_variable_location(ID).first << "($fp)" << std::endl;
-
-					context.increase_frame_pointer();
-				}
 			}
 		}
+
+
 };
 
-
-class Declaration : public Node
+class Declaration : public External_Declaration
 {
 	private:
-		std::string type;
+		std::string TYPE;
 		std::vector<Declarator*>* declaration_list;
 
 	public:
 		Declaration(std::string _TYPE, std::vector<Declarator*>* _declaration_list = NULL) 
-		: type(_TYPE), declaration_list(_declaration_list) {}
+		: TYPE(_TYPE), declaration_list(_declaration_list) {}
 
-		virtual void print_MIPS (std::ostream &dst, Context& context) const override
+		void print_MIPS(std::ostream &dst, Context& context) const override
 		{
-			if(declaration_list != NULL)
-			{
-				if(context.return_scope() == "local")
+			if (declaration_list != NULL)
+			{				
+				for (int i = 0; i < declaration_list->size(); i++)
 				{
-					for(auto it = declaration_list->begin(); it != declaration_list->end(); it++)
-					{
-						(*it)->print_MIPS(dst, context);
-					}
+					Declarator* temp_declarator = declaration_list->at(i);
+					(*temp_declarator).print_MIPS(dst, context);
 				}
-				
 			}
 		}
+
 };
 
 /*
@@ -115,7 +100,7 @@ pointer at the beginning of execution is taken as zero.
 
 */
 
-class Function_Definition : public Node // Very basic
+class Function_Definition : public External_Declaration // Very basic
 {
 	private:
 		std::string TYPE;
@@ -127,7 +112,7 @@ class Function_Definition : public Node // Very basic
 		Function_Definition (std::string _TYPE, std::string _ID, std::vector<Declaration*>* _parameter_list, Statement *_statements) 
 		: TYPE(_TYPE), ID(_ID), parameter_list(_parameter_list), statements(_statements) {}
 
-		virtual void print_MIPS (std::ostream &dst, Context &context) const override
+		void print_MIPS (std::ostream &dst, Context &context) const override
 		{
 			
 			/* -------------------------------- 		   Opening directives 			-------------------------------- */
@@ -144,6 +129,12 @@ class Function_Definition : public Node // Very basic
 			dst << "\t" << "sw"    << "\t" << "$fp,"	  << 4 << "($sp)" <<std::endl;
 			dst << "\t" << "move"  << "\t" << "$fp,$sp"   << std::endl;
 
+			if(statements != NULL)
+			{
+				statements->print_MIPS(dst, context);
+			}
+			
+			
 			if (ID == "main")
 			{
             	dst << "\t" << "move" << "\t" << "$2, $0" << std::endl; 
@@ -153,12 +144,12 @@ class Function_Definition : public Node // Very basic
 				dst << "\t" << "nop" << "\t" << std::endl;
 			}
 
-
 			// Deallocate stack
 			dst << "\t" << "move"  << "\t" << "$sp, $fp"  << std::endl; 
         	dst << "\t" << "lw"    << "\t" << "$fp," << 4 << "($sp)" << std::endl;
 			dst << "\t" << "addiu" << "\t" << "$sp, $sp," << 8 << std::endl; 
 			dst << "\t" << "j" 	   << "\t" << "$ra"  << std::endl;
+			dst << "\t" << "nop" << "\t" << std::endl;
 			dst << std::endl;
 
 			/* -------------------------------- 		    Closing directives 			-------------------------------- */
