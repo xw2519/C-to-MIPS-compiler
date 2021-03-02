@@ -103,14 +103,14 @@ OCT                     [0-7]
 
 {A}({A}|{D})*                      { yylval.string=new std::string(yytext); return lexer_hack(yylval.string); }   // IDs and TypeIDs
 
-{D}*\.{D}+([Ee][+-]?{D}+)?[Ff]?    { yylval.string = new std::string(yytext); return (T_CONSTANT); }              // Floating constants
-{D}+([Ee][+-]?{D}+)[Ff]?           { yylval.string = new std::string(yytext); return (T_CONSTANT); }
+{D}*\.{D}+([Ee][+-]?{D}+)?[Ff]?    { yylval.string = new std::string(yytext); return (T_FLOAT_CONSTANT); }              // Floating constants
+{D}+([Ee][+-]?{D}+)[Ff]?           { yylval.string = new std::string(yytext); return (T_FLOAT_CONSTANT); }
 
 [1-9][\d]*[Uu]?                    { yylval.string = new std::string(yytext); return (T_CONSTANT); }              // Integer constants
 [0][OCT]*[Uu]?                     { yylval.string = new std::string(to_string(stoi(yytext, 0, 8))); return (T_CONSTANT); }
 [0][Xx]{HEX}+[Uu]?                 { yylval.string = new std::string(to_string(stoi(yytext, 0, 16))); return (T_CONSTANT); }
 
-\'(\\.|[^'\\\n])*\'                { yylval.string = new std::string(yytext); return (T_CONSTANT); }              // Character constants
+\'(\\.|[^'\\\n])*\'                { yylval.string = new std::string(yytext); return (T_CHAR_CONSTANT); }              // Character constants
 
 \"(\\.|[^'\\\n])*\"                { yylval.string = new std::string(yytext); return (T_STRING_LITERAL); }        // String literals
 
