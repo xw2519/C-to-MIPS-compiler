@@ -598,8 +598,7 @@ class Operator : public Expression
 
 class MultiplicativeExpression : public Operator
 {
-  protected:
-    ExpressionEnum type;
+
 	public:
 		MultiplicativeExpression(ExpressionEnum _type, Expression* _left, Expression* _right)
     : Operator(_left,_right)
@@ -656,8 +655,7 @@ class MultiplicativeExpression : public Operator
 
 class AdditiveExpression : public Operator
 {
-  protected:
-    ExpressionEnum type;
+
 	public:
 		AdditiveExpression(ExpressionEnum _type, Expression* _left, Expression* _right)
     : Operator(_left, _right)
@@ -710,8 +708,7 @@ class AdditiveExpression : public Operator
 
 class ShiftExpression : public Operator
 {
-  protected:
-    ExpressionEnum type;
+
 	public:
 		ShiftExpression(ExpressionEnum _type, Expression* _left, Expression* _right)
     : Operator(_left, _right)
@@ -758,61 +755,88 @@ class ShiftExpression : public Operator
 };
 
 
+/* -------------------------------- Relational Binary Expressions -------------------------------- */
+
+class RelationalExpression : public Operator
+{
+
+	public:
+		RelationalExpression(ExpressionEnum _type, Expression* _left, Expression* _right)
+    : Operator(_left, _right)
+    , type(_type) {}
+
+    ~RelationalExpression(){
+      delete left;
+      delete right;
+    }
+
+    virtual std::string get_id() const override
+    {
+      return left->get_id();
+    }
+
+    virtual void print(std::ostream &dst) const override
+    {
+      dst << left->get_id();
+    }
+
+    virtual void mips_address(std::ostream &dst, Context &context, std::string destReg) const override
+    {
+      left->mips_address(dst, context, destReg);
+    }
+
+    virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const override
+    {
+      // 6 operators, all the types, do when
+    }
+};
+
+class BitwiseExpression : public Operator
+{
+
+	public:
+		BitwiseExpression(ExpressionEnum _type, Expression* _left, Expression* _right)
+    : Operator(_left, _right)
+    , type(_type) {}
+
+    ~BitwiseExpression(){
+      delete left;
+      delete right;
+    }
+
+    virtual std::string get_id() const override
+    {
+      return left->get_id();
+    }
+
+    virtual void print(std::ostream &dst) const override
+    {
+      dst << left->get_id();
+    }
+
+    virtual void mips_address(std::ostream &dst, Context &context, std::string destReg) const override
+    {
+      left->mips_address(dst, context, destReg);
+    }
+
+    virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const override
+    {
+      // 3 operators, integral types
+    }
+};
+
+
 /* -------------------------------- Assignment Expression -------------------------------- */
 
-class Assignment_Expression : public Expression // Base class
+class AssignmentExpression : public Expression
 {
 	protected:
 		Expression* lvalue;
 		Expression* expression;
 
 	public:
-		Assignment_Expression(Expression* _lvalue, Expression* _expression) : lvalue(_lvalue), expression(_expression) {}
+		Assignment_Expression(ExpressionEnum _type, Expression* _lvalue, Expression* _expression)
+    : type(_type)
+    , lvalue(_lvalue)
+    , expression(_expression) {}
 };
-
-class Direct_Assignment : public Assignment_Expression
-{
-	public:
-		Direct_Assignment(Expression* _lvalue, Expression* _expr) : Assignment_Expression(_lvalue, _expr) {}
-};
-
-
-/* -------------------------------- Relational Binary Expressions -------------------------------- */
-
-class Less_Than_Expression : public Operator
-{
-	public:
-		Less_Than_Expression(Expression* _left, Expression* _right) : Operator(_left, _right) {}
-};
-
-class More_Than_Expression : public Operator
-{
-	public:
-		More_Than_Expression(Expression* _left, Expression* _right) : Operator(_left, _right) {}
-};
-
-class Less_Than_Equal_Expression : public Operator
-{
-	public:
-		Less_Than_Equal_Expression(Expression* _left, Expression* _right) : Operator(_left, _right) {}
-};
-
-class More_Than_Equal_Expression : public Operator
-{
-	public:
-		More_Than_Equal_Expression(Expression* _left, Expression* _right) : Operator(_left,_right) {}
-};
-
-class Equal_Expression : public Operator
-{
-	public:
-		Equal_Expression(Expression* _left, Expression* _right) : Operator(_left,_right) {}
-};
-
-class Not_Equal_Expression : public Operator
-{
-	public:
-		Not_Equal_Expression(Expression* _left, Expression* _right) : Operator(_left,_right) {}
-};
-
-#endif

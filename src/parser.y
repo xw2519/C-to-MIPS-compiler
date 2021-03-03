@@ -95,22 +95,22 @@ equality_expression : relational_expression                                     
                     | equality_expression T_EQUAL relational_expression                            { $$ = new RelationalExpression(EQUAL, $1, $3); }
                     | equality_expression T_NOT_EQUAL relational_expression                        { $$ = new RelationalExpression(NOT_EQUAL, $1, $3); }
 
-and_expression : equality_expression                                                               { $$ = new AndExpression($1); }
-               | and_expression T_BITWISE_AND equality_expression                                  { $$ = new AndExpression($1, $3); }
+and_expression : equality_expression                                                               { $$ = $1; }
+               | and_expression T_BITWISE_AND equality_expression                                  { $$ = new BitwiseExpression(BITWISE_AND, $1, $3); }
 
-exclusive_or_expression : and_expression                                                           { $$ = new ExclusiveOrExpression($1); }
-                        | exclusive_or_expression T_BITWISE_XOR and_expression                     { $$ = new ExclusiveOrExpression($1, $3); }
+exclusive_or_expression : and_expression                                                           { $$ = $1; }
+                        | exclusive_or_expression T_BITWISE_XOR and_expression                     { $$ = new BitwiseExpression(BITWISE_XOR, $1, $3); }
 
-inclusive_or_expression : exclusive_or_expression                                                  { $$ = new InclusiveOrExpression($1); }
-                        | inclusive_or_expression T_BITWISE_OR exclusive_or_expression             { $$ = new InclusiveOrExpression($1, $3); }
+inclusive_or_expression : exclusive_or_expression                                                  { $$ = $1; }
+                        | inclusive_or_expression T_BITWISE_OR exclusive_or_expression             { $$ = new BitwiseExpression(BITWISE_OR, $1, $3); }
 
-logical_and_expression : inclusive_or_expression                                                   { $$ = new LogicalAndExpression($1); }
-                       | logical_and_expression T_BITWISE_AND inclusive_or_expression              { $$ = new LogicalAndExpression($1, $3); }
+logical_and_expression : inclusive_or_expression                                                   { $$ = $1; }
+                       | logical_and_expression T_BITWISE_AND inclusive_or_expression              { $$ = new BitwiseExpression(BITWISE_AND, $1, $3); }
 
-constant_expression : logical_and_expression                                                       { $$ = new ConstantExpression($1); }
-                    | constant_expression T_BITWISE_OR logical_and_expression                      { $$ = new ConstantExpression($1, $3); }
+constant_expression : logical_and_expression                                                       { $$ = $1; }
+                    | constant_expression T_BITWISE_OR logical_and_expression                      { $$ = new BitwiseExpression(BITWISE_OR, $1, $3); }
 
-assignment_expression : constant_expression                                                        { $$ = new AssignmentExpression($1); }
+assignment_expression : constant_expression                                                        { $$ = $1; }
                       | unary_expression T_ASSIGN assignment_expression                            { $$ = new AssignmentExpression(ASSIGN, $1, $3); }
                       | unary_expression T_ADD_ASSIGN assignment_expression                        { $$ = new AssignmentExpression(ADD_ASSIGN, $1, $3); }
                       | unary_expression T_SUB_ASSIGN assignment_expression                        { $$ = new AssignmentExpression(SUB_ASSIGN, $1, $3); }
