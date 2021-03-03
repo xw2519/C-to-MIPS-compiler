@@ -20,7 +20,7 @@ public:
     virtual ~Expression()
     {}
     virtual double evaluate() const =0;
-
+    virtual std::string get_id() const =0;
     virtual void print(std::ostream &dst) const =0;
     virtual void mips_address(std::ostream &dst, Context &context, std::string destReg) const =0;
     virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const =0;
@@ -201,6 +201,11 @@ class Identifier : public Expression
       type = context.get_type(value);
     }
 
+    virtual std::string get_id()
+    {
+      return value;
+    }
+
 		virtual void print(std::ostream &dst) const override
 		{
 			dst << value;
@@ -295,22 +300,45 @@ class ArrayPostfixExpression : public Expression
   public:
     ArrayPostfixExpression(Expression* _postfix_expr, Expression* _assignment_expr)
     : postfix_expr(_postfix_expr)
-    , assignment_expr(_assignment_expr)
-    {}
+    , assignment_expr(_assignment_expr) {}
+
     ~ArrayPostfixExpression()
     {
       delete postfix_expr;
       delete assignment_expr;
     }
-    virtual std::string evaluate() const
+
+    virtual std::string get_id()
     {
-      std::string out = postfix_expr->evaluate();
-      return
+      return postfix_expr->get_id();
     }
+
     virtual void print(std::ostream &dst) const override
     {
       dst << postfix_expr->evaluate();
     }
+
+    virtual void mips_address(std::ostream &dst, Context &context, std::string destReg) const override
+    {
+      std::string freeReg = context.alloc_reg(INT);
+      assignment_expr->print_mips(dst, context, freeReg);
+      postfix_expr->print_mips(dst, context, destReg);
+
+      if(context.pointed_type(postfix_expr->get_id())==DOUBLE){
+        dst << "sll " << freeReg << "," << freeReg << ",1" << std::endl;
+        dst << "addu " << destReg << "," << destReg << "," << freeReg << std::endl;
+        dst << "sll " << destReg << "," << destReg << ",2" << std::endl;
+      }else if(context.pointed_type(postfix_expr->get_id())==CHAR){
+        dst << "sll " << destReg << "," << destReg << ",2" << std::endl;
+        dst << "addu " << destReg << "," << destReg << "," << freeReg << std::endl;
+      }else{
+        dst << "addu " << destReg << "," << destReg << "," << freeReg << std::endl;
+        dst << "sll " << destReg << "," << destReg << ",2" << std::endl;
+      }
+
+      context.dealloc_reg(freeReg);
+    }
+
     virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const override
     {
       std::string freeReg1 = context.alloc_reg(INT);
@@ -319,12 +347,46 @@ class ArrayPostfixExpression : public Expression
       std::string freeReg2 = context.alloc_reg(INT);
       postfix_expr->print_mips(dst, context, freeReg2);
 
-      dst << "addu " << freeReg1 << "," << freeReg1 << "," << freeReg2 << std::endl;
-      dst << "sll " << freeReg1 << "," << freeReg1 << ",2" << std::endl;
-      if(context.write(postfix_expr->evaluate())){
-        dst << "sw " << destReg << ",0(" << freeReg1 << ")" << std::endl;
+      if(context.pointed_type(postfix_expr->get_id())==DOUBLE){
+        dst << "sll " << freeReg1 << "," << freeReg1 << ",1" << std::endl;
+        dst << "addu " << freeReg1 << "," << freeReg1 << "," << freeReg2 << std::endl;
+        dst << "sll " << freeReg1 << "," << freeReg1 << ",2" << std::endl;
+      }else if(context.pointed_type(postfix_expr->get_id())==CHAR){
+        dst << "sll " << freeReg1 << "," << freeReg1 << ",2" << std::endl;
+        dst << "addu " << freeReg1 << "," << freeReg1 << "," << freeReg2 << std::endl;
       }else{
-        dst << "lw " << destReg << ",0(" << freeReg1 << ")" << std::endl;
+        dst << "addu " << freeReg1 << "," << freeReg1 << "," << freeReg2 << std::endl;
+        dst << "sll " << freeReg1 << "," << freeReg1 << ",2" << std::endl;
+      }
+
+      if(context.write(postfix_expr->get_id())){
+        if(context.pointed_type(postfix_expr->get_id())==DOUBLE){
+          std::string destReg2 = destReg;
+          destReg2.pop_back();
+          destReg2.push_back(std::stoi(destReg.back()) + 1);
+          dst << "swc1 " << destReg << ",4("  << freeReg1 << ")" << std::endl;
+          dst << "swc1 " << destReg2 << ",0("  << freeReg1 << ")" << std::endl;
+        }else if(context.pointed_type(postfix_expr->get_id())==FLOAT){
+          dst << "swc1 " << destReg << ",0("  << freeReg1 << ")" << std::endl;
+        }else if(context.pointed_type(postfix_expr->get_id())==CHAR){
+          dst << "sb " << destReg << ",0(" << freeReg1 << ")" << std::endl;
+        }else{
+          dst << "sw " << destReg << ",0(" << freeReg1 << ")" << std::endl;
+        }
+      }else{
+        if(context.pointed_type(postfix_expr->get_id())==DOUBLE){
+          std::string destReg2 = destReg;
+          destReg2.pop_back();
+          destReg2.push_back(std::stoi(destReg.back()) + 1);
+          dst << "lwc1 " << destReg << ",4("  << freeReg1 << ")" << std::endl;
+          dst << "lwc1 " << destReg2 << ",0("  << freeReg1 << ")" << std::endl;
+        }else if(context.pointed_type(postfix_expr->get_id())==FLOAT){
+          dst << "lwc1 " << destReg << ",0("  << freeReg1 << ")" << std::endl;
+        }else if(context.pointed_type(postfix_expr->get_id())==CHAR){
+          dst << "lbu " << destReg << ",0(" << freeReg1 << ")" << std::endl;
+        }else{
+          dst << "lw " << destReg << ",0(" << freeReg1 << ")" << std::endl;
+        }
       }
 
       context.dealloc_reg(freeReg1);
@@ -342,24 +404,27 @@ class FunctionPostfixExpression : public Expression
     FunctionPostfixExpression(Expression* _postfix_expr) : postfix_expr(_postfix_expr) {}
     FunctionPostfixExpression(Expression* _postfix_expr, std::vector<Expression*>* _arguments)
     : postfix_expr(_postfix_expr)
-    , arguments(_arguments)
-    {}
+    , arguments(_arguments) {}
 
-    ~FunctionPostfixExpression(){
+    ~FunctionPostfixExpression()
+    {
       delete postfix_expr;
       for(int i=0; i<arguments->size(); i++){
         delete arguments->at(i);
       }
       delete arguments;
     }
-    virtual std::string evaluate() const
+
+    virtual std::string get_id()
     {
-      return postfix_expr->evaluate();
+      return postfix_expr->get_value();
     }
+
     virtual void print(std::ostream &dst) const override
     {
       dst << postfix_expr->evaluate();
     }
+
     virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const override
     {
       std::vector<ExpressionEnum> arg_types = context.get_arg_types(postfix_expr->evaluate());
@@ -407,11 +472,13 @@ class PostfixExpression : public Expression
     : type(_type)
     , postfix_expr(_postfix_expr)
     , value(_value) {}
+
     ~PostfixExpression()
     {
       delete postfix_expr;
     }
-    virtual std::string evaluate() const
+
+    virtual std::string get_id() const
     {
       std::string out = postfix_expr->evaluate();
       if(type==DOT){
@@ -420,6 +487,7 @@ class PostfixExpression : public Expression
       }
       return out;
     }
+
     virtual void print(std::ostream &dst) const override
     {
       std::string out = postfix_expr->evaluate();
@@ -429,22 +497,38 @@ class PostfixExpression : public Expression
       }
       dst << out;
     }
+
+    virtual void mips_address(std::ostream &dst, Context &context, std::string destReg) const override
+    {
+      if(type==DOT){
+        std::string addr = context.member_to_addr(value);
+        postfix_expr->mips_address(dst, context, destReg);
+        dst << "addiu " << destReg << "," << destReg << "," << addr << std::endl;
+      }else{
+        postfix_expr->mips_address(dst, context, destReg);
+      }
+    }
+
     virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const override
     {
       if(type==DOT){
         std::string addr = context.member_to_addr(value);
-        if(context.write(value)){
+        if(context.write(postfix_expr->get_id())){
           std::string freeReg = context.alloc_reg(INT);
-          postfix_expr->print_mips(dst, context, freeReg);
+          postfix_expr->mips_address(dst, context, freeReg);
           dst << "addiu " << freeReg << "," << freeReg << "," << addr << std::endl;
           dst << "sw " << destReg << "," << ",0(" << freeReg << ")" << std::endl;
+          context.dealloc_reg(freeReg);
         }else{
-          postfix_expr->print_mips(dst, context, destReg);
+          postfix_expr->mips_address(dst, context, destReg);
           dst << "addiu " << destReg << "," << destReg << "," << addr << std::endl;
           dst << "lw " << destReg << "," << ",0(" << destReg << ")" << std::endl;
         }
       }else{
-        postfix_expr->evaluate()
+        std::string freeReg1 = context.alloc_reg(INT);
+        std::string freeReg2 = context.alloc_reg(INT);
+        postfix_expr->mips_address(dst, context, freeReg);
+        dst << "move " << freeReg << "," << destReg << std::endl;
       }
     }
 };
