@@ -127,9 +127,7 @@ class FloatConstant : public Constant
       if(type==FLOAT){
         dst << "lwc1 " << destReg << ",%lo(" << label << ")(" << freeReg << ")" << std::endl;
       }else{
-        std::string destReg2 = destReg;
-        destReg2.pop_back();
-        destReg2.push_back(std::stoi(destReg.back()) + 1);
+        std::string destReg2 = context.next_reg(destReg);
         dst << "lwc1 " << destReg << ",%lo(" << label << "+4)(" << freeReg << ")" << std::endl;
         dst << "lwc1 " << destReg2 << ",%lo(" << label << ")(" << freeReg << ")" << std::endl;
       }
@@ -225,32 +223,40 @@ class Identifier : public Expression
 		virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const override
 		{
       std::string addr = context.id_to_addr(value);
-      if(type==DOUBLE){
-        std::string destReg2 = destReg;
-        destReg2.pop_back();
-        destReg2.push_back(std::stoi(destReg.back()) + 1);
-      }
+      if(type==DOUBLE){ std::string destReg2 = context.next_reg(destReg); }
       if(context.write(value)){ std::string instr = "s"; }
       else{ std::string instr = "l"; }
       if((type==FLOAT) || (type==DOUBLE)){ instr += "wc1 "; }
       else{ instr += "w "; }
+      if(type==STRUCT){ int total_words = context.size_of(value); }
 
       if((context.write(value)){ std::string freeReg = context.alloc_reg(INT); }
       else{ std::string freeReg = destReg; }
 
-      if((context.check_global(value))){        // write/read global variable
+      if((context.check_global(value))){                                             // write/read global variable
         dst << "lui " << freeReg << ",%hi(" << addr << ")" << std::endl;
         dst << "addiu " << freeReg << "," << freeReg << ",%lo(" << addr << ")" << std::endl;
         if(type==DOUBLE){
           dst << instr << destReg2 << ",0(" << freeReg << ")" << std::endl;
           dst << instr << destReg << ",4(" << freeReg << ")" << std::endl;
+        }else if(type==STRUCT){
+          for(int i=0; i<total_words; i++){
+            dst << instr << destReg << "," << i << "(" << freeReg << ")" << std::endl;
+            destReg = context.next_reg(destReg);
+          }
         }else{
           dst << instr << destReg << ",0(" << freeReg << ")" << std::endl;
         }
-      }else{                                                                            // read/write local variable
+      }else{                                                                           // read/write local variable
         if(type==DOUBLE){
           dst << instr << destReg2 << "," << addr << "($fp)" << std::endl;
           dst << instr << destReg << "," << (std::stoi(addr)+4) << "($fp)" << std::endl;
+        }else if(type==STRUCT){
+          for(int i=0; i<total_words; i++){
+            dst << instr << destReg << "," << addr << "($fp)" << std::endl;
+            destReg = context.next_reg(destReg);
+            addr = to_string(stoi(addr)+4);
+          }
         }else{
           dst << instr << destReg << "," << addr << "($fp)" << std::endl;
         }
@@ -332,9 +338,7 @@ class ArrayPostfixExpression : public Expression
 
       if(context.write(postfix_expr->get_id())){
         if(context.pointed_type(postfix_expr->get_id())==DOUBLE){
-          std::string destReg2 = destReg;
-          destReg2.pop_back();
-          destReg2.push_back(std::stoi(destReg.back()) + 1);
+          std::string destReg2 = context.next_reg(destReg);
           dst << "swc1 " << destReg << ",4("  << freeReg1 << ")" << std::endl;
           dst << "swc1 " << destReg2 << ",0("  << freeReg1 << ")" << std::endl;
         }else if(context.pointed_type(postfix_expr->get_id())==FLOAT){
@@ -346,9 +350,7 @@ class ArrayPostfixExpression : public Expression
         }
       }else{
         if(context.pointed_type(postfix_expr->get_id())==DOUBLE){
-          std::string destReg2 = destReg;
-          destReg2.pop_back();
-          destReg2.push_back(std::stoi(destReg.back()) + 1);
+          std::string destReg2 = context.next_reg(destReg);
           dst << "lwc1 " << destReg << ",4("  << freeReg1 << ")" << std::endl;
           dst << "lwc1 " << destReg2 << ",0("  << freeReg1 << ")" << std::endl;
         }else if(context.pointed_type(postfix_expr->get_id())==FLOAT){
