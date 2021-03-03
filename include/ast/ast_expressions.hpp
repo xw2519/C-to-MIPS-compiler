@@ -42,7 +42,7 @@ class IntegralConstant : public Constant
     long value;
 
 	public:
-		IntegralConstant(std::string _value)
+		IntegralConstant(std::string &_value)
     {
       if((_value.back()=='u')||(_value.back()=='U')){
         type = UNSIGNED;
@@ -55,11 +55,11 @@ class IntegralConstant : public Constant
       if(type==CHAR){
         value = _value[_value.size()-2];
       }else if((_value[1] == 'x') || (_value[1] == 'X')){
-        value = stoi(_value, 0, 16);
+        value = std::stoi(_value, 0, 16);
       }else if(_value.front() == '0'){
-        value = stoi(_value, 0, 8);
+        value = std::stoi(_value, 0, 8);
       }else{
-        value = stoi(value)
+        value = std::stoi(value)
       }
     }
 
@@ -86,7 +86,7 @@ class FloatConstant : public Constant
     double value;
 
 	public:
-    FloatConstant(std::string _value)
+    FloatConstant(std::string &_value)
     {
       if((_value.back()=='f') || (_value.back()=='F')){
         type = FLOAT;
@@ -94,7 +94,7 @@ class FloatConstant : public Constant
         type = DOUBLE;
       }
 
-      value = stof(_value);
+      value = std::stof(_value);
     }
 
 		virtual void print(std::ostream &dst) const override
@@ -115,7 +115,9 @@ class FloatConstant : public Constant
       if(type==FLOAT){
         dst << "lwc1 " << destReg << ",%lo(" << label << ")(" << freeReg << ")" << std::endl;
       }else{
-        std::string destReg2 = context.next_reg(FLOAT, destReg);
+        std::string destReg2 = destReg;
+        destReg2.pop_back();
+        destReg2.push_back(std::stoi(destReg.back()) + 1);
         dst << "lwc1 " << destReg << ",%lo(" << label << "+4)(" << freeReg << ")" << std::endl;
         dst << "lwc1 " << destReg2 << ",%lo(" << label << ")(" << freeReg << ")" << std::endl;
       }
@@ -129,7 +131,7 @@ class StringLiteral : public Expression
 		std::string value;
 
 	public:
-		String_Literal(std::string _string) : value(_string) {}
+		String_Literal(std::string &_string) : value(_string) {}
 
 		virtual void print(std::ostream &dst) const override
 		{
@@ -234,39 +236,99 @@ class ArrayPostfixExpression : public Expression
     }
     virtual std::string evaluate() const
     {
-      return postfix_expr.evaluate();
+      return postfix_expr->evaluate();
     }
     virtual void print(std::ostream &dst) const override
     {
-      dst << postfix_expr.evaluate();
+      dst << postfix_expr->evaluate();
     }
     virtual void print_mips_read(std::ostream &dst, Context &context, std::string destReg) const
     {
       std::string freeReg1 = context.alloc_reg(INT);
-      assignment_expr.print_mips(dst, context, freeReg1);
+      assignment_expr->print_mips(dst, context, freeReg1);
 
       std::string freeReg2 = context.alloc_reg(INT);
-      postfix_expr.print_mips(dst, context, freeReg2);
-
-      dst << "addu " << destReg << "," << freeReg1 << "," << freeReg2 << std::endl;
-      dst << "sll " << destReg << "," << destReg << ",2" << std::endl;
-      dst << "lw " << destReg << ",0(" << destReg << ")" << std::endl;
-      context.dealloc_reg(freeReg1);
-      context.dealloc_reg(freeReg2);
-    }
-    virtual void print_mips_write(std::ostream &dst, Context &context, std::string srcReg) const
-    {
-      std::string freeReg1 = context.alloc_reg(INT);
-      assignment_expr.print_mips(dst, context, freeReg1);
-
-      std::string freeReg2 = context.alloc_reg(INT);
-      postfix_expr.print_mips(dst, context, freeReg2);
+      postfix_expr->print_mips(dst, context, freeReg2);
 
       dst << "addu " << freeReg1 << "," << freeReg1 << "," << freeReg2 << std::endl;
       dst << "sll " << freeReg1 << "," << freeReg1 << ",2" << std::endl;
-      dst << "sw " << srcReg << ",0(" << freeReg1 << ")" << std::endl;
+      dst << "lw " << destReg << ",0(" << freeReg1 << ")" << std::endl;
       context.dealloc_reg(freeReg1);
       context.dealloc_reg(freeReg2);
+    }
+    virtual void print_mips_write(std::ostream &dst, Context &context, std::string destReg) const
+    {
+      std::string freeReg1 = context.alloc_reg(INT);
+      assignment_expr->print_mips(dst, context, freeReg1);
+
+      std::string freeReg2 = context.alloc_reg(INT);
+      postfix_expr->print_mips(dst, context, freeReg2);
+
+      dst << "addu " << freeReg1 << "," << freeReg1 << "," << freeReg2 << std::endl;
+      dst << "sll " << freeReg1 << "," << freeReg1 << ",2" << std::endl;
+      dst << "sw " << destReg << ",0(" << freeReg1 << ")" << std::endl;
+      context.dealloc_reg(freeReg1);
+      context.dealloc_reg(freeReg2);
+    }
+};
+
+class FunctionPostfixExpression : public Expression
+{
+  protected:
+    Expression* postfix_expr;
+    std::vector<Expression*>* arguments;
+
+  public:
+    FunctionPostfixExpression(Expression* _postfix_expr) : postfix_expr(_postfix_expr) {}
+    FunctionPostfixExpression(Expression* _postfix_expr, std::vector<Expression*>* _arguments)
+    : postfix_expr(_postfix_expr)
+    , arguments(_arguments)
+    {}
+
+    ~FunctionPostfixExpression(){
+      delete postfix_expr;
+      for(int i=0; i<arguments->size(); i++){
+        delete arguments->at(i);
+      }
+      delete arguments;
+    }
+    virtual std::string evaluate() const
+    {
+      return postfix_expr->evaluate();
+    }
+    virtual void print(std::ostream &dst) const override
+    {
+      dst << postfix_expr->evaluate();
+    }
+    virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const override
+    {
+      std::vector<ExpressionEnum> arg_types = context.get_arg_types(postfix_expr->evaluate());
+      std::vector<std::string> freeRegs;
+      std::string paramReg = "$";
+      int float_param_count = 0;
+
+      if(arguments){
+        if(arguments->size()<=4){
+          for(int i=0; i<arguments->size(); i++){
+            if((arg_types[i] == FLOAT) || (arg_types[i] == DOUBLE)){
+              paramReg.push_back('f');
+              paramReg.push_back(std::to_string(2*float_param_count));
+              arguments->at(i)->print_mips(dst, context, paramReg);
+              float_param_count++;
+              paramReg.pop_back();
+              paramReg.pop_back();
+            }else{
+              paramReg.push_back(std::to_string(4+i));
+              arguments->at(i)->print_mips(dst, context, paramReg);
+              paramReg.pop_back();
+            }
+          }
+        }else{
+          dst <<
+        }
+      }
+
+      dst <<
     }
 };
 
@@ -275,19 +337,6 @@ class Post_Increment_Expression : public Unary_Expression
 	public:
 		Post_Increment_Expression(Expression* _expression) : Unary_Expression(_expression) {}
 };
-
-
-class Function_Call_Expression : public Unary_Expression{
-	private:
-		std::vector<Expression*>* argument_list;
-
-	public:
-
-		Function_Call_Expression(Expression *_expression, std::vector<Expression*>* _argument_list = NULL)
-		: Unary_Expression(_expression), argument_list(_argument_list) {}
-
-};
-
 
 /* -------------------------------- Unary Expression -------------------------------- */
 

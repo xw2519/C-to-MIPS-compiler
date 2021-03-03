@@ -57,8 +57,8 @@ postfix_expression : primary_expression                                         
                    | postfix_expression T_INCREMENT                                                { $$ = new PostfixExpression(INCREMENT, $1); }
                    | postfix_expression T_DECREMENT                                                { $$ = new PostfixExpression(DECREMENT, $1); }
 
-argument_expression_list : assignment_expression                                                   { $$ = new ArgumentExpressionList($1); }
-                         | argument_expression_list T_COMMA assignment_expression                  { $$ = new ArgumentExpressionList($1, $3); }
+argument_expression_list : assignment_expression                                                   { $$ = new std::vector<Expression*>{$1}; }
+                         | argument_expression_list T_COMMA assignment_expression                  { $1->push_back($3); $$ = $1; }
 
 unary_expression : postfix_expression                                                              { $$ = new UnaryExpression($1); }
                  | T_INCREMENT unary_expression                                                    { $$ = new UnaryExpression(INCREMENT, $2); }
@@ -240,7 +240,7 @@ declaration_specifiers : T_TYPEDEF                                              
                        | type_specifier declaration_specifiers                                     { $$ = new DeclarationSpecifiers($1, $2); }
 
 init_declarator_list : init_declarator                                                             { $$ = new std::vector<init_declarator*>{$1}; }
-                     | init_declarator_list T_COMMA init_declarator                                { $1.push_back($3); $$ = $1; }
+                     | init_declarator_list T_COMMA init_declarator                                { $1->push_back($3); $$ = $1; }
 
 type_specifier : T_CHAR                                                                            { $$ = new PrimitiveType(T_CHAR); }
                | T_INT                                                                             { $$ = new PrimitiveType(T_INT); }
@@ -259,7 +259,7 @@ initializer : assignment_expression                                             
             | T_CURLY_LBRACKET initializer_list T_COMMA T_CURLY_RBRACKET                           { $$ = new Initializer($2); }
 
 initializer_list : initializer                                                                     { $$ = new std::vector<initializer*>{$1}; }
-                 | initializer_list T_COMMA initializer                                            { $1.push_back($3); $$ = $1; }
+                 | initializer_list T_COMMA initializer                                            { $1->push_back($3); $$ = $1; }
 
 function_definition : declaration_specifiers declarator compound_statement                         { $$ = new FunctionDefinition($1, $2, $3); }
 
