@@ -6,9 +6,6 @@
 #include <string>
 #include <iostream>
 
-static int local_variable_counter;
-static int global_variable_counter;
-
 /*
 
 $0	        $zero	    Hard-wired to 0 										(Not used for normal use)
@@ -33,6 +30,14 @@ $24	- $25				Temporary registers
 
 */
 
+/* ------------------------------------ 			  				External variables		 					------------------------------------ */
+
+static int parameter_counter;
+
+static int local_variable_counter;
+static int global_variable_counter;
+
+
 /* ------------------------------------								Context Functions							------------------------------------ */
 struct Context
 {
@@ -42,16 +47,15 @@ struct Context
 
 		// Parameter list storage for function arguments 
 		std::vector <std::string> parameter_list;
+		std::vector <std::string> return_value_list;
 
-		// Variable
-		std::map <std::string, int> local_variables; // Name, Location
+		// Variable (Local and Global)
+		std::map <std::string, int> local_variables; 	// Name, Location
+		std::map <std::string, int> global_variables; 	// Name, Location
 
 		// Pointers
 		int stack_pointer_tracker;
 		int frame_pointer_tracker;
-
-		// Scope
-		std::string scope_tracker;
 
 
 	
@@ -60,8 +64,10 @@ struct Context
 
 		Context () 
 		{
+			// Initialise trackers
 			local_variable_counter = 0;
 			global_variable_counter = 0;
+			parameter_counter = 0;
 
 			// Initialise the register availability tracker
 			// TRUE : Available 
@@ -181,8 +187,51 @@ struct Context
 
     	}
 
+		/* ------------------------------------				  Return Value Register Functions				------------------------------------ */
+
+		std::vector<int> list_available_return_registers ()
+		{
+			std::vector<int> available_return_registers;
+
+			for (int i = 2; i <= 3; i++) 
+			{
+				if (register_availability_tracker[i] == false) 
+				{
+					available_return_registers.push_back(i);
+				}
+        	}    
+
+			return available_return_registers;
+		}
+
+		void set_return_value_register (std::string return_value)
+		{
+			if (return_value_list.size() > 2) { throw std::runtime_error("Exceeding stack boundaries"); }
+
+			return_value_list.push_back(return_value);
+    	}
+
+		int find_return_location (std::string return_value)
+		{
+			for (int i = 0; i < return_value_list.size(); i++) // Search parameter list and return location of matching term
+			{
+				if(return_value == parameter_list[i]) { return i; }
+			}
+
+			return -1; // Return -1 if no matching term is found
+    	}
+
+		void clean_return_registers () 
+		{
+        	for (int i = 2; i <= 3; i++) { register_availability_tracker[i] = true; }
+
+			parameter_list.clear();
+    	}
+
+
+
 		/* ------------------------------------					Parameter Register Functions				------------------------------------ */
-		/*
+		
 		std::vector<int> list_available_parameter_registers () 
 		{
 			std::vector<int> available_parameter_register;
@@ -221,30 +270,77 @@ struct Context
 
 			parameter_list.clear();
     	}
-		*/
+		
 
 		/* ------------------------------------					  Frame Pointer Functions					------------------------------------ */
 		
-		int get_frame_pointer()
+		int get_frame_pointer ()
 		{
 			return frame_pointer_tracker;
 		}
 
-		void decrease_frame_pointer() 
+		void decrease_frame_pointer () 
 		{
 			frame_pointer_tracker -= 4;
 		}
 
-		void increase_frame_pointer() 
+		void increase_frame_pointer () 
 		{
 			frame_pointer_tracker += 4;
 		}
 		
 	
-		/* ------------------------------------					Variable Register Functions					------------------------------------ */
+		/* ------------------------------------					Global Variable	Functions					------------------------------------ */
+		/*
+		int find_global_variable (std::string variable) // Return memory location if variable is found
+		{
+			if (global_variables.find(variable) != global_variables.end())
+			{
+				return global_variables.find(variable)->second;
+			}
+			else
+			{
+				return -1;
+			}
+		}
 
+		void add_global_variable (std::string variable)
+		{
+			int memory_location = global_variables.size();
+			global_variables.emplace(variable, memory_location);
+		}
 
+		void delete_global_variable (std::string variable)
+		{
+			global_variables.erase(variable);
+		}
+		*/
+		/* ------------------------------------					Local Variable Functions					------------------------------------ */
 
+		int find_local_variable(std::string variable) // Return frame pointer to variable memory location
+		{
+			// Not dealing with scopes for now
+
+			if (local_variables.find(variable) != global_variables.end())
+			{
+				return ((local_variables.find(variable)->second) + 1) * 4;
+			}
+			else
+			{
+				return -1;
+			}
+		}
+
+		void add_local_variable(std::string variable)
+		{
+			int memory_location = local_variables.size();
+			local_variables.emplace(variable, memory_location);
+		}
+
+		void delete_local_variable(std::string variable)
+		{
+			local_variables.erase(variable);
+		}
 
 		/* ------------------------------------						Scope Functions							------------------------------------ */
 

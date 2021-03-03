@@ -19,19 +19,6 @@
 
 #include "ast_context.hpp"
 
-
-/* -------------------------------- 			  External variables		 		-------------------------------- */
-
-// Scope
-extern int scope;
-
-// Variable counter
-extern int variable_counter;
-
-// Global variables
-extern std::vector<std::string> global_variables; 
-
-
 /* -------------------------------- 			      Node class		 			 -------------------------------- */
 class Node;
 

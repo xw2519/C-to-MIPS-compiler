@@ -3,6 +3,7 @@
 
 #include "ast_expression.hpp"
 
+
 #include <iomanip>
 
 class Statement : public Node {};
@@ -37,7 +38,11 @@ class Declarator : public External_Declaration
 	public:
 
 		Declarator (std::string _ID, Expression *_initialisation_expression = NULL) 
-		: ID(_ID), initialisation_expression(_initialisation_expression) {}
+		: ID(_ID), initialisation_expression(_initialisation_expression) 
+		{
+			// Update tracker
+			local_variable_counter++;
+		}
 
 		std::string getID() 
 		{
@@ -46,12 +51,7 @@ class Declarator : public External_Declaration
 
 		void print_MIPS(std::ostream &dst, Context& context) const override
 		{
-			if (initialisation_expression != NULL)
-			{
-				// Execute expression
-				initialisation_expression->print_MIPS(dst, context);
-
-			}
+			
 		}
 
 
@@ -123,12 +123,22 @@ class Function_Definition : public External_Declaration // Very basic
 
 			/* -------------------------------- 	 			Function	 			-------------------------------- */
 			dst << ID << ":" << std::endl;
+			
+			// Calculate stack frame required
+			int stack_size = (local_variable_counter + global_variable_counter)*8 + (parameter_counter)*8; // To be revised 
 
 			// Allocate stack (TODO: Revision required)
-			dst << "\t" << "addiu" << "\t" << "$sp,$sp," << "-8" << std::endl; 
-			dst << "\t" << "sw"    << "\t" << "$fp,"	  << 4 << "($sp)" <<std::endl;
-			dst << "\t" << "move"  << "\t" << "$fp,$sp"   << std::endl;
+			dst << "\t" << "addiu" << "\t" << "$sp,$sp,-"  << stack_size 	<< std::endl; 
+			dst << "\t" << "sw"    << "\t" << "$fp,"	   << stack_size - 4 << "($sp)" <<std::endl;
+			dst << "\t" << "move"  << "\t" << "$fp,$sp"    << std::endl;
 
+			// Function parameters
+			if(parameter_list != NULL)
+			{
+
+			}
+			
+			// Function body
 			if(statements != NULL)
 			{
 				statements->print_MIPS(dst, context);
@@ -143,11 +153,11 @@ class Function_Definition : public External_Declaration // Very basic
 			{
 				dst << "\t" << "nop" << "\t" << std::endl;
 			}
-
+			
 			// Deallocate stack
 			dst << "\t" << "move"  << "\t" << "$sp, $fp"  << std::endl; 
-        	dst << "\t" << "lw"    << "\t" << "$fp," << 4 << "($sp)" << std::endl;
-			dst << "\t" << "addiu" << "\t" << "$sp, $sp," << 8 << std::endl; 
+        	dst << "\t" << "lw"    << "\t" << "$fp," << stack_size - 4 << "($sp)" << std::endl;
+			dst << "\t" << "addiu" << "\t" << "$sp, $sp," << stack_size << std::endl; 
 			dst << "\t" << "j" 	   << "\t" << "$ra"  << std::endl;
 			dst << "\t" << "nop" << "\t" << std::endl;
 			dst << std::endl;
