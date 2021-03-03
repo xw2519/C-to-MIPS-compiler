@@ -4,7 +4,7 @@
 #include "ast_node.hpp"
 
 enum ExpressionEnum { INT, CHAR, UNSIGNED, FLOAT, DOUBLE, STRING_LITERAL, DOT, ARROW, INCREMENT, DECREMENT, REFERENCE, DEREFERENCE,
-                      PLUS, MINUS, BITWISE_NOT, LOGICAL_NOT, SIZEOF, MULTIPLY, DIVIDE, MODULO, BITWISE_SHIFT_LEFT, BITWISE_SHIFT_RIGHT,
+                      PLUS, MINUS, BITWISE_NOT, LOGICAL_NOT, SIZEOF, MULTIPLY, DIVIDE, MODULO, SHIFT_LEFT, SHIFT_RIGHT,
                       LESS, GREATER, LESS_EQUAL, GREATER_EQUAL, EQUAL, NOT_EQUAL, ASSIGN, ADD_ASSIGN, SUB_ASSIGN, MUL_ASSIGN,
                       DIV_ASSIGN, MOD_ASSIGN, SHIFT_LEFT_ASSIGN, SHIFT_RIGHT_ASSIGN, AND_ASSIGN, OR_ASSIGN, XOR_ASSIGN, STRUCT };
 
@@ -654,44 +654,107 @@ class MultiplicativeExpression : public Operator
     }
 };
 
-class Add_Expression : public Operator
+class AdditiveExpression : public Operator
 {
+  protected:
+    ExpressionEnum type;
 	public:
-		Add_Expression(Expression* _left, Expression* _right) : Operator(_left, _right) {}
+		AdditiveExpression(ExpressionEnum _type, Expression* _left, Expression* _right)
+    : Operator(_left, _right)
+    , type(_type) {}
 
-		virtual void print_MIPS(std::ostream &dst, Context& context, int destination_register) const override
-		{
-			// Find available registers to allocate and reserve it for the operation
-			std::vector<int> available_registers = context.list_available_temprorary_registers();
-            context.set_unavaiable(available_registers[0]);
+    ~AdditiveExpression(){
+      delete left;
+      delete right;
+    }
 
-			// Release registers used in this operation
-			context.set_avaiable(available_registers[0]);
-            context.set_avaiable(available_registers[1]);
-		}
+    virtual std::string get_id() const override
+    {
+      return left->get_id();
+    }
+
+    virtual void print(std::ostream &dst) const override
+    {
+      dst << left->get_id();
+    }
+
+    virtual void mips_address(std::ostream &dst, Context &context, std::string destReg) const override
+    {
+      left->mips_address(dst, context, destReg);
+    }
+
+    virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const override
+    {
+      if(type==PLUS){ std::string instr = "add"; }
+      else{ std::string instr = "sub"; }
+      if((context.get_type(postfix_expr->get_id())==FLOAT) || (context.get_type(postfix_expr->get_id())==DOUBLE)){ instr += ".s"; }
+      else{ instr += "u"; }
+
+      if(context.get_type(postfix_expr->get_id())==DOUBLE){
+        // do double
+      }else{
+        if(context.get_type(postfix_expr->get_id())==FLOAT){ std::string freeReg = context.alloc_reg(FLOAT); }
+        else{ std::string freeReg = context.alloc_reg(INT); }
+        left->print_mips(dst, context, destReg);
+        right->print_mips(dst, context, freeReg);
+        dst << instr << destReg << "," << freeReg << "," << destReg << std::endl;
+        if(context.get_type(postfix_expr->get_id())==CHAR){
+          dst << "move " << freeReg << ",$0" << std::endl;
+          dst << "li " << freeReg << ",255" << std::endl;
+          dst << "and " << destReg << "," << freeReg << "," << destReg << std::endl;
+        }
+        context.dealloc_reg(freeReg);
+      }
+    }
 };
 
-class Sub_Expression : public Operator
+class ShiftExpression : public Operator
 {
+  protected:
+    ExpressionEnum type;
 	public:
-		Sub_Expression(Expression* _left, Expression* _right) : Operator(_left,_right) {}
+		ShiftExpression(ExpressionEnum _type, Expression* _left, Expression* _right)
+    : Operator(_left, _right)
+    , type(_type) {}
 
-		virtual void print_MIPS(std::ostream &dst, Context& context, int destination_register) const override
-		{
-            // Find available registers to allocate and reserve it for the operation
-			std::vector<int> available_registers = context.list_available_temprorary_registers();
-            context.set_unavaiable(available_registers[0]);
+    ~ShiftExpression(){
+      delete left;
+      delete right;
+    }
 
-			// Compiler left and right branches
-            left->print_MIPS(dst, context, destination_register);
-            right->print_MIPS(dst, context, available_registers[0]);
+    virtual std::string get_id() const override
+    {
+      return left->get_id();
+    }
 
-			// Print MIPS assembly
-            dst << "\t"<< "sub"<< "\t" << "$" << destination_register << ", $" << destination_register << ", $" << available_registers[0] << "\t#Subtraction"<< std::endl;
+    virtual void print(std::ostream &dst) const override
+    {
+      dst << left->get_id();
+    }
 
-            // Release registers used in this operation
-			context.set_avaiable(available_registers[0]);
-		}
+    virtual void mips_address(std::ostream &dst, Context &context, std::string destReg) const override
+    {
+      left->mips_address(dst, context, destReg);
+    }
+
+    virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const override
+    {
+      if(type==SHIFT_LEFT){ std::string instr = "sll"; }
+      else if(context.get_type(postfix_expr->get_id())==UNSIGNED){ std::string instr = "srl"; }
+      else{ std::string instr = "sra"; }
+
+      std::string freeReg = context.alloc_reg(INT);
+      left->print_mips(dst, context, destReg);
+      right->print_mips(dst, context, freeReg);
+
+      dst << instr << destReg << "," << freeReg << "," << destReg << std::endl;
+      if(context.get_type(postfix_expr->get_id())==CHAR){
+        dst << "move " << freeReg << ",$0" << std::endl;
+        dst << "li " << freeReg << ",255" << std::endl;
+        dst << "and " << destReg << "," << freeReg << "," << destReg << std::endl;
+      }
+      context.dealloc_reg(freeReg);
+    }
 };
 
 

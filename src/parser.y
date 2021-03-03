@@ -77,23 +77,23 @@ multiplicative_expression : unary_expression                                    
                           | multiplicative_expression T_DIVIDE unary_expression                    { $$ = new MultiplicativeExpression(DIVIDE, $1, $3); }
                           | multiplicative_expression T_MODULO unary_expression                    { $$ = new MultiplicativeExpression(MODULO, $1, $3); }
 
-additive_expression : multiplicative_expression                                                    { $$ = new AdditiveExpression($1); }
+additive_expression : multiplicative_expression                                                    { $$ = $1; }
                     | additive_expression T_PLUS multiplicative_expression                         { $$ = new AdditiveExpression(PLUS, $1, $3); }
                     | additive_expression T_MINUS multiplicative_expression                        { $$ = new AdditiveExpression(MINUS, $1, $3); }
 
-shift_expression : additive_expression                                                             { $$ = new ShiftExpression($1); }
-                 | shift_expression T_BITWISE_SHIFT_LEFT additive_expression                       { $$ = new ShiftExpression(BITWISE_SHIFT_LEFT, $1, $3); }
-                 | shift_expression T_BITWISE_SHIFT_RIGHT additive_expression                      { $$ = new ShiftExpression(BITWISE_SHIFT_RIGHT, $1, $3); }
+shift_expression : additive_expression                                                             { $$ = $1; }
+                 | shift_expression T_BITWISE_SHIFT_LEFT additive_expression                       { $$ = new ShiftExpression(SHIFT_LEFT, $1, $3); }
+                 | shift_expression T_BITWISE_SHIFT_RIGHT additive_expression                      { $$ = new ShiftExpression(SHIFT_RIGHT, $1, $3); }
 
-relational_expression : shift_expression                                                           { $$ = new RelationalExpression($1); }
+relational_expression : shift_expression                                                           { $$ = $1; }
                       | relational_expression T_LESS shift_expression                              { $$ = new RelationalExpression(LESS, $1, $3); }
                       | relational_expression T_GREATER shift_expression                           { $$ = new RelationalExpression(GREATER, $1, $3); }
                       | relational_expression T_LESS_EQUAL shift_expression                        { $$ = new RelationalExpression(LESS_EQUAL, $1, $3); }
                       | relational_expression T_GREATER_EQUAL shift_expression                     { $$ = new RelationalExpression(GREATER_EQUAL, $1, $3); }
 
-equality_expression : relational_expression                                                        { $$ = new EqualityExpression($1); }
-                    | equality_expression T_EQUAL relational_expression                            { $$ = new EqualityExpression(EQUAL, $1, $3); }
-                    | equality_expression T_NOT_EQUAL relational_expression                        { $$ = new EqualityExpression(NOT_EQUAL, $1, $3); }
+equality_expression : relational_expression                                                        { $$ = $1; }
+                    | equality_expression T_EQUAL relational_expression                            { $$ = new RelationalExpression(EQUAL, $1, $3); }
+                    | equality_expression T_NOT_EQUAL relational_expression                        { $$ = new RelationalExpression(NOT_EQUAL, $1, $3); }
 
 and_expression : equality_expression                                                               { $$ = new AndExpression($1); }
                | and_expression T_BITWISE_AND equality_expression                                  { $$ = new AndExpression($1, $3); }
