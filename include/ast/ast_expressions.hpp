@@ -148,34 +148,16 @@ class StringLiteral : public Expression
 			dst << value;
 		}
 
-		virtual void print_mips_array(std::ostream &dst, Context &context, int _addr, std::string destReg) const
+		virtual void print_mips_array(std::ostream &dst, Context &context, std::string destReg) const
 		{
       char current;
-      int addr = _addr;
-      std::vector<unsigned long> out;
-      // use lui, ori, sw, sh and sb to store in stack
-      for(int i=1; i<value.size(); i++){
-        out.push_back(value[i]);
-        if(i==value.size()-1){
-          out.pop_back();
-          out.push_back(0);
-        }
-        if(out.size()==4){
-          dst << "li " << destReg << "," << ((256*out[0]+out[1])*65536) << std::endl;
-          dst << "ori " << destReg << "," << destReg << ",0x" << std::hex << 256*out[2]+out[3] << std::dec << std::endl;
-          dst << "sw " << destReg << "," << addr << "($fp)" << std::endl;
-          addr += 4;
-          out.clear();
-        }
-      }
+      int addr = context.help_me();
 
-      if(out.size()>=2){
-        dst << "li " << destReg << "," << (256*out[0]+out[1]) << std::endl;
-        dst << "sh " << destReg << "," << addr << "($fp)" << std::endl;
-        addr += 2;
-      }
-      if(out.size()==1){
-        dst << "sb $0," << addr << "($fp)" << std::endl;
+      for(int i=1; i<value.size(); i++){
+        dst << "li " << destReg << "," << ((256*out[0]+out[1])*65536) << std::endl;
+        dst << "ori " << destReg << "," << destReg << ",0x" << std::hex << 256*out[2]+out[3] << std::dec << std::endl;
+        dst << "sw " << destReg << "," << addr << "($fp)" << std::endl;
+        addr += 4;
       }
 		}
 
@@ -324,42 +306,22 @@ class ArrayPostfixExpression : public Expression
       std::string freeReg2 = context.alloc_reg(INT);
       postfix_expr->print_mips(dst, context, freeReg2);
 
-      if(context.pointed_type(postfix_expr->get_id())==DOUBLE){
-        dst << "sll " << freeReg1 << "," << freeReg1 << ",1" << std::endl;
-        dst << "addu " << freeReg1 << "," << freeReg1 << "," << freeReg2 << std::endl;
-        dst << "sll " << freeReg1 << "," << freeReg1 << ",2" << std::endl;
-      }else if(context.pointed_type(postfix_expr->get_id())==CHAR){
-        dst << "sll " << freeReg1 << "," << freeReg1 << ",2" << std::endl;
-        dst << "addu " << freeReg1 << "," << freeReg1 << "," << freeReg2 << std::endl;
-      }else{
-        dst << "addu " << freeReg1 << "," << freeReg1 << "," << freeReg2 << std::endl;
-        dst << "sll " << freeReg1 << "," << freeReg1 << ",2" << std::endl;
-      }
+      if(context.write(postfix_expr->get_id())){ std::string instr = "s"; }
+      else{ std::string instr = "l"; }
+      if((context.pointed_type(postfix_expr->get_id())==FLOAT) || (context.pointed_type(postfix_expr->get_id())==DOUBLE)){ instr += "wc1 "; }
+      else{ instr += "w "; }
 
-      if(context.write(postfix_expr->get_id())){
-        if(context.pointed_type(postfix_expr->get_id())==DOUBLE){
-          std::string destReg2 = context.next_reg(destReg);
-          dst << "swc1 " << destReg << ",4("  << freeReg1 << ")" << std::endl;
-          dst << "swc1 " << destReg2 << ",0("  << freeReg1 << ")" << std::endl;
-        }else if(context.pointed_type(postfix_expr->get_id())==FLOAT){
-          dst << "swc1 " << destReg << ",0("  << freeReg1 << ")" << std::endl;
-        }else if(context.pointed_type(postfix_expr->get_id())==CHAR){
-          dst << "sb " << destReg << ",0(" << freeReg1 << ")" << std::endl;
-        }else{
-          dst << "sw " << destReg << ",0(" << freeReg1 << ")" << std::endl;
-        }
+      if(context.pointed_type(postfix_expr->get_id())==DOUBLE)
+        { dst << "sll " << freeReg1 << "," << freeReg1 << ",1" << std::endl; }
+      dst << "addu " << freeReg1 << "," << freeReg1 << "," << freeReg2 << std::endl;
+      dst << "sll " << freeReg1 << "," << freeReg1 << ",2" << std::endl;
+
+      if(context.pointed_type(postfix_expr->get_id())==DOUBLE){
+        std::string destReg2 = context.next_reg(destReg);
+        dst << instr << destReg << ",4("  << freeReg1 << ")" << std::endl;
+        dst << instr << destReg2 << ",0("  << freeReg1 << ")" << std::endl;
       }else{
-        if(context.pointed_type(postfix_expr->get_id())==DOUBLE){
-          std::string destReg2 = context.next_reg(destReg);
-          dst << "lwc1 " << destReg << ",4("  << freeReg1 << ")" << std::endl;
-          dst << "lwc1 " << destReg2 << ",0("  << freeReg1 << ")" << std::endl;
-        }else if(context.pointed_type(postfix_expr->get_id())==FLOAT){
-          dst << "lwc1 " << destReg << ",0("  << freeReg1 << ")" << std::endl;
-        }else if(context.pointed_type(postfix_expr->get_id())==CHAR){
-          dst << "lbu " << destReg << ",0(" << freeReg1 << ")" << std::endl;
-        }else{
-          dst << "lw " << destReg << ",0(" << freeReg1 << ")" << std::endl;
-        }
+        dst << instr << destReg << ",0(" << freeReg1 << ")" << std::endl;
       }
 
       context.dealloc_reg(freeReg1);
