@@ -32,7 +32,7 @@ class Constant : public Expression
 {
 	public:
     virtual double evaluate() const override =0;
-
+    virtual std::string get_id() const override =0;
 		virtual void print(std::ostream &dst) const override =0;
     virtual void mips_address(std::ostream &dst, Context &context, std::string destReg) const override =0;
 		virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const override =0;
@@ -68,6 +68,13 @@ class IntegralConstant : public Constant
     virtual double evaluate() const override
     {
       return value;
+    }
+
+    virtual std::string get_id() const override
+    {
+      if(type==CHAR){ return std::string("char"); }
+      else if(type==INT){ return std::string("int"); }
+      else{ return std::string("unsigned"); }
     }
 
 		virtual void print(std::ostream &dst) const override
@@ -109,6 +116,12 @@ class FloatConstant : public Constant
       return value;
     }
 
+    virtual std::string get_id() const override
+    {
+      if(type==DOUBLE){ return std::string("double"); }
+      else{ return std::string("float"); }
+    }
+
 		virtual void print(std::ostream &dst) const override
 		{
 			dst << value;
@@ -147,6 +160,11 @@ class StringLiteral : public Expression
 		{
 			dst << value;
 		}
+
+    virtual std::string get_id() const override
+    {
+      return std::string("string");
+    }
 
 		virtual void print_mips_array(std::ostream &dst, Context &context, std::string destReg) const
 		{
@@ -464,7 +482,11 @@ class PostfixExpression : public Expression
         std::string freeReg2 = context.alloc_reg(INT);
         postfix_expr->print_mips(dst, context, destReg);
         postfix_expr->mips_address(dst, context, freeReg1);
-        dst << "addiu " << freeReg2 << "," << destReg << ",1" << std::endl;
+        if(type==INCREMENT){
+          dst << "addiu " << freeReg2 << "," << destReg << ",1" << std::endl;
+        }else{
+          dst << "addiu " << freeReg2 << "," << destReg << ",-1" << std::endl;
+        }
         dst << "sw " << freeReg2 << ",0(" << freeReg1 << ")" << std::endl;
         context.dealloc_reg(freeReg1);
         context.dealloc_reg(freeReg2);
@@ -478,11 +500,15 @@ class UnaryExpression : public Expression
 {
 	protected:
 		Expression* expr;
+    Declaration* declr;
 
 	public:
-		UnaryExpression(ExpressionEnum _type, Expression* _expression)
+		UnaryExpression(ExpressionEnum _type, Expression* _expr)
     : type(_type)
-    , expression(_expression) {}
+    , expr(_expr) {}
+    UnaryExpression(ExpressionEnum _type, Declaration* _declr)
+    : type(_type)
+    , declr(_declr) {}
 
     ~UnaryExpression()
     {
@@ -510,28 +536,49 @@ class UnaryExpression : public Expression
 
     virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const override
     {
-      if
+      if((type==INCREMENT) || (type==DECREMENT)){
+        std::string freeReg = context.alloc_reg(INT);
+        expr->print_mips(dst, context, destReg);
+        expr->mips_address(dst, context, freeReg);
+        if(type==INCREMENT){
+          dst << "addiu " << destReg << "," << destReg << ",1" << std::endl;
+        }else{
+          dst << "addiu " << destReg << "," << destReg << ",-1" << std::endl;
+        }
+        dst << "sw " << destReg << ",0(" << freeReg << ")" << std::endl;
+        context.dealloc_reg(freeReg);
+      }else if(type==REFERENCE){
+        expr->mips_address(dst, context, destReg);
+      }else if(type==DEREFERENCE){
+        if(context.write(expr->get_id())){
+          std::string freeReg = context.alloc_reg(INT);
+          expr->print_mips(dst, context, freeReg);
+          dst << "sw " << destReg << ",0(" << freeReg << ")" << std::endl;
+          context.dealloc_reg(freeReg);
+        }else{
+          expr->print_mips(dst, context, destReg);
+          dst << "lw " << destReg << ",0(" << destReg << ")" << std::endl;
+        }
+      }else if(type==SIZEOF){
+        if(expr){
+          dst << "li " << destReg << "," << context.size_of(expr.get_id()) << std::endl;
+        }else{
+          dst << "li " << destReg << "," << context.size_of(declr) << std::endl;
+        }
+      }else if(type==LOGICAL_NOT){
+        expr->print_mips(dst, context, destReg);
+        dst << "sltu " << destReg << "," << destReg << ",1" << std::endl;
+        dst << "andi " << destReg << "," << destReg << ",0x00ff" << std::endl;
+      }else if(type==MINUS){
+        expr->print_mips(dst, context, destReg);
+        dst << "subu " << destReg << ",$0," << destReg << std::endl;
+      }else{
+        expr->print_mips(dst, context, destReg);
+        dst << "nor " << destReg << ",$0," << destReg << std::endl;
+      }
     }
 };
 
-
-/* -------------------------------- Assignment Expression -------------------------------- */
-
-class Assignment_Expression : public Expression // Base class
-{
-	protected:
-		Expression* lvalue;
-		Expression* expression;
-
-	public:
-		Assignment_Expression(Expression* _lvalue, Expression* _expression) : lvalue(_lvalue), expression(_expression) {}
-};
-
-class Direct_Assignment : public Assignment_Expression
-{
-	public:
-		Direct_Assignment(Expression* _lvalue, Expression* _expr) : Assignment_Expression(_lvalue, _expr) {}
-};
 
 /* -------------------------------- Operator Expression -------------------------------- */
 
@@ -542,10 +589,70 @@ class Operator : public Expression
 		Expression* right;
 
 	public:
-		Operator(Expression* _left, Expression* _right) : left(_left), right(_right) {}
+		Operator(Expression* _left, Expression* _right)
+    : left(_left)
+    , right(_right) {}
 };
 
 /* -------------------------------- Arithmetic Expression -------------------------------- */
+
+class MultiplicativeExpression : public Operator
+{
+  protected:
+    ExpressionEnum type;
+	public:
+		MultiplicativeExpression(ExpressionEnum _type, Expression* _left, Expression* _right)
+    : Operator(_left,_right)
+    , type(_type) {}
+
+    ~MultiplicativeExpression(){
+      delete left;
+      delete right;
+    }
+
+    virtual std::string get_id() const override
+    {
+      return left->get_id();
+    }
+
+    virtual void print(std::ostream &dst) const override
+    {
+      dst << left->get_id();
+    }
+
+    virtual void mips_address(std::ostream &dst, Context &context, std::string destReg) const override
+    {
+      left->mips_address(dst, context, destReg);
+    }
+
+    virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const override
+    {
+      if(context.get_type(postfix_expr->get_id())==FLOAT){
+        std::string freeReg = context.alloc_reg(FLOAT);
+        left->print_mips(dst, context, destReg);
+        right->print_mips(dst, context, freeReg);
+        if(type==MULTIPLY){ dst << "mul.s " << destReg << "," << freeReg << "," << destReg << std::endl; }
+        else{ "div.s " << destReg << "," << freeReg << "," << destReg << std::endl; }
+        context.dealloc(freeReg);
+      }else if(context.get_type(postfix_expr->get_id())==DOUBLE){
+        /* Do this with doubles?!?!??! no thanks... */
+      }else{
+        std::string freeReg = context.alloc_reg(INT);
+        left->print_mips(dst, context, destReg);
+        right->print_mips(dst, context, freeReg);
+        if(type==MULTIPLY){ dst << "mult " << destReg << "," << freeReg << std::endl; }
+        else{
+          dst << "bne " << freeReg << ",$0,1f" << std::endl;
+          if(context.get_type(postfix_expr->get_id())==UNSIGNED){ dst << "div $0," << destReg << "," << freeReg << std::endl; }
+          else{ dst << "divu $0," << destReg << "," << freeReg << std::endl; }
+          dst << "break 7" << std::endl;
+          dst << "mfhi " << destReg << std::endl;
+          if(type==DIVIDE){ dst << "mflo " << destReg << std::endl; }
+        }
+        context.dealloc(freeReg);
+      }
+    }
+};
 
 class Add_Expression : public Operator
 {
@@ -587,18 +694,24 @@ class Sub_Expression : public Operator
 		}
 };
 
-class Multiply_Expression : public Operator
+
+/* -------------------------------- Assignment Expression -------------------------------- */
+
+class Assignment_Expression : public Expression // Base class
 {
+	protected:
+		Expression* lvalue;
+		Expression* expression;
+
 	public:
-		Multiply_Expression(Expression* _left, Expression* _right) : Operator(_left,_right) {}
+		Assignment_Expression(Expression* _lvalue, Expression* _expression) : lvalue(_lvalue), expression(_expression) {}
 };
 
-class Divide_Expression : public Operator
+class Direct_Assignment : public Assignment_Expression
 {
 	public:
-		Divide_Expression(Expression* _left, Expression* _right) : Operator(_left,_right) {}
+		Direct_Assignment(Expression* _lvalue, Expression* _expr) : Assignment_Expression(_lvalue, _expr) {}
 };
-
 
 
 /* -------------------------------- Relational Binary Expressions -------------------------------- */

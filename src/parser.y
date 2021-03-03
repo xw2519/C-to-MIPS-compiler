@@ -72,7 +72,7 @@ unary_expression : postfix_expression                                           
                  | T_SIZEOF unary_expression                                                       { $$ = new UnaryExpression(SIZEOF, $2); }
                  | T_SIZEOF T_LBRACKET type_name T_RBRACKET                                        { $$ = new UnaryExpression(SIZEOF, $3); }
 
-multiplicative_expression : unary_expression                                                       { $$ = new MultiplicativeExpression($1); }
+multiplicative_expression : unary_expression                                                       { $$ = $1; }
                           | multiplicative_expression T_MULTIPLY unary_expression                  { $$ = new MultiplicativeExpression(MULTIPLY, $1, $3); }
                           | multiplicative_expression T_DIVIDE unary_expression                    { $$ = new MultiplicativeExpression(DIVIDE, $1, $3); }
                           | multiplicative_expression T_MODULO unary_expression                    { $$ = new MultiplicativeExpression(MODULO, $1, $3); }
