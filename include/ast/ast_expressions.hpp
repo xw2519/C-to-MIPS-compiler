@@ -6,7 +6,7 @@
 enum ExpressionEnum { INT, CHAR, UNSIGNED, FLOAT, DOUBLE, STRING_LITERAL, DOT, ARROW, INCREMENT, DECREMENT, REFERENCE, DEREFERENCE,
                       PLUS, MINUS, BITWISE_NOT, LOGICAL_NOT, SIZEOF, MULTIPLY, DIVIDE, MODULO, BITWISE_SHIFT_LEFT, BITWISE_SHIFT_RIGHT,
                       LESS, GREATER, LESS_EQUAL, GREATER_EQUAL, EQUAL, NOT_EQUAL, ASSIGN, ADD_ASSIGN, SUB_ASSIGN, MUL_ASSIGN,
-                      DIV_ASSIGN, MOD_ASSIGN, SHIFT_LEFT_ASSIGN, SHIFT_RIGHT_ASSIGN, AND_ASSIGN, OR_ASSIGN, XOR_ASSIGN };
+                      DIV_ASSIGN, MOD_ASSIGN, SHIFT_LEFT_ASSIGN, SHIFT_RIGHT_ASSIGN, AND_ASSIGN, OR_ASSIGN, XOR_ASSIGN, STRUCT };
 
 
 /* -------------------------------- Expression Base Class -------------------------------- */
@@ -201,7 +201,7 @@ class Identifier : public Expression
       type = context.get_type(value);
     }
 
-    virtual std::string get_id()
+    virtual std::string get_id() const override
     {
       return value;
     }
@@ -225,66 +225,37 @@ class Identifier : public Expression
 		virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const override
 		{
       std::string addr = context.id_to_addr(value);
+      if(type==DOUBLE){
+        std::string destReg2 = destReg;
+        destReg2.pop_back();
+        destReg2.push_back(std::stoi(destReg.back()) + 1);
+      }
+      if(context.write(value)){ std::string instr = "s"; }
+      else{ std::string instr = "l"; }
+      if((type==FLOAT) || (type==DOUBLE)){ instr += "wc1 "; }
+      else{ instr += "w "; }
 
-      if(context.write(value)){
-        if(context.check_global(value)){
-          std::string freeReg = context.alloc_reg(INT);
-          dst << "lui " << freeReg << ",%hi(" << addr << ")" << std::endl;
-          dst << "addiu " << freeReg << "," << freeReg << ",%lo(" << addr << ")" << std::endl;
-          if(type==FLOAT){
-            dst << "swc1 " << destReg << ",0(" << freeReg << ")" << std::endl;
-          }else if(type==DOUBLE){
-            std::string destReg2 = destReg;
-            destReg2.pop_back();
-            destReg2.push_back(std::stoi(destReg.back()) + 1);
-            dst << "swc1 " << destReg << ",4(" << freeReg << ")" << std::endl;
-            dst << "swc1 " << destReg2 << ",0(" << freeReg << ")" << std::endl;
-          }else{
-            dst << "sw " << destReg << ",0(" << freeReg << ")" << std::endl;
-          }
-          context.dealloc_reg(freeReg);
+      if((context.write(value)){ std::string freeReg = context.alloc_reg(INT); }
+      else{ std::string freeReg = destReg; }
+
+      if((context.check_global(value))){        // write/read global variable
+        dst << "lui " << freeReg << ",%hi(" << addr << ")" << std::endl;
+        dst << "addiu " << freeReg << "," << freeReg << ",%lo(" << addr << ")" << std::endl;
+        if(type==DOUBLE){
+          dst << instr << destReg2 << ",0(" << freeReg << ")" << std::endl;
+          dst << instr << destReg << ",4(" << freeReg << ")" << std::endl;
         }else{
-          if(type==FLOAT){
-            dst << "swc1 " << destReg << "," << addr << "($fp)" << std::endl;
-          }else if(type==DOUBLE){
-            std::string destReg2 = destReg;
-            destReg2.pop_back();
-            destReg2.push_back(std::stoi(destReg.back()) + 1);
-            dst << "swc1 " << destReg << "," << (std::stoi(addr)+4) << "($fp)" << std::endl;
-            dst << "swc1 " << destReg2 << "," << addr << "($fp)" << std::endl;
-          }else{
-            dst << "sw " << destReg << "," << addr << "($fp)" << std::endl;
-          }
+          dst << instr << destReg << ",0(" << freeReg << ")" << std::endl;
         }
-      }else{
-        if(context.check_global(value)){
-          dst << "lui " << destReg << ",%hi(" << addr << ")" << std::endl;
-          dst << "addiu " << destReg << "," << destReg << ",%lo(" << addr << ")" << std::endl;
-          if(type==FLOAT){
-            dst << "lwc1 " << destReg << ",0(" << destReg << ")" << std::endl;
-          }else if(type==DOUBLE){
-            std::string destReg2 = destReg;
-            destReg2.pop_back();
-            destReg2.push_back(std::stoi(destReg.back()) + 1);
-            dst << "lwc1 " << destReg2 << ",0(" << destReg << ")" << std::endl;
-            dst << "lwc1 " << destReg << ",4(" << destReg << ")" << std::endl;
-          }else{
-            dst << "lw " << destReg << ",0(" << destReg << ")" << std::endl;
-          }
+      }else{                                                                            // read/write local variable
+        if(type==DOUBLE){
+          dst << instr << destReg2 << "," << addr << "($fp)" << std::endl;
+          dst << instr << destReg << "," << (std::stoi(addr)+4) << "($fp)" << std::endl;
         }else{
-          if(type==FLOAT){
-            dst << "lwc1 " << destReg << "," << addr << "($fp)" << std::endl;
-          }else if(type==DOUBLE){
-            std::string destReg2 = destReg;
-            destReg2.pop_back();
-            destReg2.push_back(std::stoi(destReg.back()) + 1);
-            dst << "lwc1 " << destReg << "," << (std::stoi(addr)+4) << "($fp)" << std::endl;
-            dst << "lwc1 " << destReg2 << "," << addr << "($fp)" << std::endl;
-          }else{
-            dst << "lw " << destReg << "," << addr << "($fp)" << std::endl;
-          }
+          dst << instr << destReg << "," << addr << "($fp)" << std::endl;
         }
       }
+      if(context.write(value)){ context.dealloc_reg(freeReg); }
 		}
 };
 
@@ -308,7 +279,7 @@ class ArrayPostfixExpression : public Expression
       delete assignment_expr;
     }
 
-    virtual std::string get_id()
+    virtual std::string get_id() const override
     {
       return postfix_expr->get_id();
     }
@@ -415,7 +386,7 @@ class FunctionPostfixExpression : public Expression
       delete arguments;
     }
 
-    virtual std::string get_id()
+    virtual std::string get_id() const override
     {
       return postfix_expr->get_value();
     }
@@ -478,7 +449,7 @@ class PostfixExpression : public Expression
       delete postfix_expr;
     }
 
-    virtual std::string get_id() const
+    virtual std::string get_id() const override
     {
       std::string out = postfix_expr->evaluate();
       if(type==DOT){
@@ -527,21 +498,56 @@ class PostfixExpression : public Expression
       }else{
         std::string freeReg1 = context.alloc_reg(INT);
         std::string freeReg2 = context.alloc_reg(INT);
-        postfix_expr->mips_address(dst, context, freeReg);
-        dst << "move " << freeReg << "," << destReg << std::endl;
+        postfix_expr->print_mips(dst, context, destReg);
+        postfix_expr->mips_address(dst, context, freeReg1);
+        dst << "addiu " << freeReg2 << "," << destReg << ",1" << std::endl;
+        dst << "sw " << freeReg2 << ",0(" << freeReg1 << ")" << std::endl;
+        context.dealloc_reg(freeReg1);
+        context.dealloc_reg(freeReg2);
       }
     }
 };
 
 /* -------------------------------- Unary Expression -------------------------------- */
 
-class Unary_Expression : public Expression
+class UnaryExpression : public Expression
 {
 	protected:
-		Expression* expression;
+		Expression* expr;
 
 	public:
-		Unary_Expression(Expression* _expression) : expression(_expression) {}
+		UnaryExpression(ExpressionEnum _type, Expression* _expression)
+    : type(_type)
+    , expression(_expression) {}
+
+    ~UnaryExpression()
+    {
+      delete expr;
+    }
+
+    virtual std::string get_id() const override
+    {
+      return expr->get_id();
+    }
+
+    virtual void print(std::ostream &dst) const override
+    {
+      dst << expr->get_id();
+    }
+
+    virtual void mips_address(std::ostream &dst, Context &context, std::string destReg) const override
+    {
+      if(type==DEREFERENCE){
+        expr->print_mips(dst, context, destReg);
+      }else{
+        expr->mips_address(dst, context, destReg);
+      }
+    }
+
+    virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const override
+    {
+      if
+    }
 };
 
 

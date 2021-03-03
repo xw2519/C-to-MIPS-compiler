@@ -60,7 +60,7 @@ postfix_expression : primary_expression                                         
 argument_expression_list : assignment_expression                                                   { $$ = new std::vector<Expression*>{$1}; }
                          | argument_expression_list T_COMMA assignment_expression                  { $1->push_back($3); $$ = $1; }
 
-unary_expression : postfix_expression                                                              { $$ = new UnaryExpression($1); }
+unary_expression : postfix_expression                                                              { $$ = $1; }
                  | T_INCREMENT unary_expression                                                    { $$ = new UnaryExpression(INCREMENT, $2); }
                  | T_DECREMENT unary_expression                                                    { $$ = new UnaryExpression(DECREMENT, $2); }
                  | T_BITWISE_AND unary_expression                                                  { $$ = new UnaryExpression(REFERENCE, $2); }
