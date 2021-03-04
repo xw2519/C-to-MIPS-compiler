@@ -26,19 +26,10 @@ public:
     virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const =0;
 };
 
+
 /* -------------------------------- Primitives -------------------------------- */
 
-class Constant : public Expression
-{
-	public:
-    virtual double evaluate() const override =0;
-    virtual std::string get_id() const override =0;
-		virtual void print(std::ostream &dst) const override =0;
-    virtual void mips_address(std::ostream &dst, Context &context, std::string destReg) const override =0;
-		virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const override =0;
-};
-
-class IntegralConstant : public Constant
+class IntegralConstant : public Expression
 {
   protected:
     long value;
@@ -94,7 +85,7 @@ class IntegralConstant : public Constant
 		}
 };
 
-class FloatConstant : public Constant
+class FloatConstant : public Expression
 {
   protected:
     double value;
@@ -156,15 +147,15 @@ class StringLiteral : public Expression
 	public:
 		String_Literal(std::string &_string) : value(_string) {}
 
-		virtual void print(std::ostream &dst) const override
-		{
-			dst << value;
-		}
-
     virtual std::string get_id() const override
     {
       return std::string("string");
     }
+
+    virtual void print(std::ostream &dst) const override
+		{
+			dst << value;
+		}
 
 		virtual void print_mips_array(std::ostream &dst, Context &context, std::string destReg) const
 		{
@@ -222,7 +213,8 @@ class Identifier : public Expression
 
 		virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const override
 		{
-      std::string addr = context.id_to_addr(value);
+      std::string addr = context.id_to_addr(value);                // get address associated with identifier
+
       if(type==DOUBLE){ std::string destReg2 = context.next_reg(destReg); }
       if(context.write(value)){ std::string instr = "s"; }
       else{ std::string instr = "l"; }
@@ -604,7 +596,8 @@ class MultiplicativeExpression : public Operator
     : Operator(_left,_right)
     , type(_type) {}
 
-    ~MultiplicativeExpression(){
+    ~MultiplicativeExpression()
+    {
       delete left;
       delete right;
     }
@@ -661,7 +654,8 @@ class AdditiveExpression : public Operator
     : Operator(_left, _right)
     , type(_type) {}
 
-    ~AdditiveExpression(){
+    ~AdditiveExpression()
+    {
       delete left;
       delete right;
     }
@@ -714,7 +708,8 @@ class ShiftExpression : public Operator
     : Operator(_left, _right)
     , type(_type) {}
 
-    ~ShiftExpression(){
+    ~ShiftExpression()
+    {
       delete left;
       delete right;
     }
@@ -745,11 +740,8 @@ class ShiftExpression : public Operator
       right->print_mips(dst, context, freeReg);
 
       dst << instr << destReg << "," << freeReg << "," << destReg << std::endl;
-      if(context.get_type(postfix_expr->get_id())==CHAR){
-        dst << "move " << freeReg << ",$0" << std::endl;
-        dst << "li " << freeReg << ",255" << std::endl;
-        dst << "and " << destReg << "," << freeReg << "," << destReg << std::endl;
-      }
+      if(context.get_type(postfix_expr->get_id())==CHAR)
+        { dst << "andi " << destReg << "," << destReg << ",0x00ff" << std::endl; }
       context.dealloc_reg(freeReg);
     }
 };
@@ -765,7 +757,8 @@ class RelationalExpression : public Operator
     : Operator(_left, _right)
     , type(_type) {}
 
-    ~RelationalExpression(){
+    ~RelationalExpression()
+    {
       delete left;
       delete right;
     }
@@ -787,7 +780,29 @@ class RelationalExpression : public Operator
 
     virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const override
     {
-      // 6 operators, all the types, do when
+      std::string freeReg = context.alloc_reg(INT);
+      if((type==LESS) || (type==GREATER_EQUAL)){
+        left->print_mips(dst, context, freeReg);
+        right->print_mips(dst, context, destReg);
+      }else{
+        left->print_mips(dst, context, destReg);
+        right->print_mips(dst, context, freeReg);
+      }
+
+      if((type==EQUAL) || (type==NOT_EQUAL)){
+        dst << "xor " << destReg << "," << freeReg << "," << destReg << std::endl;
+        if(type==EQUAL){ dst << "sltu " << destReg << "," << destReg << ",1" << std::endl; }
+        else{ dst << "sltu " << destReg << ",$0," << destReg << std::endl; }
+      }else{
+        if(context.get_type(postfix_expr->get_id())==UNSIGNED){ std::string instr = "sltu "; }
+        else{ std::string instr = "slt "; }
+        dst << instr << destReg << "," << freeReg << "," << destReg << std::endl;
+        if((type==GREATER_EQUAL) || (type==LESS_EQUAL))
+          { dst << "xori " << destReg << "," << destReg << ",0x1" << std::endl; }
+      }
+
+      dst << "andi " << destReg << "," << destReg << ",0x00ff" << std::endl;
+      context.dealloc_reg(freeReg);
     }
 };
 
@@ -799,7 +814,8 @@ class BitwiseExpression : public Operator
     : Operator(_left, _right)
     , type(_type) {}
 
-    ~BitwiseExpression(){
+    ~BitwiseExpression()
+    {
       delete left;
       delete right;
     }
@@ -821,7 +837,16 @@ class BitwiseExpression : public Operator
 
     virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const override
     {
-      // 3 operators, integral types
+      std::string freeReg = context.alloc_reg(INT);
+      left->print_mips(dst, context, destReg);
+      right->print_mips(dst, context, freeReg);
+
+      if(type==BITWISE_AND){ std::string instr = "and "; }
+      else if(type==BITWISE_OR){ std::string instr = "or "; }
+      else{ std::string instr = "xor "; }
+
+      dst << instr << destReg << "," << freeReg << "," << destReg << std::endl;
+      context.dealloc_reg(freeReg);
     }
 };
 
@@ -839,4 +864,27 @@ class AssignmentExpression : public Expression
     : type(_type)
     , lvalue(_lvalue)
     , expression(_expression) {}
+
+    ~AssignmentExpression()
+    {
+      delete lvalue;
+      delete expression;
+    }
+
+    virtual std::string get_id() const override
+    {
+      return left->get_id();
+    }
+
+    virtual void print(std::ostream &dst) const override
+    {
+      dst << left->get_id();
+    }
+
+    virtual void mips_address(std::ostream &dst, Context &context, std::string destReg) const override
+    {
+      left->mips_address(dst, context, destReg);
+    }
+    virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const override
+    {}
 };
