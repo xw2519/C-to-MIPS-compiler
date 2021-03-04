@@ -183,7 +183,7 @@ class Identifier : public Expression                           // complete
       if((type==FLOAT) || (type==DOUBLE)){ instr += "wc1 "; }
       else{ instr += "w "; }
 
-      if(type==STRUCT){ total_words = context.size_of(value); }                 // get total size in words
+      if(type==STRUCT){ total_words = context.size_in_words(value); }                 // get total size in words
       else if(type==DOUBLE){ total_words = 2; }
       else{ total_words = 1; }
 
@@ -244,7 +244,7 @@ class StringLiteral : public Expression                        // complete
 
 /* -------------------------------- Post-fix Expression -------------------------------- */
 
-class ArrayPostfixExpression : public Expression
+class ArrayPostfixExpression : public Expression               // complete
 {
   protected:
     Expression* postfix_expr;
@@ -268,54 +268,49 @@ class ArrayPostfixExpression : public Expression
 
     virtual void print(std::ostream &dst) const override
     {
-      dst << postfix_expr->evaluate();
+      dst << postfix_expr->get_id();
     }
 
     virtual void mips_address(std::ostream &dst, Context &context, std::string destReg) const override
     {
       std::string freeReg = context.alloc_reg(INT);
-      assignment_expr->print_mips(dst, context, freeReg);
       postfix_expr->print_mips(dst, context, destReg);
+      assignment_expr->print_mips(dst, context, freeReg);
 
-      if(context.pointed_type(postfix_expr->get_id())==DOUBLE){
-        dst << "sll " << freeReg << "," << freeReg << ",1" << std::endl;
-        dst << "addu " << destReg << "," << destReg << "," << freeReg << std::endl;
-        dst << "sll " << destReg << "," << destReg << ",2" << std::endl;
-      }else if(context.pointed_type(postfix_expr->get_id())==CHAR){
-        dst << "sll " << destReg << "," << destReg << ",2" << std::endl;
-        dst << "addu " << destReg << "," << destReg << "," << freeReg << std::endl;
-      }else{
-        dst << "addu " << destReg << "," << destReg << "," << freeReg << std::endl;
-        dst << "sll " << destReg << "," << destReg << ",2" << std::endl;
-      }
+      if(context.pointed_type(postfix_expr->get_id())==DOUBLE)
+        { dst << "sll " << freeReg << "," << freeReg << ",1" << std::endl; }
+
+      dst << "addu " << destReg << "," << destReg << "," << freeReg << std::endl;
+      dst << "sll " << destReg << "," << destReg << ",2" << std::endl;
 
       context.dealloc_reg(freeReg);
     }
 
     virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const override
     {
+      ExpressionEnum array_type = context.pointed_type(postfix_expr->get_id());
+      int total_words = context.size_in_words_pointed(postfix_expr->get_id());
+      std::string instr;
+
       std::string freeReg1 = context.alloc_reg(INT);
-      assignment_expr->print_mips(dst, context, freeReg1);
-
       std::string freeReg2 = context.alloc_reg(INT);
-      postfix_expr->print_mips(dst, context, freeReg2);
 
-      if(context.write(postfix_expr->get_id())){ std::string instr = "s"; }
-      else{ std::string instr = "l"; }
-      if((context.pointed_type(postfix_expr->get_id())==FLOAT) || (context.pointed_type(postfix_expr->get_id())==DOUBLE)){ instr += "wc1 "; }
+      postfix_expr->print_mips(dst, context, freeReg1);
+      assignment_expr->print_mips(dst, context, freeReg2);
+
+      if(context.write(postfix_expr->get_id())){ instr = "s"; }
+      else{ instr = "l"; }
+      if((array_type==FLOAT) || (array_type==DOUBLE)){ instr += "wc1 "; }
       else{ instr += "w "; }
 
-      if(context.pointed_type(postfix_expr->get_id())==DOUBLE)
-        { dst << "sll " << freeReg1 << "," << freeReg1 << ",1" << std::endl; }
-      dst << "addu " << freeReg1 << "," << freeReg1 << "," << freeReg2 << std::endl;
-      dst << "sll " << freeReg1 << "," << freeReg1 << ",2" << std::endl;
+      dst << "sll " << freeReg2 << "," << freeReg2 << ",2" << std::endl;
+      for(int i=0; i<total_words; i++){
+        dst << "addu " << freeReg1 << "," << freeReg1 << "," << freeReg2 << std::endl;
+      }
 
-      if(context.pointed_type(postfix_expr->get_id())==DOUBLE){
-        std::string destReg2 = context.next_reg(destReg);
-        dst << instr << destReg << ",4("  << freeReg1 << ")" << std::endl;
-        dst << instr << destReg2 << ",0("  << freeReg1 << ")" << std::endl;
-      }else{
-        dst << instr << destReg << ",0(" << freeReg1 << ")" << std::endl;
+      for(int i=total_words-1; i>=0; i--){
+        dst << instr << destReg << "," << (4*i) << "("  << freeReg1 << ")" << std::endl;
+        destReg = context.next_reg(destReg);
       }
 
       context.dealloc_reg(freeReg1);
@@ -323,7 +318,7 @@ class ArrayPostfixExpression : public Expression
     }
 };
 
-class FunctionPostfixExpression : public Expression
+class FunctionPostfixExpression : public Expression            // works if args are integral type, as in tests
 {
   protected:
     Expression* postfix_expr;
@@ -346,45 +341,34 @@ class FunctionPostfixExpression : public Expression
 
     virtual std::string get_id() const override
     {
-      return postfix_expr->get_value();
+      return postfix_expr->get_id();
     }
 
     virtual void print(std::ostream &dst) const override
     {
-      dst << postfix_expr->evaluate();
+      dst << postfix_expr->get_id();
     }
 
     virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const override
     {
-      std::vector<ExpressionEnum> arg_types = context.get_arg_types(postfix_expr->evaluate());
-      std::string freeReg = context.alloc_reg(INT);
-      std::string paramReg = "$";
-      int float_param_count = 0;
+      if(arguments->size()>4){ std::string freeReg = context.alloc_reg(INT); }
+      std::string paramReg = "$4";
 
-      if(arguments){                                     // if statement handles loading args
-        for(int i=0; i<arguments->size(); i++){             // iterate over args
-          if((arg_types[i] == FLOAT) || (arg_types[i] == DOUBLE)){      // floats go to coprocessor
-            paramReg.push_back('f');
-            paramReg.push_back(std::to_string(2*float_param_count));
+      if(arguments){
+        for(int i=0; i<arguments->size(); i++){
+          if(i<4){
             arguments->at(i)->print_mips(dst, context, paramReg);
-            float_param_count++;
-            paramReg.pop_back();
-            paramReg.pop_back();
+            paramReg = context.next_reg(paramReg);
           }else{
-            if((i+float_param_count)<4){                 // check if parameter registers are occupied
-              paramReg.push_back(std::to_string(4+i+float_param_count));
-              arguments->at(i)->print_mips(dst, context, paramReg);
-              paramReg.pop_back();
-            }else{                                               // store args in stack if necessary
-              arguments->at(i)->print_mips(dst, context, freeReg);
-              dst << "sw " << freeReg << "," << (4*(i+float_param_count)) << "($sp)" << std::endl;
-            }
+            arguments->at(i)->print_mips(dst, context, freeReg);
+            dst << "sw " << freeReg << "," << (4*i) << "($sp)" << std::endl;
           }
         }
       }
-      dst << "jal " << postfix_expr->evaluate() << std::endl;
+
+      dst << "jal " << context.id_to_addr(postfix_expr->get_id()) << std::endl;
       dst << "nop" << std::endl;
-      context.dealloc_reg(freeReg);
+      if(arguments->size()>4){ context.dealloc_reg(freeReg); }
     }
 };
 
@@ -409,7 +393,7 @@ class PostfixExpression : public Expression
 
     virtual std::string get_id() const override
     {
-      std::string out = postfix_expr->evaluate();
+      std::string out = postfix_expr->get_id();
       if(type==DOT){
         out += ".";
         out += value;
