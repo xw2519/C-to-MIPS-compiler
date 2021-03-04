@@ -88,7 +88,7 @@ void yyerror(const char *);
 
 %%
 
-/* ------------------------------------							Base definitions							------------------------------------ */
+/* ------------------------------------							 Base definitions							------------------------------------ */
 
 ROOT 							: 	program														{ root = $1; }
 
@@ -202,7 +202,7 @@ iteration_statement				:	T_WHILE T_LBRACKET expression T_RBRACKET statement 				
 
 /* ------------------------------------								Others									------------------------------------ */
 
-T_TYPE					:	T_INT 		{ $$ = new std::string("int"); }
+T_TYPE							:	T_INT 		{ $$ = new std::string("int"); }
 								|	T_VOID		{ $$ = new std::string("void"); } 			
 
 %%
