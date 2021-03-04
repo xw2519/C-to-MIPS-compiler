@@ -372,7 +372,7 @@ class FunctionPostfixExpression : public Expression            // works if args 
     }
 };
 
-class PostfixExpression : public Expression
+class PostfixExpression : public Expression                    // works with integral type, need to finish dot and arrow for other types
 {
   protected:
     Expression* postfix_expr;
@@ -397,15 +397,21 @@ class PostfixExpression : public Expression
       if(type==DOT){
         out += ".";
         out += value;
+      }else if(type==ARROW){
+        out += ">";
+        out += value;
       }
       return out;
     }
 
     virtual void print(std::ostream &dst) const override
     {
-      std::string out = postfix_expr->evaluate();
+      std::string out = postfix_expr->get_id();
       if(type==DOT){
         out += ".";
+        out += value;
+      }else if(type==ARROW){
+        out += ">";
         out += value;
       }
       dst << out;
@@ -413,9 +419,10 @@ class PostfixExpression : public Expression
 
     virtual void mips_address(std::ostream &dst, Context &context, std::string destReg) const override
     {
-      if(type==DOT){
-        std::string addr = context.member_to_addr(value);
-        postfix_expr->mips_address(dst, context, destReg);
+      if((type==DOT) || (type==ARROW)){
+        std::string addr = context.member_to_addr(postfix_expr->get_id(),value);
+        if(type==DOT){ postfix_expr->mips_address(dst, context, destReg); }
+        else{ postfix_expr->print_mips(dst, context, destReg); }
         dst << "addiu " << destReg << "," << destReg << "," << addr << std::endl;
       }else{
         postfix_expr->mips_address(dst, context, destReg);
@@ -424,19 +431,22 @@ class PostfixExpression : public Expression
 
     virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const override
     {
-      if(type==DOT){
-        std::string addr = context.member_to_addr(value);
+      if((type==DOT) || (type==ARROW)){
+        std::string addr = context.member_to_addr(postfix_expr->get_id(),value);
+        std::string freeReg;
+
+        if(context.write(postfix_expr->get_id())){ freeReg = context.alloc_reg(INT); }
+        else{ freeReg = destReg; }
+
+        if(type==DOT){ postfix_expr->mips_address(dst, context, freeReg); }
+        else{ postfix_expr->print_mips(dst, context, freeReg); }
+        dst << "addiu " << freeReg << "," << freeReg << "," << addr << std::endl;
+
         if(context.write(postfix_expr->get_id())){
-          std::string freeReg = context.alloc_reg(INT);
-          postfix_expr->mips_address(dst, context, freeReg);
-          dst << "addiu " << freeReg << "," << freeReg << "," << addr << std::endl;
           dst << "sw " << destReg << "," << ",0(" << freeReg << ")" << std::endl;
           context.dealloc_reg(freeReg);
-        }else{
-          postfix_expr->mips_address(dst, context, destReg);
-          dst << "addiu " << destReg << "," << destReg << "," << addr << std::endl;
-          dst << "lw " << destReg << "," << ",0(" << destReg << ")" << std::endl;
-        }
+        }else{ dst << "lw " << destReg << "," << ",0(" << freeReg << ")" << std::endl; }
+
       }else{
         std::string freeReg1 = context.alloc_reg(INT);
         std::string freeReg2 = context.alloc_reg(INT);
@@ -456,7 +466,7 @@ class PostfixExpression : public Expression
 
 /* -------------------------------- Unary Expression -------------------------------- */
 
-class UnaryExpression : public Expression
+class UnaryExpression : public Expression                      // works with integral type, need to finish unary minus and dereferencing for other types
 {
 	protected:
 		Expression* expr;
@@ -542,7 +552,7 @@ class UnaryExpression : public Expression
 
 /* -------------------------------- Operator Expression -------------------------------- */
 
-class Operator : public Expression
+class Operator : public Expression                             // complete
 {
 	protected:
 		Expression* left;
@@ -556,7 +566,7 @@ class Operator : public Expression
 
 /* -------------------------------- Arithmetic Expression -------------------------------- */
 
-class MultiplicativeExpression : public Operator
+class MultiplicativeExpression : public Operator               // works with integral type, NEED TO FINISH
 {
 
 	public:
@@ -614,7 +624,7 @@ class MultiplicativeExpression : public Operator
     }
 };
 
-class AdditiveExpression : public Operator
+class AdditiveExpression : public Operator                     // works with integral type, NEED TO FINISH
 {
 
 	public:
@@ -668,7 +678,7 @@ class AdditiveExpression : public Operator
     }
 };
 
-class ShiftExpression : public Operator
+class ShiftExpression : public Operator                        // complete
 {
 
 	public:
@@ -717,7 +727,7 @@ class ShiftExpression : public Operator
 
 /* -------------------------------- Relational Binary Expressions -------------------------------- */
 
-class RelationalExpression : public Operator
+class RelationalExpression : public Operator                   // works with integral type, NEED TO FINISH
 {
 
 	public:
@@ -774,7 +784,7 @@ class RelationalExpression : public Operator
     }
 };
 
-class BitwiseExpression : public Operator
+class BitwiseExpression : public Operator                      // complete
 {
 
 	public:
