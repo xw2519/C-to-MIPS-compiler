@@ -29,7 +29,7 @@ public:
 
 /* -------------------------------- Primitives -------------------------------- */
 
-class IntegralConstant : public Expression
+class IntegralConstant : public Expression                     // complete
 {
   protected:
     long value;
@@ -85,7 +85,7 @@ class IntegralConstant : public Expression
 		}
 };
 
-class FloatConstant : public Expression
+class FloatConstant : public Expression                        // complete
 {
   protected:
     double value;
@@ -125,7 +125,7 @@ class FloatConstant : public Expression
 
     virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const override
 		{
-      std::string label = context.make_float_label(value);
+      std::string label = context.get_float_label(value);
       std::string freeReg = context.alloc_reg(INT);
       dst << "lui " << freeReg << ",%hi(" << label << ")" << std::endl;
       if(type==FLOAT){
@@ -139,46 +139,7 @@ class FloatConstant : public Expression
 		}
 };
 
-class StringLiteral : public Expression
-{
-  protected:
-		std::string value;
-
-	public:
-		String_Literal(std::string &_string) : value(_string) {}
-
-    virtual std::string get_id() const override
-    {
-      return std::string("string");
-    }
-
-    virtual void print(std::ostream &dst) const override
-		{
-			dst << value;
-		}
-
-		virtual void print_mips_array(std::ostream &dst, Context &context, std::string destReg) const
-		{
-      char current;
-      int addr = context.help_me();
-
-      for(int i=1; i<value.size(); i++){
-        dst << "li " << destReg << "," << ((256*out[0]+out[1])*65536) << std::endl;
-        dst << "ori " << destReg << "," << destReg << ",0x" << std::hex << 256*out[2]+out[3] << std::dec << std::endl;
-        dst << "sw " << destReg << "," << addr << "($fp)" << std::endl;
-        addr += 4;
-      }
-		}
-
-    virtual void print_mips_pointer(std::ostream &dst, Context &context, std::string destReg) const
-		{
-      std::string label = context.make_literal_label(value);
-      dst << "lui " << destReg << ",%hi(" << label << ")" << std::endl;
-      dst << "addiu " << destReg << "," << destReg << ",%lo(" << label << ")" << std::endl;
-		}
-};
-
-class Identifier : public Expression
+class Identifier : public Expression                           // complete
 {
   protected:
 		std::string value;
@@ -213,47 +174,70 @@ class Identifier : public Expression
 
 		virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const override
 		{
-      std::string addr = context.id_to_addr(value);                // get address associated with identifier
+      std::string base_addr = context.id_to_addr(value);                                   // get address associated with identifier
+      std::string addr, instr;
+      int total_words;
 
-      if(type==DOUBLE){ std::string destReg2 = context.next_reg(destReg); }
-      if(context.write(value)){ std::string instr = "s"; }
-      else{ std::string instr = "l"; }
+      if(context.write(value)){ instr = "s"; }                        // form instruction for load/store and int/float
+      else{ instr = "l"; }
       if((type==FLOAT) || (type==DOUBLE)){ instr += "wc1 "; }
       else{ instr += "w "; }
-      if(type==STRUCT){ int total_words = context.size_of(value); }
 
-      if((context.write(value)){ std::string freeReg = context.alloc_reg(INT); }
+      if(type==STRUCT){ total_words = context.size_of(value); }                 // get total size in words
+      else if(type==DOUBLE){ total_words = 2; }
+      else{ total_words = 1; }
+
+      if((context.write(value)){ std::string freeReg = context.alloc_reg(INT); }        // choose register to store address
       else{ std::string freeReg = destReg; }
 
       if((context.check_global(value))){                                             // write/read global variable
-        dst << "lui " << freeReg << ",%hi(" << addr << ")" << std::endl;
-        dst << "addiu " << freeReg << "," << freeReg << ",%lo(" << addr << ")" << std::endl;
-        if(type==DOUBLE){
-          dst << instr << destReg2 << ",0(" << freeReg << ")" << std::endl;
-          dst << instr << destReg << ",4(" << freeReg << ")" << std::endl;
-        }else if(type==STRUCT){
-          for(int i=0; i<total_words; i++){
-            dst << instr << destReg << "," << i << "(" << freeReg << ")" << std::endl;
-            destReg = context.next_reg(destReg);
-          }
-        }else{
-          dst << instr << destReg << ",0(" << freeReg << ")" << std::endl;
+        dst << "lui " << freeReg << ",%hi(" << base_addr << ")" << std::endl;
+        dst << "addiu " << freeReg << "," << freeReg << ",%lo(" << base_addr << ")" << std::endl;
+        for(int i=(total_words-1); i>=0; i--){
+          dst << instr << destReg << "," << (4*i) << "(" << freeReg << ")" << std::endl;
+          destReg = context.next_reg(destReg);
         }
       }else{                                                                           // read/write local variable
-        if(type==DOUBLE){
-          dst << instr << destReg2 << "," << addr << "($fp)" << std::endl;
-          dst << instr << destReg << "," << (std::stoi(addr)+4) << "($fp)" << std::endl;
-        }else if(type==STRUCT){
-          for(int i=0; i<total_words; i++){
-            dst << instr << destReg << "," << addr << "($fp)" << std::endl;
-            destReg = context.next_reg(destReg);
-            addr = to_string(stoi(addr)+4);
-          }
-        }else{
+        for(int i=(total_words-1); i>=0; i--){
+          addr = to_string(stoi(base_addr)+4*i);
           dst << instr << destReg << "," << addr << "($fp)" << std::endl;
+          destReg = context.next_reg(destReg);
         }
       }
       if(context.write(value)){ context.dealloc_reg(freeReg); }
+		}
+};
+
+class StringLiteral : public Expression                        // complete
+{
+  protected:
+		std::string value;
+
+	public:
+		String_Literal(std::string &_string) : value(_string) {}
+
+    virtual std::string get_id() const override
+    {
+      return std::string("string");
+    }
+
+    virtual void print(std::ostream &dst) const override
+		{
+			dst << value;
+		}
+
+    virtual void mips_address(std::ostream &dst, Context &context, std::string destReg) const override
+    {
+      std::string addr = context.get_string_addr(value);
+      dst << "lui " << destReg << ",%hi(" << addr << ")" << std::endl;
+      dst << "addiu " << destReg << "," << destReg << ",%lo(" << addr << ")" << std::endl;
+    }
+
+		virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const
+		{
+      std::string addr = context.get_string_addr(value);
+      dst << "lui " << destReg << ",%hi(" << addr << ")" << std::endl;
+      dst << "addiu " << destReg << "," << destReg << ",%lo(" << addr << ")" << std::endl;
 		}
 };
 
