@@ -30,320 +30,99 @@ $24	- $25				Temporary registers
 
 */
 
-/* ------------------------------------ 			  				External variables		 					------------------------------------ */
+/* ------------------------------------ 			  				Typedef variables		 					------------------------------------ */
 
-static int parameter_counter;
-
-static int local_variable_counter;
-static int global_variable_counter;
-
+typedef std::map<std::string, variable*> type_mapping;
 
 /* ------------------------------------								Context Functions							------------------------------------ */
 struct Context
 {
 	private:
-		// Register availability tracker
-		bool register_availability_tracker[32]; // Register $0 to $31
+		type_mapping* context_tracker = new type_mapping();
 
-		// Parameter list storage for function arguments 
-		std::vector <std::string> parameter_list;
-		std::vector <std::string> return_value_list;
+		// Context scope
+		std::stack <type_mapping*> context_scope_stack_tracker;
+		std::stack <int> context_scope_frame_pointer;
 
-		// Variable (Local and Global)
-		std::map <std::string, int> local_variables; 	// Name, Location
-		std::map <std::string, int> global_variables; 	// Name, Location
+		// Trackers and counters
+		int frame_pointer;
+		int register_counter;
+		
+		context_scope scope_tracker = GLOBAL; // Set to global by default 
 
-		// Pointers
-		int stack_pointer_tracker;
-		int frame_pointer_tracker;
-
-
-	
 	public:
-		~Context () {}
+		/* ------------------------------------						     Scope Functions						------------------------------------ */
 
-		Context () 
+		void set_LOCAL()
 		{
-			// Initialise trackers
-			local_variable_counter = 0;
-			global_variable_counter = 0;
-			parameter_counter = 0;
-
-			// Initialise the register availability tracker
-			// TRUE : Available 
-			// FALSE: Unavailable
-			for (int i = 0; i < 32; i++) 
-			{
-				if (i <= 3 || i >= 26) 
-				{
-					register_availability_tracker[i] = false;
-				}
-				else
-				{
-					register_availability_tracker[i] = true;
-				}
-        	}
-
+			scope_tracker = LOCAL;
 		}
 
-		/* ------------------------------------						General Register Functions					------------------------------------ */
-
-		std::vector<int> list_available_registers () // Return list of all available registers
+		void set_GLOBAL()
 		{
-			std::vector<int> avaiable_registers;
-
-			if (avaiable_registers.size() == 0) { throw std::runtime_error ("No available registers"); } 
-
-			for (int i = 0; i < 31; i++) 
-			{
-				if (register_availability_tracker[i] == true) 
-				{
-					avaiable_registers.push_back(i);
-				}
-			}
-
-			return avaiable_registers;     
-    	}
-
-		std::vector<int> list_unavailable_registers () // Return all unavailable registers
-		{
-			std::vector<int> unavaiable_registers;
-
-			if (unavaiable_registers.size() == 0) { throw std::runtime_error ("No available registers"); } 
-
-			for (int i = 0; i < 31; i++) 
-			{
-				if (register_availability_tracker[i] == true) 
-				{
-					unavaiable_registers.push_back(i);
-				}
-			}
-
-			return unavaiable_registers;     
-    	}
-
-		void set_avaiable (int register_ID) 
-		{
-        	register_availability_tracker[register_ID] = true;
-    	}
-
-		void set_unavaiable (int register_ID) 
-		{
-        	register_availability_tracker[register_ID] = false;
-    	}
-
-		/* ------------------------------------					Temprorary Register Functions					------------------------------------ */
-
-		std::vector<int> list_available_temprorary_registers () 
-		{
-			std::vector<int> available_temprorary_registers;
-
-			for (int i = 8; i <= 15; i++) 
-			{
-				if (register_availability_tracker[i] == true) 
-				{
-					available_temprorary_registers.push_back(i);
-				}
-			}
-
-			for (int i = 24; i <= 25; i++) 
-			{
-				if (register_availability_tracker[i] == true) 
-				{
-					available_temprorary_registers.push_back(i);
-				}
-        	}    
-
-        	return available_temprorary_registers;     
-    	}
-
-		std::vector<int> list_unavailable_temprorary_registers () 
-		{
-			std::vector<int> unavailable_temprorary_registers;
-
-			for (int i = 8; i <= 15; i++) 
-			{
-				if (register_availability_tracker[i] == false) 
-				{
-					unavailable_temprorary_registers.push_back(i);
-				}
-			}
-
-			for (int i = 24; i <= 25; i++) 
-			{
-				if (register_availability_tracker[i] == false) 
-				{
-					unavailable_temprorary_registers.push_back(i);
-				}
-        	}    
-
-        	return unavailable_temprorary_registers;     
-    	}
-	
-		/* ------------------------------------					Constant Register Functions					------------------------------------ */
-
-		std::vector<int> list_available_constant_registers () 
-		{
-
-    	}
-
-		/* ------------------------------------				  Return Value Register Functions				------------------------------------ */
-
-		std::vector<int> list_available_return_registers ()
-		{
-			std::vector<int> available_return_registers;
-
-			for (int i = 2; i <= 3; i++) 
-			{
-				if (register_availability_tracker[i] == false) 
-				{
-					available_return_registers.push_back(i);
-				}
-        	}    
-
-			return available_return_registers;
+			scope_tracker = GLOBAL;
 		}
 
-		void set_return_value_register (std::string return_value)
+		void expand_variable_scope()
 		{
-			if (return_value_list.size() > 2) { throw std::runtime_error("Exceeding stack boundaries"); }
+			context_scope_stack_tracker.push(context_tracker);
+			context_tracker = new type_mapping(*context_tracker);
+			context_scope_frame_pointer.push(frame_pointer);
+		}	
 
-			return_value_list.push_back(return_value);
-    	}
-
-		int find_return_location (std::string return_value)
+		void shrink_variable_scope()
 		{
-			for (int i = 0; i < return_value_list.size(); i++) // Search parameter list and return location of matching term
-			{
-				if(return_value == parameter_list[i]) { return i; }
-			}
+			frame_pointer = context_scope_frame_pointer.top();
+			
+			delete context_tracker;
+			context_tracker = context_scope_stack_tracker.top();
 
-			return -1; // Return -1 if no matching term is found
-    	}
-
-		void clean_return_registers () 
-		{
-        	for (int i = 2; i <= 3; i++) { register_availability_tracker[i] = true; }
-
-			parameter_list.clear();
-    	}
-
-
-
-		/* ------------------------------------					Parameter Register Functions				------------------------------------ */
-		
-		std::vector<int> list_available_parameter_registers () 
-		{
-			std::vector<int> available_parameter_register;
-
-			for (int i = 4; i <= 7; i++) 
-			{
-				if (register_availability_tracker[i] == false) 
-				{
-					available_parameter_register.push_back(i);
-				}
-        	}    
-
-        	return available_parameter_register;
-    	}
-
-		void set_parameter_register (std::string parameter)
-		{
-			if (parameter_list.size() > 4) { throw std::runtime_error("Exceeding stack boundaries"); }
-
-			parameter_list.push_back(parameter);
-    	}
-
-		int find_parameter_location (std::string parameter)
-		{
-			for (int i = 0; i < parameter_list.size(); i++) // Search parameter list and return location of matching term
-			{
-				if(parameter == parameter_list[i]) { return i; }
-			}
-
-			return -1; // Return -1 if no matching term is found
-    	}
-
-		void clean_parameter_registers () 
-		{
-        	for (int i = 4; i <= 7; i++) { register_availability_tracker[i] = true; }
-
-			parameter_list.clear();
-    	}
-		
-
-		/* ------------------------------------					  Frame Pointer Functions					------------------------------------ */
-		
-		int get_frame_pointer ()
-		{
-			return frame_pointer_tracker;
+			context_scope_frame_pointer.pop();
+			context_scope_stack_tracker.pop();
 		}
 
-		void decrease_frame_pointer () 
+		/* ------------------------------------						    Stack frame Functions					------------------------------------ */
+
+		void allocate_stack() 
 		{
-			frame_pointer_tracker -= 4;
+			// Update trackers
+			register_counter++;
+			frame_pointer -= 4;
 		}
 
-		void increase_frame_pointer () 
+		void deallocate_stack() 
 		{
-			frame_pointer_tracker += 4;
-		}
-		
-	
-		/* ------------------------------------					Global Variable	Functions					------------------------------------ */
-		/*
-		int find_global_variable (std::string variable) // Return memory location if variable is found
-		{
-			if (global_variables.find(variable) != global_variables.end())
+			// Only deallocate if there are registers already allocated
+			if (register_counter != 0)
 			{
-				return global_variables.find(variable)->second;
-			}
-			else
-			{
-				return -1;
+				frame_pointer += 4;
+				register_counter--;
 			}
 		}
 
-		void add_global_variable (std::string variable)
+		int get_frame_pointer()
 		{
-			int memory_location = global_variables.size();
-			global_variables.emplace(variable, memory_location);
+		return frame_pointer;
 		}
 
-		void delete_global_variable (std::string variable)
-		{
-			global_variables.erase(variable);
-		}
-		*/
-		/* ------------------------------------					Local Variable Functions					------------------------------------ */
 
-		int find_local_variable(std::string variable) // Return frame pointer to variable memory location
-		{
-			// Not dealing with scopes for now
+		/* ------------------------------------						     Register Functions						------------------------------------ */
 
-			if (local_variables.find(variable) != global_variables.end())
-			{
-				return ((local_variables.find(variable)->second) + 1) * 4;
-			}
-			else
-			{
-				return -1;
-			}
+		void load_register(std::ostream& dst, std::string register_name, int memory_location)	
+		{
+			dst << "lw $" << register_name << "," << memory_location << "($fp)" <<std::endl;
 		}
 
-		void add_local_variable(std::string variable)
+		void store_register(std::ostream& dst, std::string register_name, int memory_location)	
 		{
-			int memory_location = local_variables.size();
-			local_variables.emplace(variable, memory_location);
+			dst << "sw $" << register_name << "," << memory_location << "($fp)" <<std::endl;
 		}
 
-		void delete_local_variable(std::string variable)
-		{
-			local_variables.erase(variable);
-		}
+		// Float operations not done yet
 
-		/* ------------------------------------						Scope Functions							------------------------------------ */
+		/* ------------------------------------						  Context Variable Functions				------------------------------------ */
 
+		variable add_variable()
 
 
 };
