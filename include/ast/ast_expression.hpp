@@ -1,8 +1,6 @@
 #ifndef AST_EXPRESSION_HPP
 #define AST_EXPRESSION_HPP
 
-#include "ast_node.hpp"
-
 #include <string>
 #include <iostream>
 #include <map>
@@ -12,8 +10,8 @@ class Expression;
 
 typedef const Expression *Expression_Ptr;
 
-/* -------------------------------- Expression Base Class -------------------------------- */
 
+/* ------------------------------------						   Expression Base Class					------------------------------------ */
 class Expression : public Node {};
 
 
@@ -38,7 +36,8 @@ class Post_Increment_Expression : public Unary_Expression
 };
 
 
-class Function_Call_Expression : public Unary_Expression{
+class Function_Call_Expression : public Unary_Expression
+{
 	private:
 		std::vector<Expression*>* argument_list;
 
@@ -47,9 +46,9 @@ class Function_Call_Expression : public Unary_Expression{
 		Function_Call_Expression (Expression *_expression, std::vector<Expression*>* _argument_list = NULL)
 		: Unary_Expression (_expression), argument_list (_argument_list) {}
 
-		virtual void print_MIPS (std::ostream &dst, Context& context) const override
+		virtual void compile(std::ostream &dst, Context& context) const override
 		{
-			dst << " Function_Call_Expression " << std::endl;
+
 		}
 
 };
@@ -71,35 +70,14 @@ class Direct_Assignment : public Assignment_Expression
 	public:
 		Direct_Assignment (Expression* _left_value, Expression* _expression) : Assignment_Expression (_left_value, _expression) {}
 
-		virtual void print_MIPS (std::ostream &dst, Context& context) const override
+		virtual void compile(std::ostream &dst, Context& context) const override
 		{
-			// Track destination variable location
-			int destination_frame_pointer = context.get_frame_pointer();
 
-			// Execute left value 
-			left_value->print_MIPS(dst, context);	
-
-			// Allocate stack
-			std::vector<int> temp_registers = context.list_available_temprorary_registers();
-			context.set_unavaiable(temp_registers[0]);
-
-			context.decrease_frame_pointer();
-
-			
-			// Execute expressions on right hand side
-			expression->print_MIPS(dst, context);
-
-			// Print assembly
-			dst << "\t" << "sw" << "\t" << "$" << "v0" << ", " << 8 << "($fp)" <<std::endl;
-
-			// Deallocate stack
-			context.increase_frame_pointer();
-
-			context.set_avaiable(temp_registers[0]);
 		}
 };
 
-/* -------------------------------- Operator Expression -------------------------------- */
+
+/* ------------------------------------						   Operator Expression						------------------------------------ */
 
 class Operator : public Expression
 {
@@ -111,22 +89,18 @@ class Operator : public Expression
 		Operator (Expression* _left, Expression* _right) : left (_left), right (_right) {}
 };
 
-/* -------------------------------- Arithmetic Expression -------------------------------- */
+/* ------------------------------------						   Arithmetic Expression					------------------------------------ */
 
 class Add_Expression : public Operator
 {
 	public:
 		Add_Expression (Expression* _left, Expression* _right) : Operator (_left, _right) {}
 
-		virtual void print_MIPS (std::ostream &dst, Context& context) const override
+		virtual void compile(std::ostream &dst, Context& context) const override
 		{
-			// Allocate memory
 
-
-
-
-			// Deallocate memory
 		}
+		
 };
 
 class Sub_Expression : public Operator
@@ -134,20 +108,9 @@ class Sub_Expression : public Operator
 	public:
 		Sub_Expression (Expression* _left, Expression* _right) : Operator (_left, _right) {}
 
-		virtual void print_MIPS (std::ostream &dst, Context& context) const override
+		virtual void compile(std::ostream &dst, Context& context) const override
 		{
-			// Allocate memory
-			std::vector<int> temp_registers = context.list_available_temprorary_registers(); 
-			context.set_unavaiable(temp_registers[0]);
 
-			// Execute branches
-			left->print_MIPS(dst, context);
-            right->print_MIPS(dst, context);
-
-			dst << "\t" << "sub" << "\t" << "$" << "v0" << ", $" << "v0" << ", $" << temp_registers[0] << std::endl;
-
-			// Deallocate memory
-			context.set_avaiable(temp_registers[0]);
 		}
 };
 

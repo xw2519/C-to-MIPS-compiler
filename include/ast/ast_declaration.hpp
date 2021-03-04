@@ -1,61 +1,102 @@
 #ifndef AST_DECLARATION_HPP
 #define AST_DECLARATION_HPP
 
-#include "ast_expression.hpp"
-
 
 #include <iomanip>
 
+#include "ast_expression.hpp"
+
 class Statement : public Node {};
+
+/* ------------------------------------						     Program Class						------------------------------------ */
 
 class Program : public Node
 {
-	protected:
+	private:
 		Node_Ptr left;
 		Node_Ptr right;
-
-	private:
 
 	public:
 		Program(Node_Ptr _left, Node_Ptr _right) : left(_left), right(_right) {}
 
-		virtual void print_MIPS(std::ostream &dst, Context& context) const override
+		virtual void compile(std::ostream& dst, Context& context) const override
 		{
-			left ->print_MIPS(dst, context);
-			right->print_MIPS(dst, context);
+			left ->compile(dst, context);
+			right->compile(dst, context);
 		}
 };
 
+/* ------------------------------------						    Declaration Class					------------------------------------ */
 
 class External_Declaration : public Node {};
 
-class Declarator : public External_Declaration
+/* ------------------------------------						     Declarator Class					------------------------------------ */
+
+class Declarator : public External_Declaration 
+{
+	public:
+		virtual void compile_declaration(std::ostream &dst, Context& context, type declarator_type) const {}
+		virtual void compile_declaration_initialisation(std::ostream &dst, Context& context, type declarator_type, Expression* expressions) const {}
+};
+
+class Variable_Declarator : public Declarator
 {
 	private:
-		std::string ID;
-		Expression *initialisation_expression;
+		std::string variable_name;
 
 	public:
+		Variable_Declarator(std::string _variable_name) : variable_name(_variable_name) {}
 
-		Declarator (std::string _ID, Expression *_initialisation_expression = NULL) 
-		: ID(_ID), initialisation_expression(_initialisation_expression) 
+		// Print MIPS
+
+		virtual void compile(std::ostream& dst, Context& context) const override 
 		{
-			// Update tracker
-			local_variable_counter++;
+			// Get necessary information
+			variable compile_variable = context.get_variable(variable_name);
+			type variable_type = compile_variable.get_variable_type();
+			context_scope variable_scope = compile_variable.get_variable_scope();
+			int variable_offset = 8 * compile_variable.get_variable_address();
+
+			// Print MIPS
+			context.output_load_operation(dst, variable_type, "0", "fp", variable_offset);
 		}
 
-		std::string getID() 
+		virtual void compile_declaration_initialisation(std::ostream &dst, Context& context, type declarator_type, Expression* expressions) const override 
 		{
-			return ID;
+			// Get necessary information
+			variable compile_variable = context.get_variable(variable_name);
+
+			// Allocate memory
+			context.allocate_stack();
+			int frame_pointer = context.get_frame_pointer();
+
+			expressions->compile(dst, context);
+
+			context.deallocate_stack();
+			context.store_register(dst, "v0", frame_pointer);
+			context.output_load_operation(dst, declarator_type, "v0", "fp", compile_variable.get_variable_address()*8);
 		}
-
-		void print_MIPS(std::ostream &dst, Context& context) const override
-		{
-			
-		}
-
-
 };
+
+class Initialisation_Variable_Declarator : public Declarator 
+{
+	// Expressions like a = 4 + 7 + b
+
+	private: 
+		Declarator* initialisation_declarator;
+		Expression* initialisation_expressions;
+
+	public: 
+		Initialisation_Variable_Declarator(Declarator* _initialisation_declarator, Expression* _initialisation_expressions)
+		: initialisation_declarator(_initialisation_declarator), initialisation_expressions(_initialisation_expressions) {}
+
+		virtual void compile_declaration(std::ostream &dst, Context& context, type declaration_type) const override
+		{
+			initialisation_declarator->compile_declaration_initialisation(dst, context, declaration_type, initialisation_expressions);
+		}
+};
+
+/* ------------------------------------						  Declaration Class					------------------------------------ */
 
 class Declaration : public External_Declaration
 {
@@ -67,14 +108,14 @@ class Declaration : public External_Declaration
 		Declaration(std::string _TYPE, std::vector<Declarator*>* _declaration_list = NULL) 
 		: TYPE(_TYPE), declaration_list(_declaration_list) {}
 
-		void print_MIPS(std::ostream &dst, Context& context) const override
+		virtual void compile(std::ostream &dst, Context& context) const override
 		{
 			if (declaration_list != NULL)
 			{				
 				for (int i = 0; i < declaration_list->size(); i++)
 				{
 					Declarator* temp_declarator = declaration_list->at(i);
-					(*temp_declarator).print_MIPS(dst, context);
+					(*temp_declarator).compile(dst, context);
 				}
 			}
 		}
@@ -112,8 +153,11 @@ class Function_Definition : public External_Declaration // Very basic
 		Function_Definition (std::string _TYPE, std::string _ID, std::vector<Declaration*>* _parameter_list, Statement *_statements) 
 		: TYPE(_TYPE), ID(_ID), parameter_list(_parameter_list), statements(_statements) {}
 
-		void print_MIPS (std::ostream &dst, Context &context) const override
+		virtual void compile(std::ostream& dst, Context& context) const override
 		{
+
+			context.expand_variable_scope();
+			context.set_LOCAL();
 			
 			/* -------------------------------- 		   Opening directives 			-------------------------------- */
 			dst << "\t" << ".text"  << std::endl;
@@ -122,14 +166,13 @@ class Function_Definition : public External_Declaration // Very basic
 			dst << "\t" << ".type"  << "\t" << ID <<", @function" << std::endl;
 
 			/* -------------------------------- 	 			Function	 			-------------------------------- */
-			dst << ID << ":" << std::endl;
+			dst <<  ID  << ":" << std::endl;
+			dst << "\t" << ".set" << "\t" << "noreorder" << std::endl;
+			dst << "\t" << ".set" << "\t" << "nomacro" 	<< std::endl;
 			
-			// Calculate stack frame required
-			int stack_size = (local_variable_counter + global_variable_counter)*8 + (parameter_counter)*8; // To be revised 
-
 			// Allocate stack (TODO: Revision required)
-			dst << "\t" << "addiu" << "\t" << "$sp,$sp,-"  << stack_size 	<< std::endl; 
-			dst << "\t" << "sw"    << "\t" << "$fp,"	   << stack_size - 4 << "($sp)" <<std::endl;
+			dst << "\t" << "addiu" << "\t" << "$sp,$sp,-"  << "8" << std::endl; 
+			dst << "\t" << "sw"    << "\t" << "$fp,"	   << "8" << "($sp)" <<std::endl;
 			dst << "\t" << "move"  << "\t" << "$fp,$sp"    << std::endl;
 
 			// Function parameters
@@ -141,7 +184,7 @@ class Function_Definition : public External_Declaration // Very basic
 			// Function body
 			if(statements != NULL)
 			{
-				statements->print_MIPS(dst, context);
+				statements->compile(dst, context);
 			}
 			
 			
@@ -156,14 +199,20 @@ class Function_Definition : public External_Declaration // Very basic
 			
 			// Deallocate stack
 			dst << "\t" << "move"  << "\t" << "$sp, $fp"  << std::endl; 
-        	dst << "\t" << "lw"    << "\t" << "$fp," << stack_size - 4 << "($sp)" << std::endl;
-			dst << "\t" << "addiu" << "\t" << "$sp, $sp," << stack_size << std::endl; 
+        	dst << "\t" << "lw"    << "\t" << "$fp," << "8" << "($sp)" << std::endl;
+			dst << "\t" << "addiu" << "\t" << "$sp, $sp," << "8" << std::endl; 
 			dst << "\t" << "j" 	   << "\t" << "$ra"  << std::endl;
 			dst << "\t" << "nop" << "\t" << std::endl;
 			dst << std::endl;
 
 			/* -------------------------------- 		    Closing directives 			-------------------------------- */
-			dst << "\t" << ".end"  << "\t" << ID << std::endl;
+			dst << "\t" << ".end" << "\t" << ID << std::endl;
+			dst << "\t" << ".set" << "\t" << "macro" << std::endl;
+			dst << "\t" << ".set" << "\t" << "reorder"  << std::endl;
+
+
+			context.shrink_variable_scope();
+			context.set_GLOBAL();
 		}
 };
 

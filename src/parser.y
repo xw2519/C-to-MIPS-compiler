@@ -101,10 +101,10 @@ global_declaration				:	function_definition											{ $$ = $1; }
 function_definition				:	T_TYPE T_IDENTIFIER T_LBRACKET parameter_list T_RBRACKET compound_statement 
 									{ $$ = new Function_Definition(*$1, *$2, $4, $6); }
 
-declarator						: 	T_IDENTIFIER 												{ $$ = new Declarator(*$1); }
+declarator						: 	T_IDENTIFIER 												{ $$ = new Variable_Declarator(*$1); }
 
 initialisation_declarator		: 	declarator 													{ $$ = $1; }
-								| 	declarator T_EQUAL expression 								{ $$ = new Declarator($1->getID(), $3); }
+								| 	declarator T_EQUAL expression 								{ $$ = new Initialisation_Variable_Declarator($1, $3); }
 
 initialisation_declarator_list	: 	initialisation_declarator 											{ $$ = new std::vector<Declarator*>(1, $1);	}
 								|	initialisation_declarator_list T_COMMA initialisation_declarator	{ $1->push_back($3); $$ = $1; }

@@ -1,8 +1,6 @@
 #ifndef AST_STATEMENT_HPP
 #define AST_STATEMENT_HPP
 
-#include "ast_expression.hpp"
-#include "ast_declaration.hpp"
 
 #include <iomanip>
 
@@ -14,11 +12,9 @@ class Expression_Statement : public Statement
 	public:
 		Expression_Statement ( Expression* _expression ) : expression (_expression) {}
 
-		virtual void print_MIPS (std::ostream &dst, Context& context) const override
+		virtual void compile(std::ostream& dst, Context& context) const override
 		{
-
-			expression->print_MIPS(dst, context);
-
+			expression->compile(dst, context);
 		}
 
 };
@@ -33,15 +29,15 @@ class Compound_Statement : public Statement
 		Compound_Statement (std::vector<Declaration*>* _declaration_list = NULL, std::vector<Statement*>* _statement_list = NULL)
 		: statement_list (_statement_list), declaration_list (_declaration_list) {}
 
-		virtual void print_MIPS (std::ostream &dst, Context& context) const override
+		virtual void compile(std::ostream& dst, Context& context) const override
 		{
-			Context sub_context = Context(context);
+
 
 			if (declaration_list != NULL)
 			{
 				for (auto declaration = declaration_list->begin(); declaration != declaration_list->end(); declaration++)
 				{
-					(*declaration)->print_MIPS (dst, sub_context);
+					(*declaration)->compile(dst, context);
 				}
 			}
 
@@ -49,7 +45,7 @@ class Compound_Statement : public Statement
 			{
 				for(auto statement = statement_list->begin(); statement != statement_list->end(); statement++)
 				{
-					(*statement)->print_MIPS (dst, sub_context);
+					(*statement)->compile(dst, context);
 				}
 			}
 		}

@@ -3,8 +3,13 @@
 
 #include <map>
 #include <vector>
+#include <stack>
 #include <string>
 #include <iostream>
+
+#include <cmath>
+
+#include "ast_variable.hpp"
 
 /*
 
@@ -33,35 +38,31 @@ $24	- $25				Temporary registers
 /* ------------------------------------ 			  				Typedef variables		 					------------------------------------ */
 
 typedef std::map<std::string, variable*> type_mapping;
+typedef type_mapping* mapPtr;
+
 
 /* ------------------------------------								Context Functions							------------------------------------ */
 struct Context
 {
 	private:
-		type_mapping* context_tracker = new type_mapping();
+		mapPtr context_tracker = new type_mapping();
 
 		// Context scope
 		std::stack <type_mapping*> context_scope_stack_tracker;
 		std::stack <int> context_scope_frame_pointer;
 
 		// Trackers and counters
-		int frame_pointer;
-		int register_counter;
+		int frame_pointer = 0;
+		int register_counter = 0;
 		
 		context_scope scope_tracker = GLOBAL; // Set to global by default 
 
 	public:
 		/* ------------------------------------						     Scope Functions						------------------------------------ */
 
-		void set_LOCAL()
-		{
-			scope_tracker = LOCAL;
-		}
+		void set_LOCAL()  { scope_tracker = LOCAL; }
 
-		void set_GLOBAL()
-		{
-			scope_tracker = GLOBAL;
-		}
+		void set_GLOBAL() { scope_tracker = GLOBAL; }
 
 		void expand_variable_scope()
 		{
@@ -100,32 +101,47 @@ struct Context
 			}
 		}
 
-		int get_frame_pointer()
-		{
-		return frame_pointer;
-		}
+		int get_frame_pointer() { return frame_pointer; }
 
 
 		/* ------------------------------------						     Register Functions						------------------------------------ */
 
-		void load_register(std::ostream& dst, std::string register_name, int memory_location)	
+		void load_register (std::ostream& dst, std::string register_name, int memory_location)	
 		{
 			dst << "lw $" << register_name << "," << memory_location << "($fp)" <<std::endl;
 		}
 
-		void store_register(std::ostream& dst, std::string register_name, int memory_location)	
+		void store_register (std::ostream& dst, std::string register_name, int memory_location)	
 		{
 			dst << "sw $" << register_name << "," << memory_location << "($fp)" <<std::endl;
+		}
+
+		void output_load_operation (std::ostream& dst, type load_type, std::string register_1, std::string register_2, int frame_offset)
+		{
+			dst << "sw" << "\t" << "$" << register_1 << "," << frame_offset << "($" << register_2 << ")" << std::endl;
 		}
 
 		// Float operations not done yet
 
 		/* ------------------------------------						  Context Variable Functions				------------------------------------ */
 
-		variable add_variable()
+		variable get_variable(std::string variable_name)
+		{
+			// Return number of occurrences of a variable
+			if (!(*context_tracker).count(variable_name))
+			{
+				throw("Critical Error: Variable not declared");
+			}
+			else
+			{
+				return *((*context_tracker)[variable_name]);
+			}
+		}
 
 
 };
+
+
 
 
 #endif
