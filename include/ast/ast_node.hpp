@@ -3,6 +3,7 @@
 
 #include <string>
 #include <iostream>
+#include <iomanip>
 #include <cmath>
 #include <regex>
 #include <memory>
@@ -13,24 +14,15 @@
 #include <initializer_list>
 
 
-class Root
+class Node
 {
-protected:
-    std::string type_;
+	public:
+		virtual ~Node () {}
 
-public:
-    virtual ~Root() {}
-
-    virtual const std::string &getType() const
-    {
-        return type_;
-    }
-
-    virtual void print_mips (std::ostream &dst, Context& ctx, int destination_register) const
+		virtual void print_MIPS (std::ostream &dst, Context& context) const
 		{
 			std::cerr << "Ast_node.hpp: 'print_MIPS' not implemented on " << typeid(this).name() << "\n";
 		}
-
-}
+};
 
 #endif

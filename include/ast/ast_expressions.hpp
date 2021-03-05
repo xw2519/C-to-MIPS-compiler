@@ -2,6 +2,7 @@
 #define EXPRESSIONS
 
 #include "ast_node.hpp"
+#include "ast_declarations.hpp"
 
 enum ExpressionEnum { INT, CHAR, UNSIGNED, FLOAT, DOUBLE, STRING_LITERAL, DOT, ARROW, INCREMENT, DECREMENT, REFERENCE, DEREFERENCE,
                       PLUS, MINUS, BITWISE_NOT, LOGICAL_NOT, SIZEOF, MULTIPLY, DIVIDE, MODULO, SHIFT_LEFT, SHIFT_RIGHT,
@@ -168,23 +169,18 @@ class Identifier : public Expression                           // complete
       std::string addr, instr;
       int total_words;
 
-      if(context.write(value)){ instr = "s"; }                        // form instruction for load/store and int/float
-      else{ instr = "l"; }
-      if((type==FLOAT) || (type==DOUBLE)){ instr += "wc1 "; }
-      else{ instr += "w "; }
+      if((type==FLOAT) || (type==DOUBLE)){ instr = "lwc1 "; }                     // form instruction for int/float
+      else{ instr = "lw "; }
 
       if(type==STRUCT){ total_words = context.size_in_words(value); }                 // get total size in words
       else if(type==DOUBLE){ total_words = 2; }
       else{ total_words = 1; }
 
-      if((context.write(value)){ std::string freeReg = context.alloc_reg(INT); }        // choose register to store address
-      else{ std::string freeReg = destReg; }
-
       if((context.check_global(value))){                                             // write/read global variable
-        dst << "lui " << freeReg << ",%hi(" << base_addr << ")" << std::endl;
-        dst << "addiu " << freeReg << "," << freeReg << ",%lo(" << base_addr << ")" << std::endl;
+        dst << "lui " << destReg << ",%hi(" << base_addr << ")" << std::endl;
+        dst << "addiu " << destReg << "," << destReg << ",%lo(" << base_addr << ")" << std::endl;
         for(int i=(total_words-1); i>=0; i--){
-          dst << instr << destReg << "," << (4*i) << "(" << freeReg << ")" << std::endl;
+          dst << instr << destReg << "," << (4*i) << "(" << destReg << ")" << std::endl;
           destReg = context.next_reg(destReg);
         }
       }else{                                                                           // read/write local variable
@@ -194,7 +190,6 @@ class Identifier : public Expression                           // complete
           destReg = context.next_reg(destReg);
         }
       }
-      if(context.write(value)){ context.dealloc_reg(freeReg); }
 		}
 };
 
@@ -283,33 +278,29 @@ class ArrayPostfixExpression : public Expression               // complete
       int total_words = context.size_in_words_pointed(postfix_expr->get_id());
       std::string instr;
 
-      std::string freeReg1 = context.alloc_reg(INT);
-      std::string freeReg2 = context.alloc_reg(INT);
+      std::string freeReg = context.alloc_reg(INT);
 
-      postfix_expr->print_mips(dst, context, freeReg1);
-      assignment_expr->print_mips(dst, context, freeReg2);
+      postfix_expr->print_mips(dst, context, freeReg);
+      assignment_expr->print_mips(dst, context, destReg);
 
-      if(context.write(postfix_expr->get_id())){ instr = "s"; }
-      else{ instr = "l"; }
-      if((array_type==FLOAT) || (array_type==DOUBLE)){ instr += "wc1 "; }
-      else{ instr += "w "; }
+      if((array_type==FLOAT) || (array_type==DOUBLE)){ instr = "lwc1 "; }
+      else{ instr = "lw "; }
 
-      dst << "sll " << freeReg2 << "," << freeReg2 << ",2" << std::endl;
+      dst << "sll " << destReg << "," << destReg << ",2" << std::endl;
       for(int i=0; i<total_words; i++){
-        dst << "addu " << freeReg1 << "," << freeReg1 << "," << freeReg2 << std::endl;
+        dst << "addu " << freeReg << "," << freeReg << "," << destReg << std::endl;
       }
 
       for(int i=total_words-1; i>=0; i--){
-        dst << instr << destReg << "," << (4*i) << "("  << freeReg1 << ")" << std::endl;
+        dst << instr << destReg << "," << (4*i) << "("  << freeReg << ")" << std::endl;
         destReg = context.next_reg(destReg);
       }
 
-      context.dealloc_reg(freeReg1);
-      context.dealloc_reg(freeReg2);
+      context.dealloc_reg(freeReg);
     }
 };
 
-class FunctionPostfixExpression : public Expression            // works if args are integral type, as in tests
+class FunctionPostfixExpression : public Expression            // works if args are integral type, enough for known tests
 {
   protected:
     Expression* postfix_expr;
@@ -363,7 +354,7 @@ class FunctionPostfixExpression : public Expression            // works if args 
     }
 };
 
-class PostfixExpression : public Expression                    // works with integral type, need to finish dot and arrow for other types
+class PostfixExpression : public Expression                    // complete
 {
   protected:
     Expression* postfix_expr;
@@ -423,21 +414,25 @@ class PostfixExpression : public Expression                    // works with int
     virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const override
     {
       if((type==DOT) || (type==ARROW)){
-        std::string addr = context.member_to_addr(postfix_expr->get_id(),value);
-        std::string freeReg;
+        std::string addr = context.member_to_addr(postfix_expr->get_id(),value);        // address of member relative to struct
+        ExpressionEnum member_type = context.member_type(postfix_expr->get_id(),value);    // type of member
+        int total_words = context.member_size_in_words(postfix_expr->get_id(),value);       // size of member
+        std::string instr, freeReg;
+        if((member_type==FLOAT) || (member_type==DOUBLE)){ instr = "lwc1 " }
+        else{ instr = "lw "; }
+        if(total_words==1){ freeReg = destReg; }
+        else{ freeReg = context.alloc_reg(INT); }
 
-        if(context.write(postfix_expr->get_id())){ freeReg = context.alloc_reg(INT); }
-        else{ freeReg = destReg; }
-
-        if(type==DOT){ postfix_expr->mips_address(dst, context, freeReg); }
+        if(type==DOT){ postfix_expr->mips_address(dst, context, freeReg); }               // get address of member
         else{ postfix_expr->print_mips(dst, context, freeReg); }
         dst << "addiu " << freeReg << "," << freeReg << "," << addr << std::endl;
 
-        if(context.write(postfix_expr->get_id())){
-          dst << "sw " << destReg << "," << ",0(" << freeReg << ")" << std::endl;
-          context.dealloc_reg(freeReg);
-        }else{ dst << "lw " << destReg << "," << ",0(" << freeReg << ")" << std::endl; }
+        for(int i=(total_words-1); i>=0; i--){
+          dst << "lw " << destReg << "," << (4*i) << "(" << freeReg << ")" << std::endl;
+          destReg = context.next_reg(destReg);
+        }
 
+        if(total_words>1){ context.dealloc_reg(freeReg); }
       }else{
         std::string freeReg1 = context.alloc_reg(INT);
         std::string freeReg2 = context.alloc_reg(INT);
@@ -457,7 +452,7 @@ class PostfixExpression : public Expression                    // works with int
 
 /* -------------------------------- Unary Expression -------------------------------- */
 
-class UnaryExpression : public Expression                      // works with integral type, need to finish unary minus and dereferencing for other types
+class UnaryExpression : public Expression                      // complete
 {
 	protected:
 		Expression* expr;
@@ -511,15 +506,21 @@ class UnaryExpression : public Expression                      // works with int
       }else if(type==REFERENCE){
         expr->mips_address(dst, context, destReg);
       }else if(type==DEREFERENCE){
-        if(context.write(expr->get_id())){
-          std::string freeReg = context.alloc_reg(INT);
-          expr->print_mips(dst, context, freeReg);
-          dst << "sw " << destReg << ",0(" << freeReg << ")" << std::endl;
-          context.dealloc_reg(freeReg);
-        }else{
-          expr->print_mips(dst, context, destReg);
-          dst << "lw " << destReg << ",0(" << destReg << ")" << std::endl;
+        int total_words = context.size_in_words_pointed(expr->get_id());
+        ExpressionEnum pointed_type = context.get_type_pointed(expr->get_id());
+        std::string freeReg, instr;
+        if(total_words>1){ freeReg = context.alloc_reg(INT); }
+        else{ freeReg = destReg; }
+        if((pointed_type==FLOAT) || (pointed_type==DOUBLE)){ instr = "lwc1 "; }
+        else{ instr = "lw "; }
+
+        expr->print_mips(dst, context, freeReg);
+        for(int i=(total_words-1); i>=0; i--){
+          dst << instr << destReg << "," << (4*i) << "(" << freeReg << ")" << std::endl;
+          destReg = context.next_reg(destReg);
         }
+
+        if(total_words>1){ context.dealloc_reg(freeReg); }
       }else if(type==SIZEOF){
         if(expr){
           dst << "li " << destReg << "," << context.size_of(expr.get_id()) << std::endl;
@@ -531,8 +532,18 @@ class UnaryExpression : public Expression                      // works with int
         dst << "sltu " << destReg << "," << destReg << ",1" << std::endl;
         dst << "andi " << destReg << "," << destReg << ",0x00ff" << std::endl;
       }else if(type==MINUS){
+        ExpressionEnum expr_type = context.get_type(expr->get_id());
         expr->print_mips(dst, context, destReg);
-        dst << "subu " << destReg << ",$0," << destReg << std::endl;
+
+        if((pointed_type==FLOAT) || (pointed_type==DOUBLE)){
+          std::string freeReg = context.alloc_reg(INT);
+          dst << "li " << freeReg << ",-2147483648";
+          if(pointed_type==DOUBLE){ destReg = context.next_reg(destReg); }
+          dst << "xor " << destReg << "," << freeReg << "," << destReg << std::endl;
+          context.dealloc_reg(freeReg);
+        }else{
+          dst << "subu " << destReg << ",$0," << destReg << std::endl;
+        }
       }else{
         expr->print_mips(dst, context, destReg);
         dst << "nor " << destReg << ",$0," << destReg << std::endl;
