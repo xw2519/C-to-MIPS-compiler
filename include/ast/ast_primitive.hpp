@@ -20,22 +20,46 @@ class Constant : public Primitive
 
 		virtual void compile(std::ostream &dst, Context& context) const override
 		{
+			context.allocate_stack();
+			int frame_pointer = context.get_frame_pointer();
+			std::string destination_register = "v0";
+
 			dst << "\t" << "li" << "\t" << "$" << "v0" << ", " << value << std::endl;
+
+			context.store_register(dst, destination_register, frame_pointer);	
 		}
 };
 
-class Variable : public Primitive // Local variables with constant
+class Identifier : public Primitive // Local variables with constant
 {
 	private:
-		std::string ID;
+		std::string variable_name;
 
 	public:
-		Variable (std::string _ID) : ID (_ID) {}
+		Identifier (std::string _variable_name) : variable_name (_variable_name) {}
 
 		virtual void compile(std::ostream &dst, Context& context) const override
 		{	
-			dst << "Variable" << std::endl;
+			variable compile_variable = context.get_variable(variable_name);
+			int destination_address = context.get_frame_pointer();
+			std::string destination_register = "v0";
+
+			load_variable_address(dst, context);
 		}
+
+		virtual void load_variable_address(std::ostream &dst, Context& context) const
+		{
+			int destination_address = context.get_frame_pointer();
+			std::string destination_register = "v0";
+			variable compile_variable = context.get_variable(variable_name);
+
+			dst<< "\t" << "addiu" << "\t" << "$" << destination_register << ",$fp," << compile_variable.get_variable_address() << std::endl;
+
+			context.store_register(dst, destination_register, destination_address);
+
+		}
+
+		
 };
 
 class StringLiteral : public Primitive

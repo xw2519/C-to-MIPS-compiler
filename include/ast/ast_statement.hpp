@@ -10,7 +10,7 @@ class Expression_Statement : public Statement
 		Expression *expression;
 
 	public:
-		Expression_Statement ( Expression* _expression ) : expression (_expression) {}
+		Expression_Statement ( Expression* _expression = NULL ) : expression (_expression) {}
 
 		virtual void compile(std::ostream& dst, Context& context) const override
 		{
@@ -31,7 +31,6 @@ class Compound_Statement : public Statement
 
 		virtual void compile(std::ostream& dst, Context& context) const override
 		{
-
 
 			if (declaration_list != NULL)
 			{

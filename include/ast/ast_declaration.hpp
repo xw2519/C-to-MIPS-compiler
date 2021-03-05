@@ -48,23 +48,26 @@ class Variable_Declarator : public Declarator
 		Variable_Declarator(std::string _variable_name) : variable_name(_variable_name) {}
 
 		// Print MIPS
-
 		virtual void compile(std::ostream& dst, Context& context) const override 
 		{
 			// Get necessary information
-			variable compile_variable = context.get_variable(variable_name);
+			variable compile_variable = context.new_variable(variable_name, INT, NORMAL );
+
 			type variable_type = compile_variable.get_variable_type();
 			context_scope variable_scope = compile_variable.get_variable_scope();
-			int variable_offset = 8 * compile_variable.get_variable_address();
+			int frame_pointer_1 = compile_variable.get_variable_address();
 
+			std::cerr << "Frame " << frame_pointer_1 << std::endl;
+			
 			// Print MIPS
-			context.output_load_operation(dst, variable_type, "0", "fp", variable_offset);
+			context.output_load_operation(dst, variable_type, "0", "fp", frame_pointer_1);
 		}
 
 		virtual void compile_declaration_initialisation(std::ostream &dst, Context& context, type declarator_type, Expression* expressions) const override 
 		{
+			std::cerr<<"EXECUTING 2"<<std::endl;
 			// Get necessary information
-			variable compile_variable = context.get_variable(variable_name);
+			variable compile_variable = context.new_variable(variable_name, declarator_type, NORMAL);
 
 			// Allocate memory
 			context.allocate_stack();
@@ -81,7 +84,6 @@ class Variable_Declarator : public Declarator
 class Initialisation_Variable_Declarator : public Declarator 
 {
 	// Expressions like a = 4 + 7 + b
-
 	private: 
 		Declarator* initialisation_declarator;
 		Expression* initialisation_expressions;
@@ -110,12 +112,15 @@ class Declaration : public External_Declaration
 
 		virtual void compile(std::ostream &dst, Context& context) const override
 		{
+			
 			if (declaration_list != NULL)
 			{				
 				for (int i = 0; i < declaration_list->size(); i++)
 				{
 					Declarator* temp_declarator = declaration_list->at(i);
+					
 					(*temp_declarator).compile(dst, context);
+					
 				}
 			}
 		}
@@ -183,7 +188,7 @@ class Function_Definition : public External_Declaration // Very basic
 			
 			// Function body
 			if(statements != NULL)
-			{
+			{ 
 				statements->compile(dst, context);
 			}
 			

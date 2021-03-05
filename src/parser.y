@@ -70,6 +70,7 @@ void yyerror(const char *);
 %type <expression_node> bitwise_expression logical_expression ternary_expression 
 %type <expression_node> assignment_expression expression 
 
+%type <initialisation_list> initialisation_list
 
 %type <argument_list_vector> argument_list
 
@@ -93,7 +94,7 @@ void yyerror(const char *);
 ROOT 							: 	program														{ root = $1; }
 
 program 						: 	global_declaration					  						{ $$ = $1; }
-								| 	program function_definition   								{ $$ = new Program($1,$2); }
+								| 	program global_declaration   								{ $$ = new Program($1,$2); }
 
 global_declaration				:	function_definition											{ $$ = $1; }
 								|	declaration 												{ $$ = $1; }
@@ -103,8 +104,11 @@ function_definition				:	T_TYPE T_IDENTIFIER T_LBRACKET parameter_list T_RBRACKE
 
 declarator						: 	T_IDENTIFIER 												{ $$ = new Variable_Declarator(*$1); }
 
+initialisation_list 			:   assignment_expression 										{ $$ = new std::vector<Expression*>(1, $1);	}
+								|	initialisation_list T_COMMA assignment_expression 			{ $1->push_back($3); $$=$1; }
+
 initialisation_declarator		: 	declarator 													{ $$ = $1; }
-								| 	declarator T_EQUAL expression 								{ $$ = new Initialisation_Variable_Declarator($1, $3); }
+								| 	declarator T_EQUAL assignment_expression 					{ $$ = new Initialisation_Variable_Declarator($1, $3); }
 
 initialisation_declarator_list	: 	initialisation_declarator 											{ $$ = new std::vector<Declarator*>(1, $1);	}
 								|	initialisation_declarator_list T_COMMA initialisation_declarator	{ $1->push_back($3); $$ = $1; }
@@ -124,10 +128,10 @@ parameter_list					:	parameter_declaration				     					{ $$ = new std::vector<D
 
 /* ------------------------------------								Expression								------------------------------------ */
 
-expression 						:	assignment_expression
+expression 						:	assignment_expression											
 
 primary_expression				: 	T_CONSTANT														{ $$ = new Constant($1); }
-								| 	T_IDENTIFIER		 											{ $$ = new Variable(*$1);	}	
+								| 	T_IDENTIFIER		 											{ $$ = new Identifier(*$1);	}	
 								| 	T_LITERAL			 											{ $$ = new StringLiteral(*$1); }	
 								| 	T_LBRACKET expression T_RBRACKET								{ $$ = $2; }		
 
@@ -165,7 +169,7 @@ ternary_expression 				: 	logical_expression
 assignment_expression			: 	ternary_expression 
 								|	postfix_expression T_ASSIGN assignment_expression 				{ $$ = new Direct_Assignment($1, $3); }	
 
-argument_list					: 	expression 														{ $$ = new std::vector<Expression*>(1,$1); }
+argument_list					: 	expression 														
 								| 	argument_list T_COMMA expression 								{ $1->push_back($3); $$ = $1; }
 
 
@@ -191,7 +195,7 @@ jump_statement					: 	T_RETURN T_SEMICOLON												{ $$ = new Jump_Statement(
 								| 	T_RETURN expression T_SEMICOLON										{ $$ = new Jump_Statement($2); }
 
 expression_statement			: 	expression T_SEMICOLON												{ $$ = new Expression_Statement($1); }
-
+								|	T_SEMICOLON															{ $$ = new Expression_Statement(); }	
 
 condition_statement 			:	T_IF T_LBRACKET expression T_RBRACKET statement						{ $$ = new Condition_If_Statement($3,$5); }	
 								|	T_IF T_LBRACKET expression T_RBRACKET statement T_ELSE statement	{ $$ = new Condition_If_Else_Statement($3,$5,$7); }

@@ -38,14 +38,12 @@ $24	- $25				Temporary registers
 /* ------------------------------------ 			  				Typedef variables		 					------------------------------------ */
 
 typedef std::map<std::string, variable*> type_mapping;
-typedef type_mapping* mapPtr;
-
 
 /* ------------------------------------								Context Functions							------------------------------------ */
 struct Context
 {
 	private:
-		mapPtr context_tracker = new type_mapping();
+		type_mapping* context_tracker = new type_mapping();
 
 		// Context scope
 		std::stack <type_mapping*> context_scope_stack_tracker;
@@ -88,7 +86,7 @@ struct Context
 		{
 			// Update trackers
 			register_counter++;
-			frame_pointer -= 4;
+			frame_pointer -= 8;
 		}
 
 		void deallocate_stack() 
@@ -96,7 +94,7 @@ struct Context
 			// Only deallocate if there are registers already allocated
 			if (register_counter != 0)
 			{
-				frame_pointer += 4;
+				frame_pointer += 8;
 				register_counter--;
 			}
 		}
@@ -106,33 +104,37 @@ struct Context
 
 		/* ------------------------------------						     Register Functions						------------------------------------ */
 
-		void load_register (std::ostream& dst, std::string register_name, int memory_location)	
+		void load_register(std::ostream& dst, std::string register_name, int memory_location)	
 		{
-			dst << "lw $" << register_name << "," << memory_location << "($fp)" <<std::endl;
+			dst << "\t" << "lw" << "\t" << "$" << register_name << "," << memory_location << "($fp)" << std::endl;
 		}
 
-		void store_register (std::ostream& dst, std::string register_name, int memory_location)	
+		void store_register(std::ostream& dst, std::string register_name, int memory_location)	
 		{
-			dst << "sw $" << register_name << "," << memory_location << "($fp)" <<std::endl;
+			dst << "\t" << "sw" << "\t" << "$" << register_name << "," << memory_location << "($fp)" << std::endl;
 		}
 
-		void output_load_operation (std::ostream& dst, type load_type, std::string register_1, std::string register_2, int frame_offset)
+		void output_load_operation(std::ostream& dst, type load_type, std::string register_1, std::string register_2, int frame_offset)
 		{
-			dst << "sw" << "\t" << "$" << register_1 << "," << frame_offset << "($" << register_2 << ")" << std::endl;
+			dst << "\t" << "sw" << "\t" << "$" << register_1 << "," << frame_offset << "($" << register_2 << ")" << std::endl;
 		}
 
 		// Float operations not done yet
 
 		/* ------------------------------------						  Context Variable Functions				------------------------------------ */
+		variable new_variable(std::string variable_name, type variable_type, declaration_type variable_declaration_type)
+		{
+			frame_pointer -= (1*8);
+
+			(*context_tracker)[variable_name] = new variable(frame_pointer, LOCAL, variable_declaration_type, variable_type);
+
+			return *((*context_tracker)[variable_name]);
+		}
 
 		variable get_variable(std::string variable_name)
 		{
 			// Return number of occurrences of a variable
-			if (!(*context_tracker).count(variable_name))
-			{
-				throw("Critical Error: Variable not declared");
-			}
-			else
+			if((*context_tracker).count(variable_name))
 			{
 				return *((*context_tracker)[variable_name]);
 			}

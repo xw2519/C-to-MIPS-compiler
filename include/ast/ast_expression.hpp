@@ -72,7 +72,28 @@ class Direct_Assignment : public Assignment_Expression
 
 		virtual void compile(std::ostream &dst, Context& context) const override
 		{
+			type operator_type = INT;
 
+			auto frame_pointer_1 = context.get_frame_pointer();
+			std::string destination_register = "v0";
+			left_value->compile(dst, context);		
+
+			context.allocate_stack();
+			int frame_pointer_2 = context.get_frame_pointer();
+			std::string temp_register = "t0";
+			expression->compile(dst, context);
+
+			context.deallocate_stack();
+
+			// Load registers 
+			context.load_register(dst, destination_register, frame_pointer_1);
+			context.load_register(dst, temp_register, frame_pointer_2);
+
+			context.output_load_operation(dst, operator_type, destination_register, temp_register, 0);
+
+			dst << "\t" << "move" << "\t" << "$" << destination_register << ",$" << temp_register << std::endl;
+
+			context.store_register(dst, destination_register, frame_pointer_1);
 		}
 };
 
@@ -87,6 +108,37 @@ class Operator : public Expression
 
 	public:
 		Operator (Expression* _left, Expression* _right) : left (_left), right (_right) {}
+
+		virtual void execute(std::ostream &dst, Context& context, type type, std::string destination_register, std::string temprorary_register) const {}
+
+		virtual void compile(std::ostream &dst, Context& context) const override
+		{
+			// Only supports INT for now
+			type operator_type = INT;
+
+			// Select registers and allocate frame pointers
+			int frame_pointer_1 = context.get_frame_pointer(); // Find current frame pointer 
+			std::cerr << "FP 1 " << frame_pointer_1 << std::endl;
+			std::string destination_register = "v0";
+			left->compile(dst, context);
+
+			context.allocate_stack(); // Add new temprorary register
+			int frame_pointer_2 = context.get_frame_pointer();
+			std::string temp_register = "t0";
+			right->compile(dst, context);
+
+			context.deallocate_stack(); // Reduce frame pointer as temproray register done
+
+			// Load registers 
+			context.load_register(dst, destination_register, frame_pointer_1);
+			context.load_register(dst, temp_register, frame_pointer_2);
+
+			// Execute
+			execute(dst, context, operator_type, destination_register, temp_register);
+
+			// Store result
+			context.store_register(dst, destination_register, frame_pointer_1);
+		}
 };
 
 /* ------------------------------------						   Arithmetic Expression					------------------------------------ */
@@ -96,11 +148,10 @@ class Add_Expression : public Operator
 	public:
 		Add_Expression (Expression* _left, Expression* _right) : Operator (_left, _right) {}
 
-		virtual void compile(std::ostream &dst, Context& context) const override
+		virtual void execute(std::ostream &dst, Context& context, type type, std::string destination_register, std::string temprorary_register) const override
 		{
-
+			dst << "\t" << "addu" << "\t" << "$" << destination_register << ",$" << destination_register << ",$" << temprorary_register << std::endl;
 		}
-		
 };
 
 class Sub_Expression : public Operator
