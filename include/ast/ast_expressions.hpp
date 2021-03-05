@@ -172,7 +172,7 @@ class Identifier : public Expression                           // complete
       if((type==FLOAT) || (type==DOUBLE)){ instr = "lwc1 "; }                     // form instruction for int/float
       else{ instr = "lw "; }
 
-      if(type==STRUCT){ total_words = context.size_in_words(value); }                 // get total size in words
+      if(type==STRUCT){ total_words = context.size_of(value); }                 // get total size in words
       else if(type==DOUBLE){ total_words = 2; }
       else{ total_words = 1; }
 
@@ -213,14 +213,14 @@ class StringLiteral : public Expression                        // might need wor
 
     virtual void mips_address(std::ostream &dst, Context &context, std::string destReg) const override
     {
-      std::string addr = context.get_string_addr(value);
+      std::string addr = context.get_string_label(value);
       dst << "lui " << destReg << ",%hi(" << addr << ")" << std::endl;
       dst << "addiu " << destReg << "," << destReg << ",%lo(" << addr << ")" << std::endl;
     }
 
 		virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const
 		{
-      std::string addr = context.get_string_addr(value);
+      std::string addr = context.get_string_label(value);
       dst << "lui " << destReg << ",%hi(" << addr << ")" << std::endl;
       dst << "addiu " << destReg << "," << destReg << ",%lo(" << addr << ")" << std::endl;
 		}
@@ -258,7 +258,7 @@ class ArrayPostfixExpression : public Expression               // complete
 
     virtual void mips_address(std::ostream &dst, Context &context, std::string destReg) const override
     {
-      int total_words = context.size_in_words_pointed(postfix_expr->get_id());
+      int total_words = context.size_of_pointed(postfix_expr->get_id());
       std::string freeReg = context.alloc_reg(INT);
 
       postfix_expr->print_mips(dst, context, destReg);
@@ -274,8 +274,8 @@ class ArrayPostfixExpression : public Expression               // complete
 
     virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const override
     {
-      ExpressionEnum array_type = context.pointed_type(postfix_expr->get_id());
-      int total_words = context.size_in_words_pointed(postfix_expr->get_id());
+      ExpressionEnum array_type = context.get_type_pointed(postfix_expr->get_id());
+      int total_words = context.size_of_pointed(postfix_expr->get_id());
       std::string instr;
 
       std::string freeReg = context.alloc_reg(INT);
@@ -415,8 +415,8 @@ class PostfixExpression : public Expression                    // complete
     {
       if((type==DOT) || (type==ARROW)){
         std::string addr = context.member_to_addr(postfix_expr->get_id(),value);        // address of member relative to struct
-        ExpressionEnum member_type = context.member_type(postfix_expr->get_id(),value);    // type of member
-        int total_words = context.member_size_in_words(postfix_expr->get_id(),value);       // size of member
+        ExpressionEnum member_type = context.get_type_member(postfix_expr->get_id(),value);    // type of member
+        int total_words = context.size_of_member(postfix_expr->get_id(),value);       // size of member
         std::string instr, freeReg;
         if((member_type==FLOAT) || (member_type==DOUBLE)){ instr = "lwc1 " }
         else{ instr = "lw "; }
@@ -506,7 +506,7 @@ class UnaryExpression : public Expression                      // complete
       }else if(type==REFERENCE){
         expr->mips_address(dst, context, destReg);
       }else if(type==DEREFERENCE){
-        int total_words = context.size_in_words_pointed(expr->get_id());
+        int total_words = context.size_of_pointed(expr->get_id());
         ExpressionEnum pointed_type = context.get_type_pointed(expr->get_id());
         std::string freeReg, instr;
         if(total_words>1){ freeReg = context.alloc_reg(INT); }
@@ -889,7 +889,7 @@ class AssignmentExpression : public Expression                 // should work fo
 
       if(type==ASSIGN){
         freeReg = context.alloc_reg(INT);
-        total_words = context.size_in_words(lvalue->get_id());
+        total_words = context.size_of(lvalue->get_id());
         lvalue->mips_address(dst, context, freeReg);
         expression->print_mips(dst, context, destReg);
         for(int i=0; i<total_words; i++){

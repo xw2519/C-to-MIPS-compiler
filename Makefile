@@ -6,12 +6,12 @@ CPPFLAGS += -I inc
 all : src/parser.tab.cpp src/parser.tab.hpp src/lexer.yy.cpp bin/c_compiler compiler
 
 src/parser.tab.cpp src/parser.tab.hpp : src/parser.y
-	@echo "Compiling Parser"
+	@echo "Compiling parser"
 	bison -v -d src/parser.y -o src/parser.tab.cpp
 
 
 src/lexer.yy.cpp : src/lexer.flex src/parser.tab.hpp
-	@echo "Compiling Flex"
+	@echo "Compiling lexer"
 	flex -o src/lexer.yy.cpp  src/lexer.flex
 
 
@@ -29,4 +29,4 @@ clean :
 	rm bin/*
 	rm src/*.tab.cpp
 	rm src/*.yy.cpp
-	rm src/*.output 
+	rm src/*.output

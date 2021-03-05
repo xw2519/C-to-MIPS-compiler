@@ -7,8 +7,8 @@ extern "C" int fileno(FILE *stream);
 #include "parser.tab.hpp"
 #include "../include/lexer_hack.hpp"
 
-std::vector<LexerContext> context;
-context.push_back(LexerContext());
+std::vector<LexerContext> lex_context;
+lex_context.push_back(LexerContext());
 
 %}
 
@@ -66,10 +66,10 @@ OCT                     [0-7]
 [)]               { return (T_RBRACKET); }
 [[]               { return (T_SQUARE_LBRACKET); }
 []]               { return (T_SQUARE_RBRACKET); }
-[{]               { context.push_back(context.back()); return (T_CURLY_LBRACKET); }
-[}]               { context.pop_back(); return (T_CURLY_RBRACKET); }
+[{]               { lex_context.push_back(lex_context.back()); return (T_CURLY_LBRACKET); }
+[}]               { lex_context.pop_back(); return (T_CURLY_RBRACKET); }
 [:]               { return (T_COLON); }
-[;]               { context.back().InTypedef=false; return (T_SEMICOLON); }
+[;]               { lex_context.back().InTypedef=false; return (T_SEMICOLON); }
 [.]               { return (T_DOT); }
 [,]               { return (T_COMMA); }
 [->]              { return (T_ARROW); }
@@ -98,7 +98,7 @@ OCT                     [0-7]
 "enum"					  { return (T_ENUM); }
 "sizeof"				  { return (T_SIZEOF); }
 "struct"				  { return (T_STRUCT); }
-"typedef"         { context.back().InTypedef=true; return (T_TYPEDEF); }
+"typedef"         { lex_context.back().InTypedef=true; return (T_TYPEDEF); }
 
 
 {A}({A}|{D})*                      { yylval.string=new std::string(yytext); return lexer_hack(yylval.string); }   // IDs and TypeIDs
@@ -128,16 +128,16 @@ void yyerror (char const *s)
 int lexer_hack(std::string text)   // implements lexer hack
 {
   int was_type = T_IDENTIFIER;
-  for (int i=0; i<context.back().typeIdentifiers.size(); i++)   // checks if text is ID or TypeID
+  for (int i=0; i<lex_context.back().typeIdentifiers.size(); i++)   // checks if text is ID or TypeID
   {
-		if(text == context.back().typeIdentifiers[i])
+		if(text == lex_context.back().typeIdentifiers[i])
     {
 			was_type = T_TYPEIDENTIFIER;
 		}
 	}
 
-  if(context.back().InTypedef && was_type==T_IDENTIFIER){
-  	context.back().typeIdentifiers.push_back(text);
+  if(lex_context.back().InTypedef && was_type==T_IDENTIFIER){
+  	lex_context.back().typeIdentifiers.push_back(text);
   }
 
   return was_type;
