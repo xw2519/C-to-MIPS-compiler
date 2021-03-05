@@ -72,14 +72,17 @@ class Direct_Assignment : public Assignment_Expression
 
 		virtual void compile(std::ostream &dst, Context& context) const override
 		{
-			type operator_type = INT;
+			type operator_type = INT; // For now
 
-			auto frame_pointer_1 = context.get_frame_pointer();
+			// Destination register set to v0 by default
+			int frame_pointer_1 = context.get_frame_pointer();
 			std::string destination_register = "v0";
 			left_value->compile(dst, context);		
 
+			// Create temprorary register to handle expression
 			context.allocate_stack();
-			int frame_pointer_2 = context.get_frame_pointer();
+
+			int frame_pointer_2 = context.get_frame_pointer(); 
 			std::string temp_register = "t0";
 			expression->compile(dst, context);
 
@@ -88,11 +91,12 @@ class Direct_Assignment : public Assignment_Expression
 			// Load registers 
 			context.load_register(dst, destination_register, frame_pointer_1);
 			context.load_register(dst, temp_register, frame_pointer_2);
-
 			context.output_load_operation(dst, operator_type, destination_register, temp_register, 0);
 
+			// Output Direct Assignment operation
 			dst << "\t" << "move" << "\t" << "$" << destination_register << ",$" << temp_register << std::endl;
 
+			// Store results
 			context.store_register(dst, destination_register, frame_pointer_1);
 		}
 };

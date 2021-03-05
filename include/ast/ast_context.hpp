@@ -122,6 +122,7 @@ struct Context
 		// Float operations not done yet
 
 		/* ------------------------------------						  Context Variable Functions				------------------------------------ */
+		
 		variable new_variable(std::string variable_name, type variable_type, declaration_type variable_declaration_type)
 		{
 			frame_pointer -= (1*8);

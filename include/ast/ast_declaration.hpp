@@ -56,8 +56,6 @@ class Variable_Declarator : public Declarator
 			type variable_type = compile_variable.get_variable_type();
 			context_scope variable_scope = compile_variable.get_variable_scope();
 			int frame_pointer_1 = compile_variable.get_variable_address();
-
-			std::cerr << "Frame " << frame_pointer_1 << std::endl;
 			
 			// Print MIPS
 			context.output_load_operation(dst, variable_type, "0", "fp", frame_pointer_1);
@@ -65,7 +63,6 @@ class Variable_Declarator : public Declarator
 
 		virtual void compile_declaration_initialisation(std::ostream &dst, Context& context, type declarator_type, Expression* expressions) const override 
 		{
-			std::cerr<<"EXECUTING 2"<<std::endl;
 			// Get necessary information
 			variable compile_variable = context.new_variable(variable_name, declarator_type, NORMAL);
 
@@ -140,7 +137,7 @@ The formatting is:
 		- Stack deallocation
 	- Closing directives
 
-Note that stack grows downward i.e. as we push items onto the stack, the address decreases. The relative value of the stack 
+Note that stack grows downward i.e. push items onto the stack, the address decreases. The relative value of the stack 
 pointer at the beginning of execution is taken as zero.
 - The stack is set to -8 but default and defined as (variable_counter*4) if variable_counter is more than 2
 
@@ -165,17 +162,20 @@ class Function_Definition : public External_Declaration // Very basic
 			context.set_LOCAL();
 			
 			/* -------------------------------- 		   Opening directives 			-------------------------------- */
+			dst << "# ------------ Opening directives ------------ #" << std::endl;
 			dst << "\t" << ".text"  << std::endl;
 			dst << "\t" << ".globl" << "\t" << ID << std::endl;
 			dst << "\t" << ".ent"   << "\t" << ID << std::endl;
 			dst << "\t" << ".type"  << "\t" << ID <<", @function" << std::endl;
-
+			dst << std::endl;
 			/* -------------------------------- 	 			Function	 			-------------------------------- */
+			dst << "# ------------ Function call ------------ #" << std::endl;
 			dst <<  ID  << ":" << std::endl;
 			dst << "\t" << ".set" << "\t" << "noreorder" << std::endl;
 			dst << "\t" << ".set" << "\t" << "nomacro" 	<< std::endl;
-			
-			// Allocate stack (TODO: Revision required)
+			dst << std::endl;
+			// Allocate basic stack size before adjustment
+			dst << "# ------------ Allocate stack frame ------------ #" << std::endl;
 			dst << "\t" << "addiu" << "\t" << "$sp,$sp,-"  << "8" << std::endl; 
 			dst << "\t" << "sw"    << "\t" << "$fp,"	   << "8" << "($sp)" <<std::endl;
 			dst << "\t" << "move"  << "\t" << "$fp,$sp"    << std::endl;
@@ -203,6 +203,7 @@ class Function_Definition : public External_Declaration // Very basic
 			}
 			
 			// Deallocate stack
+			dst << "# ------------ Deallocate stack frame ------------ #" << std::endl;
 			dst << "\t" << "move"  << "\t" << "$sp, $fp"  << std::endl; 
         	dst << "\t" << "lw"    << "\t" << "$fp," << "8" << "($sp)" << std::endl;
 			dst << "\t" << "addiu" << "\t" << "$sp, $sp," << "8" << std::endl; 
@@ -211,6 +212,7 @@ class Function_Definition : public External_Declaration // Very basic
 			dst << std::endl;
 
 			/* -------------------------------- 		    Closing directives 			-------------------------------- */
+			dst << "# ------------ Closing directives ------------ #" << std::endl;
 			dst << "\t" << ".end" << "\t" << ID << std::endl;
 			dst << "\t" << ".set" << "\t" << "macro" << std::endl;
 			dst << "\t" << ".set" << "\t" << "reorder"  << std::endl;
