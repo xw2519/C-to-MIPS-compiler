@@ -157,9 +157,16 @@ class Function_Definition : public External_Declaration // Very basic
 
 		virtual void compile(std::ostream& dst, Context& context) const override
 		{
+			/* -------------------------------- 		  Function preparation 			-------------------------------- */
 
 			context.expand_variable_scope();
 			context.set_LOCAL();
+
+			// Handle function return 
+			context.make_label("RETURN");
+
+			// Handle function arguments
+			
 			
 			/* -------------------------------- 		   Opening directives 			-------------------------------- */
 			dst << "# ------------ Opening directives ------------ #" << std::endl;
@@ -179,11 +186,20 @@ class Function_Definition : public External_Declaration // Very basic
 			dst << "\t" << "addiu" << "\t" << "$sp,$sp,-"  << "8" << std::endl; 
 			dst << "\t" << "sw"    << "\t" << "$fp,"	   << "8" << "($sp)" <<std::endl;
 			dst << "\t" << "move"  << "\t" << "$fp,$sp"    << std::endl;
-
+			dst << std::endl;
+			dst << "# ------------ Program Assembly ------------ #" << std::endl;
 			// Function parameters
-			if(parameter_list != NULL)
+			if(parameter_list != NULL) // Handles 4 argument for now
 			{
+				int argment_frame_pointer = 0;
+				std::string argument_registers[4]  = {"a0", "a1", "a2", "a3"};
 
+				for(int i = 0; i < parameter_list->size(); i++)
+				{
+					argment_frame_pointer += 8;
+		
+					context.output_load_operation(dst, INT, argument_registers[i], "fp", argment_frame_pointer);
+				}
 			}
 			
 			// Function body
@@ -202,6 +218,9 @@ class Function_Definition : public External_Declaration // Very basic
 				dst << "\t" << "nop" << "\t" << std::endl;
 			}
 			
+			dst << "\t" << context.get_function_return_label() << ":" << std::endl; 
+			dst << std::endl;
+
 			// Deallocate stack
 			dst << "# ------------ Deallocate stack frame ------------ #" << std::endl;
 			dst << "\t" << "move"  << "\t" << "$sp, $fp"  << std::endl; 

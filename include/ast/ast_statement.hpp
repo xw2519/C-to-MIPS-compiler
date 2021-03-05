@@ -10,7 +10,8 @@ class Expression_Statement : public Statement
 		Expression *expression;
 
 	public:
-		Expression_Statement ( Expression* _expression = NULL ) : expression (_expression) {}
+		Expression_Statement ( Expression* _expression = NULL ) 
+		: expression (_expression) {}
 
 		virtual void compile(std::ostream& dst, Context& context) const override
 		{
@@ -109,6 +110,32 @@ class Jump_Statement : public Statement
 	public:
 		Jump_Statement (Expression* _expression = NULL)
 		: expression(_expression) {}
+
+		virtual void compile(std::ostream& dst, Context& context) const override
+		{
+			// Check if there is an expression attached
+			if(expression != NULL)
+			{
+				// Allocate 
+				context.allocate_stack();
+				int destination_address = context.get_frame_pointer();
+
+				// Compile expression
+				expression->compile(dst, context);
+
+				// Deallocate
+				context.deallocate_stack();
+
+				// Move to return register
+				std::string destination_register = "v0";
+				context.load_register(dst, destination_register, destination_address);
+				
+				dst << "\t" << "move" << "\t" << "v0" << ",$" << destination_register << std::endl;
+
+				// Branch 
+				dst << "\t" << "b " << context.get_function_return_label() << std::endl;
+			}
+		}
 
 };
 

@@ -14,8 +14,8 @@ typedef const Expression *Expression_Ptr;
 /* ------------------------------------						   Expression Base Class					------------------------------------ */
 class Expression : public Node {};
 
+/* ------------------------------------						     Unary Expression						------------------------------------ */
 
-/* -------------------------------- Unary Expression -------------------------------- */
 
 class Unary_Expression : public Expression
 {
@@ -26,8 +26,7 @@ class Unary_Expression : public Expression
 		Unary_Expression (Expression* _expression) : expression(_expression) {}
 };
 
-
-/* -------------------------------- Post-fix Expression -------------------------------- */
+/* ------------------------------------						    Post-fix Expression						------------------------------------ */
 
 class Post_Increment_Expression : public Unary_Expression
 {
@@ -53,7 +52,7 @@ class Function_Call_Expression : public Unary_Expression
 
 };
 
-/* -------------------------------- Assignment Expressions -------------------------------- */
+/* ------------------------------------						  Assignment Expressions					------------------------------------ */
 
 class Assignment_Expression : public Expression // Base class
 {
@@ -184,9 +183,7 @@ class Divide_Expression : public Operator
 
 };
 
-
-
-/* -------------------------------- Relational Binary Expressions -------------------------------- */
+/* ------------------------------------					   Relational Operator Expressions				------------------------------------ */
 
 class Less_Than_Expression : public Operator
 {

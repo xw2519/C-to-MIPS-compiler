@@ -35,11 +35,14 @@ $24	- $25				Temporary registers
 
 */
 
-/* ------------------------------------ 			  				Typedef variables		 					------------------------------------ */
+/* ------------------------------------ 			  					Typedef variables		 				------------------------------------ */
 
 typedef std::map<std::string, variable*> type_mapping;
 
-/* ------------------------------------								Context Functions							------------------------------------ */
+/* ------------------------------------ 			  				    Extern definitions		 				------------------------------------ */
+
+
+/* ------------------------------------									Context Functions						------------------------------------ */
 struct Context
 {
 	private:
@@ -55,7 +58,21 @@ struct Context
 		
 		context_scope scope_tracker = GLOBAL; // Set to global by default 
 
+		// Jump definitions 
+		int label_counter;
+		std::string function_return_label; 
+
 	public:
+		/* ------------------------------------						    Return Functions						------------------------------------ */
+		
+		std::string get_function_return_label() { return function_return_label; }
+
+		void make_label(std::string return_label)
+		{
+			label_counter++;
+			function_return_label = return_label + "_" + std::to_string(label_counter);
+		}
+
 		/* ------------------------------------						     Scope Functions						------------------------------------ */
 
 		void set_LOCAL()  { scope_tracker = LOCAL; }
@@ -80,7 +97,7 @@ struct Context
 			context_scope_stack_tracker.pop();
 		}
 
-		/* ------------------------------------						    Stack frame Functions					------------------------------------ */
+		/* ------------------------------------						   Stack frame Functions					------------------------------------ */
 
 		void allocate_stack()
 		{
@@ -121,7 +138,7 @@ struct Context
 
 		// Float operations not done yet
 
-		/* ------------------------------------						  Context Variable Functions				------------------------------------ */
+		/* ------------------------------------						  	  Variable Functions					------------------------------------ */
 		
 		variable new_variable(std::string variable_name, type variable_type, declaration_type variable_declaration_type)
 		{
@@ -141,11 +158,21 @@ struct Context
 			}
 		}
 
+		/* ------------------------------------						  	  Argument Functions					------------------------------------ */
+
+		void make_new_argument(std::string argument_name, type argument_type, declaration_type argument_declaration, int argument_address)
+		{
+			(*context_tracker)[argument_name] = new variable(argument_address, LOCAL, argument_declaration, argument_type);
+		}
+
+
+
+
     /* ------------------------------------				  Functions for code generation				  ------------------------------------ */
 
     //std::string get_float_label(double value)                                   // get label of  ".word <float value> directive"
     //std::string get_string_label(std::String value)                             // get label of  ".ascii <string literal/000> directive"
-    //std::string make_label()                                                    // generate unique label and return as string
+    //std::string make_label()                                                    // generate unique label and return as string (Implemented)
 
     //std::string next_reg(std::string someReg)                                   // return name of next register
     //std::string alloc_reg(ExpressionEnum type, int amount=1)                    // return name of free register, mark it and following amount as occupied
