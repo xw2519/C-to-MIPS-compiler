@@ -184,10 +184,10 @@ pointer : T_MULTIPLY                                                            
         | T_MULTIPLY pointer                                                                       { $$ = new Pointer($2); }
 
 /* Statements */
-compound_statement : T_CURLY_LBRACKET T_CURLY_RBRACKET                                             { $$ = new Statement(COMPOUND); }
-                   | T_CURLY_LBRACKET statement_list T_CURLY_RBRACKET                              { $$ = new Statement(COMPOUND, vector<Declaration*>*, $2); }
-                   | T_CURLY_LBRACKET declaration_list T_CURLY_RBRACKET                            { $$ = new Statement(COMPOUND, $2, vector<Statement*>*); }
-                   | T_CURLY_LBRACKET declaration_list statement_list T_CURLY_RBRACKET             { $$ = new Statement(COMPOUND, $2, $3); }
+compound_statement : T_CURLY_LBRACKET T_CURLY_RBRACKET                                             { $$ = new CompoundStatement(); }
+                   | T_CURLY_LBRACKET statement_list T_CURLY_RBRACKET                              { $$ = new CompoundStatement($2); }
+                   | T_CURLY_LBRACKET declaration_list T_CURLY_RBRACKET                            { $$ = new CompoundStatement($2); }
+                   | T_CURLY_LBRACKET declaration_list statement_list T_CURLY_RBRACKET             { $$ = new CompoundStatement($2, $3); }
 
 declaration_list : declaration                                                                     { $$ = new std::vector<Declaration*>{$1}; }
                  | declaration_list declaration                                                    { $1->push_back($2); $$ = $1; }
@@ -202,25 +202,25 @@ statement : labeled_statement                                                   
           | iteration_statement                                                                    { $$ = $1; }
           | jump_statement                                                                         { $$ = $1; }
 
-labeled_statement : T_CASE constant_expression T_COLON statement                                   { $$ = new Statement(CASE, $2, $4); }
-                  | T_DEFAULT T_COLON statement                                                    { $$ = new Statement(DEFAULT, $3); }
+labeled_statement : T_CASE constant_expression T_COLON statement                                   { $$ = new LabeledStatement(CASE, $2, $4); }
+                  | T_DEFAULT T_COLON statement                                                    { $$ = new LabeledStatement(DEFAULT, $3); }
 
-expression_statement : T_SEMICOLON                                                                 { $$ = new Statement(EXPR_STMT); }
-                     | assignment_expression T_SEMICOLON                                           { $$ = new Statement(EXPR_STMT, $1); }
+expression_statement : T_SEMICOLON                                                                 { $$ = new ExpressionStatement(); }
+                     | assignment_expression T_SEMICOLON                                           { $$ = new ExpressionStatement($1); }
 
-selection_statement : T_IF T_LBRACKET assignment_expression T_RBRACKET statement                   { $$ = new Statement(IF, $3, $5); }
-                    | T_IF T_LBRACKET assignment_expression T_RBRACKET statement T_ELSE statement  { $$ = new Statement(ELSE, $3, $5, $7); }
-                    | T_SWITCH T_LBRACKET assignment_expression T_RBRACKET statement               { $$ = new Statement(SWITCH, $3, $5); }
+selection_statement : T_IF T_LBRACKET assignment_expression T_RBRACKET statement                   { $$ = new IfStatement($3, $5); }
+                    | T_IF T_LBRACKET assignment_expression T_RBRACKET statement T_ELSE statement  { $$ = new ElseStatement($3, $5, $7); }
+                    | T_SWITCH T_LBRACKET assignment_expression T_RBRACKET statement               { $$ = new SwitchStatement($3, $5); }
 
-iteration_statement : T_WHILE T_LBRACKET assignment_expression T_RBRACKET statement                                         { $$ = new Statement(WHILE, $3, $5); }
-                    | T_DO statement T_WHILE T_LBRACKET assignment_expression T_RBRACKET T_SEMICOLON                        { $$ = new Statement(DO, $5, $2); }
-                    | T_FOR T_LBRACKET expression_statement expression_statement T_RBRACKET statement                       { $$ = new Statement(FOR, $3, $4, $6); }
-                    | T_FOR T_LBRACKET expression_statement expression_statement assignment_expression T_RBRACKET statement { $$ = new Statement(FOR, $3, $4, $5, $7); }
+iteration_statement : T_WHILE T_LBRACKET assignment_expression T_RBRACKET statement                                         { $$ = new WhileStatement(WHILE, $3, $5); }
+                    | T_DO statement T_WHILE T_LBRACKET assignment_expression T_RBRACKET T_SEMICOLON                        { $$ = new WhileStatement(DO, $5, $2); }
+                    | T_FOR T_LBRACKET expression_statement expression_statement T_RBRACKET statement                       { $$ = new ForStatement($3, $4, $6); }
+                    | T_FOR T_LBRACKET expression_statement expression_statement assignment_expression T_RBRACKET statement { $$ = new ForStatement($3, $4, $5, $7); }
 
-jump_statement : T_CONTINUE T_SEMICOLON                                                            { $$ = new Statement(CONTINUE); }
-               | T_BREAK T_SEMICOLON                                                               { $$ = new Statement(BREAK); }
-               | T_RETURN T_SEMICOLON                                                              { $$ = new Statement(RETURN); }
-               | T_RETURN assignment_expression T_SEMICOLON                                        { $$ = new Statement(RETURN, $2); }
+jump_statement : T_CONTINUE T_SEMICOLON                                                            { $$ = new JumpStatement(CONTINUE); }
+               | T_BREAK T_SEMICOLON                                                               { $$ = new JumpStatement(BREAK); }
+               | T_RETURN T_SEMICOLON                                                              { $$ = new ReturnStatement(); }
+               | T_RETURN assignment_expression T_SEMICOLON                                        { $$ = new ReturnStatement($2); }
 
 /* Root */
 ROOT : translation_unit                                                                            { root = $1; }

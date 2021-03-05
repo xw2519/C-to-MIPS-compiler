@@ -53,29 +53,10 @@ enum StatementEnum { CASE, DEFAULT, EXPRESSION, IF, ELSE, SWITCH, DO, WHILE, FOR
   std::vector<Statement*>* statement_list;
 };*/
 
-class Statement : public Node {};
-
-class ExpressionStatement : public Statement
+class Statement : public Node
 {
-	private:
-		Expression *expression;
-
-	public:
-		ExpressionStatement(Expression* _expression) : expression (_expression) {}
-
-    ~ExpressionStatement()
-    {
-      delete expression;
-    }
-
-		virtual void print_mips(std::ostream &dst, Context& context) const override
-		{
-      int total_regs = context.size_in_words(expression->get_id());
-      std::string destReg = context.alloc_reg(context.get_type(expression->get_id()), total_regs);
-      expression->print_MIPS(dst, context, destReg);
-      context.dealloc_reg(destReg, total_regs);
-		}
-
+  protected:
+    StatementEnum type;
 };
 
 class CompoundStatement : public Statement
@@ -86,7 +67,7 @@ class CompoundStatement : public Statement
 
 	public:
 		CompoundStatement(std::vector<Declaration*>* _declaration_list=NULL, std::vector<Statement*>* _statement_list=NULL)
-		: statement_list (_statement_list), declaration_list (_declaration_list) {}
+		: statement_list (_statement_list), declaration_list (_declaration_list) { type = COMPOUND; }
 
 		virtual void print_mips(std::ostream &dst, Context& context) const override
 		{
@@ -110,40 +91,159 @@ class CompoundStatement : public Statement
 		}
 };
 
-class IfStatement : public Statement
+class LabeledStatement : public Statement
+{};
+
+class ExpressionStatement : public Statement                   // complete
 {
 	private:
-		Expression* condition_expression;
-		Statement* true_statement;
+		Expression *expression;
 
 	public:
-		Condition_If_Statement (Expression* _condition_expression, Statement* _true_statement)
-		: condition_expression (_condition_expression), true_statement (_true_statement) {}
+		ExpressionStatement(Expression* _expression=NULL)
+    : expression (_expression) { type = EXPR_STMT; }
+
+    ~ExpressionStatement()
+    {
+      delete expression;
+    }
+
+    virtual bool is_null() const
+    {
+      return (expression==NULL);
+    }
+
+		virtual void print_mips(std::ostream &dst, Context& context) const override
+		{
+      int total_regs = context.size_in_words(expression->get_id());
+      std::string destReg = context.alloc_reg(context.get_type(expression->get_id()), total_regs);
+      expression->print_mips(dst, context, destReg);
+      context.dealloc_reg(destReg, total_regs);
+		}
+
+    virtual void print_mips(std::ostream &dst, Context& context, std::string destReg) const
+    {
+      expression->print_mips(dst, context, destReg);
+    }
 
 };
 
-class IfElseStatement : public Statement
+class IfStatement : public Statement                           // should handle integral types
 {
 	private:
-		Expression* condition_expression;
+		Expression* condition;
+		Statement* statement;
+
+	public:
+		IfStatement (Expression* _condition, Statement* _statement)
+		: condition (_condition), statement (_statement) { type = IF; }
+
+    ~IfStatement()
+    {
+      delete condition;
+      delete statement;
+    }
+
+    virtual void print_mips(std::ostream &dst, Context& context) const override
+    {
+      int total_regs = context.size_in_words(condition->get_id());
+      std::string destReg = context.alloc_reg(INT, total_regs);
+      std::string label = context.make_label();
+
+      condition->print_mips(dst, context, destReg);
+      dst << "beq " << destReg << ",$0," << label << std::endl;
+      dst << "nop" << std::endl;
+      statement->print_mips(dst, context);
+      dst << label << ":" << std::endl;
+
+      context.dealloc_reg(destReg, total_regs);
+    }
+};
+
+class ElseStatement : public Statement                         // should handle integral types
+{
+	private:
+		Expression* condition;
 		Statement* 	true_statement;
 		Statement* 	false_statement;
 
 	public:
-		Condition_If_Else_Statement (Expression* _condition_expression, Statement* _true_statement, Statement* _false_statement)
-		: condition_expression (_condition_expression), true_statement (_true_statement), false_statement (_false_statement) {}
+		ElseStatement (Expression* _condition, Statement* _true_statement, Statement* _false_statement)
+		: condition (_condition), true_statement (_true_statement), false_statement (_false_statement) { type = ELSE; }
+
+    ~ElseStatement()
+    {
+      delete condition;
+      delete true_statement;
+      delete false_statement;
+    }
+
+    virtual void print_mips(std::ostream &dst, Context& context) const override
+    {
+      int total_regs = context.size_in_words(condition->get_id());
+      std::string destReg = context.alloc_reg(INT, total_regs);
+      std::string true_label = context.make_label();
+      std::string false_label = context.make_label();
+
+      condition->print_mips(dst, context, destReg);
+      dst << "beq " << destReg << ",$0," << false_label << std::endl;
+      dst << "nop" << std::endl;
+      true_statement->print_mips(dst, context);
+      dst << "b " << true_label << std::endl;
+      dst << "nop" << std::endl;
+      dst << false_label << ":" << std::endl;
+      false_statement->print_mips(dst, context);
+      dst << true_label << ":" << std::endl;
+
+      context.dealloc_reg(destReg, total_regs);
+    }
 
 };
 
-class WhileStatement : public Statement
+class SwitchStatement : public Statement
+{};
+
+class WhileStatement : public Statement                        // should handle integral types
 {
 	private:
-		Expression* condition_expression;
-		Statement* true_statement;
+		Expression* condition;
+		Statement*  statement;
 
 	public:
-		While_Statement (Expression* _condition_expression, Statement* _true_statement)
-		: condition_expression(_condition_expression), true_statement(_true_statement) {}
+		WhileStatement (StatementEnum _type, Expression* _condition, Statement* _statement)
+		: type(_type), condition(_condition), statement(_statement) {}
+
+    ~WhileStatement()
+    {
+      delete condition;
+      delete statement;
+    }
+
+    virtual void print_mips(std::ostream &dst, Context& context) const override
+    {
+      int total_regs = context.size_in_words(condition->get_id());
+      std::string destReg = context.alloc_reg(INT, total_regs);
+      std::string begin_label = context.make_label();
+      if(type==WHILE){
+        std::string exit_label = context.make_label();
+
+        dst << begin_label << ":" << std::endl;
+        condition->print_mips(dst, context, destReg);
+        dst << "beq " << destReg << ",$0," << exit_label << std::endl;
+        dst << "nop" << std::endl;
+        statement->print_mips(dst, context);
+        dst << "b " << begin_label << std::endl;
+        dst << "nop" << std::endl;
+        dst << exit_label << ":" << std::endl;
+      }else{
+        dst << begin_label << ":" << std::endl;
+        statement->print_mips(dst, context);
+        condition->print_mips(dst, context, destReg);
+        dst << "bne " << destReg << ",$0," << begin_label << std::endl;
+        dst << "nop" << std::endl;
+      }
+      context.dealloc_reg(destReg, total_regs);
+    }
 
 };
 
@@ -171,5 +271,8 @@ class JumpStatement : public Statement
 		: expression(_expression) {}
 
 };
+
+class ReturnStatement : public Statement
+{};
 
 #endif
