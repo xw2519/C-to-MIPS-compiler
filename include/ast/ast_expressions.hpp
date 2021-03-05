@@ -73,11 +73,6 @@ class IntegralConstant : public Expression                     // complete
 			dst << value;
 		}
 
-    virtual void mips_address(std::ostream &dst, Context &context, std::string destReg) const override
-    {
-      dst << "li " << destReg << ",0" << std::endl;
-    }
-
 		virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const override
 		{
       dst << "li " << destReg << "," << (value&&(0x00000000FFFF0000)) << std::endl;
@@ -117,11 +112,6 @@ class FloatConstant : public Expression                        // complete
 		{
 			dst << value;
 		}
-
-    virtual void mips_address(std::ostream &dst, Context &context, std::string destReg) const override
-    {
-      dst << "li " << destReg << ",0" << std::endl;
-    }
 
     virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const override
 		{
@@ -168,7 +158,7 @@ class Identifier : public Expression                           // complete
         dst << "lui " << destReg << ",%hi(" << addr << ")" << std::endl;
         dst << "addiu " << destReg << "," << destReg << ",%lo(" << addr << ")" << std::endl;
       }else{
-        dst << "li " << destReg << "," << addr << std::endl;
+        dst << "addiu " << destReg << ",$fp," << addr << std::endl;
       }
     }
 
@@ -208,7 +198,7 @@ class Identifier : public Expression                           // complete
 		}
 };
 
-class StringLiteral : public Expression                        // complete
+class StringLiteral : public Expression                        // might need work for char arrays
 {
   protected:
 		std::string value;
@@ -273,15 +263,16 @@ class ArrayPostfixExpression : public Expression               // complete
 
     virtual void mips_address(std::ostream &dst, Context &context, std::string destReg) const override
     {
+      int total_words = context.size_in_words_pointed(postfix_expr->get_id());
       std::string freeReg = context.alloc_reg(INT);
+
       postfix_expr->print_mips(dst, context, destReg);
       assignment_expr->print_mips(dst, context, freeReg);
 
-      if(context.pointed_type(postfix_expr->get_id())==DOUBLE)
-        { dst << "sll " << freeReg << "," << freeReg << ",1" << std::endl; }
-
-      dst << "addu " << destReg << "," << destReg << "," << freeReg << std::endl;
-      dst << "sll " << destReg << "," << destReg << ",2" << std::endl;
+      dst << "sll " << freeReg << "," << freeReg << ",2" << std::endl;
+      for(int i=0; i<total_words; i++){
+        dst << "addu " << destReg << "," << destReg << "," << freeReg << std::endl;
+      }
 
       context.dealloc_reg(freeReg);
     }
@@ -566,7 +557,7 @@ class Operator : public Expression                             // complete
 
 /* -------------------------------- Arithmetic Expression -------------------------------- */
 
-class MultiplicativeExpression : public Operator               // works with integral type, NEED TO FINISH
+class MultiplicativeExpression : public Operator               // works with all but doubles, NEED TO FINISH
 {
 
 	public:
@@ -613,12 +604,14 @@ class MultiplicativeExpression : public Operator               // works with int
         if(type==MULTIPLY){ dst << "mult " << destReg << "," << freeReg << std::endl; }
         else{
           dst << "bne " << freeReg << ",$0,1f" << std::endl;
-          if(context.get_type(postfix_expr->get_id())==UNSIGNED){ dst << "div $0," << destReg << "," << freeReg << std::endl; }
-          else{ dst << "divu $0," << destReg << "," << freeReg << std::endl; }
+          if(context.get_type(postfix_expr->get_id())==UNSIGNED){ dst << "divu $0," << destReg << "," << freeReg << std::endl; }
+          else{ dst << "div $0," << destReg << "," << freeReg << std::endl; }
           dst << "break 7" << std::endl;
           dst << "mfhi " << destReg << std::endl;
-          if(type==DIVIDE){ dst << "mflo " << destReg << std::endl; }
         }
+        if((type==DIVIDE) || (type==MULTIPLY)){ dst << "mflo " << destReg << std::endl; }
+        if(context.get_type(postfix_expr->get_id())==CHAR)
+          { dst << "andi " << destReg << "," << destReg << ",0x00ff" << std::endl; }
         context.dealloc(freeReg);
       }
     }
@@ -667,7 +660,7 @@ class AdditiveExpression : public Operator                     // works with int
         else{ std::string freeReg = context.alloc_reg(INT); }
         left->print_mips(dst, context, destReg);
         right->print_mips(dst, context, freeReg);
-        dst << instr << destReg << "," << freeReg << "," << destReg << std::endl;
+        dst << instr << destReg << "," << destReg << "," << freeReg << std::endl;
         if(context.get_type(postfix_expr->get_id())==CHAR){
           dst << "move " << freeReg << ",$0" << std::endl;
           dst << "li " << freeReg << ",255" << std::endl;
@@ -717,7 +710,7 @@ class ShiftExpression : public Operator                        // complete
       left->print_mips(dst, context, destReg);
       right->print_mips(dst, context, freeReg);
 
-      dst << instr << destReg << "," << freeReg << "," << destReg << std::endl;
+      dst << instr << destReg << "," << destReg << "," << freeReg << std::endl;
       if(context.get_type(postfix_expr->get_id())==CHAR)
         { dst << "andi " << destReg << "," << destReg << ",0x00ff" << std::endl; }
       context.dealloc_reg(freeReg);
@@ -831,7 +824,7 @@ class BitwiseExpression : public Operator                      // complete
 
 /* -------------------------------- Assignment Expression -------------------------------- */
 
-class AssignmentExpression : public Expression
+class AssignmentExpression : public Expression                 // should work for ints and int operations
 {
 	protected:
 		Expression* lvalue;
@@ -864,5 +857,43 @@ class AssignmentExpression : public Expression
       left->mips_address(dst, context, destReg);
     }
     virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const override
-    {}
+    {
+      bool float_type = ((context.get_type(lvalue->get_id())==FLOAT) || (context.get_type(lvalue->get_id())==DOUBLE));
+      bool unsigned_type = (context.get_type(lvalue->get_id())==UNSIGNED);
+      std::string freeReg, instr, op;
+      int total_words;
+
+      if((context.get_type(lvalue->get_id())==FLOAT) || (context.get_type(lvalue->get_id())==DOUBLE)){ instr = "swc1 "; }
+      else{ instr = "sw "; }
+      if(type==XOR_ASSIGN){ op = "xor "; }
+      else if(type==OR_ASSIGN){ op = "or "; }
+      else if(type==AND_ASSIGN){ op = "and "; }
+      else if(type==SHIFT_LEFT_ASSIGN){ op = "sll "; }
+      else if(type==SHIFT_RIGHT_ASSIGN){ if(unsigned_type){ op = "srl "; }else{ op = "sra "; } }
+      else if(type==MOD_ASSIGN){ if(unsigned_type){ op = "divu "; }else{ op = "div "; } }
+      else if(type==ADD_ASSIGN){ if(float_type){ op = "add.s "; }else{ op = "addu "; } }
+      else if(type==SUB_ASSIGN){ if(float_type){ op = "sub.s "; }else{ op = "subu "; } }
+      else if(type==MUL_ASSIGN){ if(float_type){ op = "mul.s "; }else{ op = "mult "; } }
+      else if(type==DIV_ASSIGN){ if(float_type){ op = "div.s "; }else if(unsigned_type){ op = "divu "; }else{ op = "div "; } }
+
+      if(type==ASSIGN){
+        freeReg = context.alloc_reg(INT);
+        total_words = context.size_in_words(lvalue->get_id());
+        lvalue->mips_address(dst, context, freeReg);
+        expression->print_mips(dst, context, destReg);
+        for(int i=0; i<total_words; i++){
+          dst << instr << destReg << "," << (4*i) << "(" << freeReg << ")" << std::endl;
+          destReg == context.next_reg(destReg);
+        }
+      }else{
+        freeReg = context.alloc_reg(INT)
+        lvalue->print_mips(dst, context, destReg);
+        expression->print_mips(dst, context, freeReg);
+        dst << op << destReg << "," << destReg << "," << freeReg << std::endl;
+        lvalue->mips_address(dst, context, freeReg);
+        dst << instr << destReg << ",0(" << freeReg << ")" << std::endl;
+      }
+
+
+    }
 };
