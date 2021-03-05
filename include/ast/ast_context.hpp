@@ -30,8 +30,8 @@ $31	        $ra	        Return Address											(Not used for normal use)
 
 $4  - $7				Procedure arguments
 $8 	- $15				Temporary registers that can be overwritten by called procedures
-$16 - $23				Temporary registers but cannot be overwritten by procedures	
-$24	- $25				Temporary registers 
+$16 - $23				Temporary registers but cannot be overwritten by procedures
+$24	- $25				Temporary registers
 
 */
 
@@ -67,12 +67,12 @@ struct Context
 			context_scope_stack_tracker.push(context_tracker);
 			context_tracker = new type_mapping(*context_tracker);
 			context_scope_frame_pointer.push(frame_pointer);
-		}	
+		}
 
 		void shrink_variable_scope()
 		{
 			frame_pointer = context_scope_frame_pointer.top();
-			
+
 			delete context_tracker;
 			context_tracker = context_scope_stack_tracker.top();
 
@@ -82,14 +82,14 @@ struct Context
 
 		/* ------------------------------------						    Stack frame Functions					------------------------------------ */
 
-		void allocate_stack() 
+		void allocate_stack()
 		{
 			// Update trackers
 			register_counter++;
 			frame_pointer -= 8;
 		}
 
-		void deallocate_stack() 
+		void deallocate_stack()
 		{
 			// Only deallocate if there are registers already allocated
 			if (register_counter != 0)
@@ -104,12 +104,12 @@ struct Context
 
 		/* ------------------------------------						     Register Functions						------------------------------------ */
 
-		void load_register(std::ostream& dst, std::string register_name, int memory_location)	
+		void load_register(std::ostream& dst, std::string register_name, int memory_location)
 		{
 			dst << "\t" << "lw" << "\t" << "$" << register_name << "," << memory_location << "($fp)" << std::endl;
 		}
 
-		void store_register(std::ostream& dst, std::string register_name, int memory_location)	
+		void store_register(std::ostream& dst, std::string register_name, int memory_location)
 		{
 			dst << "\t" << "sw" << "\t" << "$" << register_name << "," << memory_location << "($fp)" << std::endl;
 		}
@@ -140,6 +140,30 @@ struct Context
 				return *((*context_tracker)[variable_name]);
 			}
 		}
+
+    /* ------------------------------------				  Functions for code generation				  ------------------------------------ */
+
+    //std::string get_float_label(double value)                                   // get label of  ".word <float value> directive"
+    //std::string get_string_label(std::String value)                             // get label of  ".ascii <string literal/000> directive"
+    //std::string make_label()                                                    // generate unique label and return as string
+
+    //std::string next_reg(std::string someReg)                                   // return name of next register
+    //std::string alloc_reg(ExpressionEnum type, int amount=1)                    // return name of free register, mark it and following amount as occupied
+    //void dealloc_reg(std::string someReg, int amount=1)                         // free register and following amount of registers
+
+    //bool check_global(std::string identifier)                                   // return true if identifier is global
+
+    //ExpressionEnum get_type(std::string identifier)                             // return type of identifier
+    //ExpressionEnum get_type_pointed(std::string identifier)                     // return type pointed to by identifier
+    //ExpressionEnum get_type_member(std::string identifier, std::string member)  // return type of member of struct
+
+    //std::string id_to_addr(std::string identifier)                              // return address, relative to $fp, of identifier
+    //std::string member_to_addr(std::string identifier, std::string member)      // return address of member, relative to beginning of struct
+
+    //int size_of_pointed(std::string identifier)                                 // return size of value pointed to by identifier, in words
+    //int size_of_member(std::string identifier, std::string member);             // return size of member, in words
+    //int size_of(std::string identifier)                                         // return size of identifier in words
+    //int size_of(Declaration* declr)                                             // return size of declaration
 
 
 };
