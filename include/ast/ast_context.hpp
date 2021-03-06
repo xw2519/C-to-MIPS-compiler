@@ -60,17 +60,23 @@ struct Context
 
 		// Jump definitions 
 		int label_counter;
-		std::string function_return_label; 
+		std::string main_function_return_label; 
 
 	public:
 		/* ------------------------------------						    Return Functions						------------------------------------ */
 		
-		std::string get_function_return_label() { return function_return_label; }
+		std::string get_function_return_label() { return main_function_return_label; }
 
-		void make_label(std::string return_label)
+		void set_main_return_label(std::string return_label)
 		{
 			label_counter++;
-			function_return_label = return_label + "_" + std::to_string(label_counter);
+			main_function_return_label = return_label + "_" + std::to_string(label_counter);
+		}
+
+		std::string make_label(std::string return_label)
+		{
+			label_counter++;
+			return return_label + "_" + std::to_string(label_counter);
 		}
 
 		/* ------------------------------------						     Scope Functions						------------------------------------ */

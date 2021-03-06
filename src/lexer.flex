@@ -70,6 +70,15 @@ IS			(u|U|l|L)*
 [=]                                 { return (T_ASSIGN); }
 [+][+]				                      { return (T_INCREMENT); }
 
+  /* Bitwise */
+[&]                                 { return (T_BITWISE_AND); }
+[|]                                 { return (T_BITWISE_OR); }
+[\^]                                { return (T_BITWISE_XOR); }
+
+  /* Logical */
+[&][&]                              { return (T_LOGICAL_AND); }
+[|][|]                              { return (T_LOGICAL_OR); }
+
 
   /* Other */
 {L}({L}|{D})*                       { yylval.string  = new std::string(yytext); return (T_IDENTIFIER); }

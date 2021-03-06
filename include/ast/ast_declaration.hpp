@@ -173,29 +173,35 @@ class Function_Definition : public External_Declaration // Very basic
 			context.set_LOCAL();
 
 			// Handle function return 
-			context.make_label("RETURN");
+			context.set_main_return_label("RETURN");
 
 			/* -------------------------------- 		   Opening directives 			-------------------------------- */
+			dst << std::endl;
 			dst << "# ------------ Opening directives ------------ #" << std::endl;
+			dst << std::endl;
+
 			dst << "\t" << ".text"  << std::endl;
 			dst << "\t" << ".globl" << "\t" << ID << std::endl;
 			dst << "\t" << ".ent"   << "\t" << ID << std::endl;
 			dst << "\t" << ".type"  << "\t" << ID <<", @function" << std::endl;
-			dst << std::endl;
-			/* -------------------------------- 	 			Function	 			-------------------------------- */
+
 			dst << std::endl;
 			dst << "# ------------ Function call ------------ #" << std::endl;
+			dst << std::endl;
+
 			dst <<  ID  << ":" << std::endl;
+
 			dst << std::endl;
 			dst << "# ------------ Allocate stack frame ------------ #" << std::endl; // Allocate basic stack size before adjustment
 			dst << std::endl;
-			dst << "\t" << "sw"    << "\t" << "$31,"	   << "-8"  << "($sp)" << "\t" << "# Set return point" << std::endl;
-			dst << "\t" << "sw"    << "\t" << "$fp,"	   << "-16" << "($sp)" << "\t" << "# Initialise frame pointer" << std::endl;
+
+			dst << "\t" << "sw"    << "\t" << "$31,"	   << "-8"  << "($sp)" << std::endl;
+			dst << "\t" << "sw"    << "\t" << "$fp,"	   << "-16" << "($sp)" << std::endl;
 			dst << "\t" << "addiu" << "\t" << "$sp,$sp,"   << "-16" << std::endl; 
 			dst << "\t" << "move"  << "\t" << "$fp,$sp"    << std::endl;
+
 			dst << std::endl;
 			dst << "# ------------ Program Assembly ------------ #" << std::endl;
-
 			dst << std::endl;
 
 			// Function parameters
@@ -225,24 +231,20 @@ class Function_Definition : public External_Declaration // Very basic
 			{
             	dst << "\t" << "move" << "\t" << "$2, $0" << std::endl; 
         	}
-			else // Empty function
-			{
-				dst << "\t" << "nop" << "\t" << std::endl;
-			}
 			
 			dst << "\t" << context.get_function_return_label() << ":" << std::endl; 
+
 			dst << std::endl;		
 			dst << "# ------------ Deallocate stack frame ------------ #" << std::endl;
 			dst << std::endl;
+
 			dst << "\t" << "move"  << "\t" << "$sp, $fp"  << std::endl; 
 			dst << "\t" << "addiu" << "\t" << "$sp, $sp," << "16" << std::endl; 
 			dst << "\t" << "lw"    << "\t" << "$fp," << "-16" << "($sp)" << std::endl;
 			dst << "\t" << "lw"    << "\t" << "$ra," << "-8" << "($sp)" << std::endl;
 			dst << "\t" << "j" 	   << "\t" << "$31"  << std::endl;
-			dst << "\t" << "nop" << "\t" << std::endl;
-			dst << std::endl;
 
-			/* -------------------------------- 		    Closing directives 			-------------------------------- */
+			dst << std::endl;
 			dst << "# ------------ Closing directives ------------ #" << std::endl;
 			dst << "\t" << ".end" << "\t" << ID << std::endl;
 

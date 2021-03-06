@@ -62,42 +62,47 @@ void yyerror(const char *);
 # define YYTOKENTYPE
   enum yytokentype
   {
-    T_ASSIGN = 258,
-    T_INCREMENT = 259,
-    T_MULTIPLY = 260,
-    T_DIVIDE = 261,
-    T_PLUS = 262,
-    T_MINUS = 263,
-    T_MODULO = 264,
-    T_LBRACKET = 265,
-    T_RBRACKET = 266,
-    T_SQUARE_LBRACKET = 267,
-    T_SQUARE_RBRACKET = 268,
-    T_CURLY_LBRACKET = 269,
-    T_CURLY_RBRACKET = 270,
-    T_COLON = 271,
-    T_SEMICOLON = 272,
-    T_COMMA = 273,
-    T_GREATER = 274,
-    T_GREATER_EQUAL = 275,
-    T_LESS = 276,
-    T_LESS_EQUAL = 277,
-    T_EQUAL = 278,
-    T_NOT_EQUAL = 279,
-    T_INT = 280,
-    T_VOID = 281,
-    T_IF = 282,
-    T_ELSE = 283,
-    T_SWITCH = 284,
-    T_WHILE = 285,
-    T_FOR = 286,
-    T_CONTINUE = 287,
-    T_BREAK = 288,
-    T_RETURN = 289,
-    T_IDENTIFIER = 290,
-    T_CONSTANT = 291,
-    INC_OP = 292,
-    T_LITERAL = 293
+    T_LOGICAL_AND = 258,
+    T_LOGICAL_OR = 259,
+    T_ASSIGN = 260,
+    T_INCREMENT = 261,
+    T_MULTIPLY = 262,
+    T_DIVIDE = 263,
+    T_PLUS = 264,
+    T_MINUS = 265,
+    T_MODULO = 266,
+    T_LBRACKET = 267,
+    T_RBRACKET = 268,
+    T_SQUARE_LBRACKET = 269,
+    T_SQUARE_RBRACKET = 270,
+    T_CURLY_LBRACKET = 271,
+    T_CURLY_RBRACKET = 272,
+    T_COLON = 273,
+    T_SEMICOLON = 274,
+    T_COMMA = 275,
+    T_GREATER = 276,
+    T_GREATER_EQUAL = 277,
+    T_LESS = 278,
+    T_LESS_EQUAL = 279,
+    T_EQUAL = 280,
+    T_NOT_EQUAL = 281,
+    T_INT = 282,
+    T_VOID = 283,
+    T_IF = 284,
+    T_ELSE = 285,
+    T_SWITCH = 286,
+    T_WHILE = 287,
+    T_FOR = 288,
+    T_CONTINUE = 289,
+    T_BREAK = 290,
+    T_RETURN = 291,
+    T_IDENTIFIER = 292,
+    T_CONSTANT = 293,
+    T_BITWISE_AND = 294,
+    T_BITWISE_OR = 295,
+    T_BITWISE_XOR = 296,
+    INC_OP = 297,
+    T_LITERAL = 298
   };
 #endif
 
@@ -120,7 +125,7 @@ union YYSTYPE
 	std::vector<Declaration*>* 	declaration_list_vector;
 	std::vector<Declarator*>* 	declarator_list_vector;
 
-#line 124 "src/parser.tab.hpp"
+#line 129 "src/parser.tab.hpp"
 
 };
 typedef union YYSTYPE YYSTYPE;

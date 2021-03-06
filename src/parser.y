@@ -35,6 +35,8 @@ void yyerror(const char *);
 
 /* ------------------------------------					Tokens					------------------------------------ */
 
+// Logical Operators
+%token T_LOGICAL_AND T_LOGICAL_OR
 // Assignment Operators
 %token T_ASSIGN T_INCREMENT 
 // Arithmetic Operators
@@ -49,6 +51,8 @@ void yyerror(const char *);
 %token T_IF T_ELSE T_SWITCH T_WHILE T_FOR T_CONTINUE T_BREAK T_RETURN
 // Rules
 %token T_IDENTIFIER T_CONSTANT 
+// Bitwise
+%token T_BITWISE_AND T_BITWISE_OR T_BITWISE_XOR
 
 %token INC_OP T_LITERAL
 
@@ -65,9 +69,16 @@ void yyerror(const char *);
 %type <declaration_list_vector> declaration_list parameter_list
 
 %type <expression_node> primary_expression postfix_expression 
+// Arthmetic expressions
 %type <expression_node> multiply_expression add_expression 
+// Bitwse expressions
+%type <expression_node> bitwise_AND_expression bitwise_XOR_expression bitwise_OR_expression
+// Logical expressions
+%type <expression_node> logical_AND_expression logical_OR_expression
+
+
 %type <expression_node> bw_shift_expression compare_expression equal_expression
-%type <expression_node> bitwise_expression logical_expression ternary_expression 
+%type <expression_node> logical_expression ternary_expression 
 %type <expression_node> assignment_expression expression 
 
 %type <initialisation_list> initialisation_list
@@ -126,7 +137,7 @@ parameter_list					:	parameter_declaration				     					{ $$ = new std::vector<D
 								|											 					{ $$ = NULL; }
 
 
-/* ------------------------------------								Expression								------------------------------------ */
+/* ------------------------------------							 Expression Base								------------------------------------ */
 
 expression 						:	assignment_expression											
 
@@ -140,6 +151,8 @@ postfix_expression				:	primary_expression												{ $$ = $1; }
 								|	primary_expression T_LBRACKET T_RBRACKET						{ $$ = new Function_Call_Expression($1) ; }
 								|	primary_expression T_LBRACKET argument_list T_RBRACKET			{ $$ = new Function_Call_Expression($1, $3); }
 
+/* ------------------------------------						   Arthimetic Expression						------------------------------------ */
+
 add_expression					: 	multiply_expression					  							{ $$ = $1; }
 								| 	add_expression T_PLUS multiply_expression						{ $$ = new Add_Expression($1, $3); }
 								| 	add_expression T_MINUS multiply_expression  					{ $$ = new Sub_Expression($1, $3); }
@@ -147,7 +160,9 @@ add_expression					: 	multiply_expression					  							{ $$ = $1; }
 multiply_expression				:	postfix_expression				 								{ $$ = $1; }
 								| 	multiply_expression T_MULTIPLY postfix_expression 				{ $$ = new Multiply_Expression($1, $3); }
 								| 	multiply_expression T_DIVIDE postfix_expression 				{ $$ = new Divide_Expression($1, $3); }
- 
+
+/* ------------------------------------					       Bitwise Shift Expression						------------------------------------ */
+
 bw_shift_expression				:	add_expression
 
 compare_expression				: 	bw_shift_expression
@@ -160,18 +175,32 @@ equal_expression				: 	compare_expression
 								|	equal_expression T_EQUAL compare_expression						{ $$ = new Equal_Expression($1, $3); }
 								|	equal_expression T_NOT_EQUAL compare_expression					{ $$ = new Not_Equal_Expression($1, $3); }
 
-bitwise_expression				: 	equal_expression 
+/* ------------------------------------						     Bitwise Expression							------------------------------------ */
 
-logical_expression				: 	bitwise_expression
+bitwise_AND_expression			: 	equal_expression 
+								| 	bitwise_AND_expression T_BITWISE_AND equal_expression			{ $$ = new Bitwise_AND_Expression($1, $3); }
 
-ternary_expression 				: 	logical_expression 
+bitwise_XOR_expression			: 	bitwise_AND_expression 
+								| 	bitwise_XOR_expression T_BITWISE_XOR bitwise_AND_expression		{ $$ = new Bitwise_XOR_Expression($1, $3); }
+
+bitwise_OR_expression			: 	bitwise_XOR_expression 
+								| 	bitwise_OR_expression T_BITWISE_OR bitwise_XOR_expression		{ $$ = new Bitwise_OR_Expression($1, $3); }
+
+/* ------------------------------------						     Logical Expression							------------------------------------ */
+
+logical_AND_expression			:	bitwise_OR_expression
+								|	logical_AND_expression T_LOGICAL_AND bitwise_OR_expression 		{ $$ = new Logical_AND_Expression($1, $3); }
+
+logical_OR_expression			: 	logical_AND_expression
+								|	logical_OR_expression T_LOGICAL_OR bitwise_XOR_expression		{ $$ = new Logical_OR_Expression($1, $3); }
+
+ternary_expression 				: 	logical_OR_expression 
 
 assignment_expression			: 	ternary_expression 
 								|	postfix_expression T_ASSIGN assignment_expression 				{ $$ = new Direct_Assignment($1, $3); }	
 
 argument_list					: 	expression 														
 								| 	argument_list T_COMMA expression 								{ $1->push_back($3); $$ = $1; }
-
 
 /* ------------------------------------								Statement								------------------------------------ */
 
