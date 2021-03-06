@@ -15,7 +15,13 @@ class Expression_Statement : public Statement
 
 		virtual void compile(std::ostream& dst, Context& context) const override
 		{
-			expression->compile(dst, context);
+			if(expression != NULL)
+			{	
+				context.allocate_stack();
+				expression->compile(dst, context);
+				context.deallocate_stack();
+			}
+
 		}
 
 };

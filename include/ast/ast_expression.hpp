@@ -12,7 +12,12 @@ typedef const Expression *Expression_Ptr;
 
 
 /* ------------------------------------						   Expression Base Class					------------------------------------ */
-class Expression : public Node {};
+class Expression : public Node 
+{
+	public:
+		// Primitive functions
+		virtual void load_variable_address(std::ostream &dst, Context& context) const {};
+};
 
 /* ------------------------------------						     Unary Expression						------------------------------------ */
 
@@ -75,14 +80,15 @@ class Direct_Assignment : public Assignment_Expression
 
 			// Destination register set to v0 by default
 			int frame_pointer_1 = context.get_frame_pointer();
+
 			std::string destination_register = "v0";
-			left_value->compile(dst, context);		
+			left_value->load_variable_address(dst, context);		
 
 			// Create temprorary register to handle expression
 			context.allocate_stack();
 
 			int frame_pointer_2 = context.get_frame_pointer(); 
-			std::string temp_register = "t0";
+			std::string temp_register = "v1";
 			expression->compile(dst, context);
 
 			context.deallocate_stack();
@@ -90,7 +96,7 @@ class Direct_Assignment : public Assignment_Expression
 			// Load registers 
 			context.load_register(dst, destination_register, frame_pointer_1);
 			context.load_register(dst, temp_register, frame_pointer_2);
-			context.output_load_operation(dst, operator_type, destination_register, temp_register, 0);
+			context.output_store_operation(dst, operator_type, temp_register, destination_register, 0);
 
 			// Output Direct Assignment operation
 			dst << "\t" << "move" << "\t" << "$" << destination_register << ",$" << temp_register << std::endl;
@@ -121,13 +127,14 @@ class Operator : public Expression
 
 			// Select registers and allocate frame pointers
 			int frame_pointer_1 = context.get_frame_pointer(); // Find current frame pointer 
-			std::cerr << "FP 1 " << frame_pointer_1 << std::endl;
+
 			std::string destination_register = "v0";
 			left->compile(dst, context);
 
 			context.allocate_stack(); // Add new temprorary register
+
 			int frame_pointer_2 = context.get_frame_pointer();
-			std::string temp_register = "t0";
+			std::string temp_register = "v1";
 			right->compile(dst, context);
 
 			context.deallocate_stack(); // Reduce frame pointer as temproray register done
@@ -204,24 +211,55 @@ class Less_Than_Expression : public Operator
 {
 	public:
 		Less_Than_Expression (Expression* _left, Expression* _right) : Operator (_left, _right) {}
+	
+		virtual void execute(std::ostream &dst, Context& context, type type, std::string destination_register, std::string temprorary_register) const override
+		{
+			// https://www.cs.tufts.edu/comp/140/lectures/Day_3/mips_summary.pdf
+
+			dst << "\t" << "slt " << "\t" << "$" << destination_register << ",$" << destination_register << ",$" << temprorary_register << std::endl;
+		}	
 };
 
 class More_Than_Expression : public Operator
 {
 	public:
 		More_Than_Expression (Expression* _left, Expression* _right) : Operator (_left, _right) {}
+
+		virtual void execute(std::ostream &dst, Context& context, type type, std::string destination_register, std::string temprorary_register) const override
+		{
+			// https://www.cs.tufts.edu/comp/140/lectures/Day_3/mips_summary.pdf
+
+			dst << "\t" << "slt " << "\t" << "$" << destination_register << ",$" << temprorary_register << ",$" << destination_register << std::endl;
+		}
 };
 
 class Less_Than_Equal_Expression : public Operator
 {
 	public:
 		Less_Than_Equal_Expression (Expression* _left, Expression* _right) : Operator (_left, _right) {}
+
+		virtual void execute(std::ostream &dst, Context& context, type type, std::string destination_register, std::string temprorary_register) const override
+		{
+			// https://www.cs.tufts.edu/comp/140/lectures/Day_3/mips_summary.pdf
+
+			dst << "\t" << "slt "  << "\t" << "$" << destination_register << ",$" << temprorary_register << ",$" << destination_register << std::endl;
+			dst << "\t" << "xori " << "\t" << "$" << destination_register << ",$" << destination_register << "," << 0x1 << std::endl;
+			dst << "\t" << "andi " << "\t" << "$" << destination_register << ",$" << destination_register << "," << 0x00ff << std::endl;
+		}	
 };
 
 class More_Than_Equal_Expression : public Operator
 {
 	public:
 		More_Than_Equal_Expression (Expression* _left, Expression* _right) : Operator (_left,_right) {}
+
+		virtual void execute(std::ostream &dst, Context& context, type type, std::string destination_register, std::string temprorary_register) const override
+		{
+			// https://www.cs.tufts.edu/comp/140/lectures/Day_3/mips_summary.pdf
+
+			dst << "\t" << "slt "  << "\t" << "$" << destination_register << ",$" << temprorary_register << ",$" << destination_register << std::endl;
+			dst << "\t" << "xori " << "\t" << "$" << destination_register << ",$" << destination_register << "," << 0x1 << std::endl;
+		}
 };
 
 class Equal_Expression : public Operator

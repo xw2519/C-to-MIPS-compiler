@@ -63,17 +63,17 @@ class Variable_Declarator : public Declarator
 			int frame_pointer_1 = compile_variable.get_variable_address();
 			
 			// Print MIPS
-			context.output_load_operation(dst, variable_type, "0", "fp", frame_pointer_1);
+			context.output_store_operation(dst, variable_type, "0", "fp", frame_pointer_1);
 		}
 
 		virtual void compile_declaration_initialisation(std::ostream &dst, Context& context, type declarator_type, Expression* expressions) const override 
 		{
-			// Get necessary information
-			variable compile_variable = context.new_variable(variable_name, declarator_type, NORMAL);
-
 			// Allocate memory
 			context.allocate_stack();
 			int frame_pointer = context.get_frame_pointer();
+
+			// Get necessary information
+			variable compile_variable = context.new_variable(variable_name, declarator_type, NORMAL);
 
 			expressions->compile(dst, context);
 
@@ -85,7 +85,7 @@ class Variable_Declarator : public Declarator
 
 class Initialisation_Variable_Declarator : public Declarator 
 {
-	// Expressions like a = 4 + 7 + b
+	// Expressions like "int a = 4 + 7 + b"
 	private: 
 		Declarator* initialisation_declarator;
 		Expression* initialisation_expressions;
@@ -195,12 +195,14 @@ class Function_Definition : public External_Declaration // Very basic
 			dst << "\t" << "move"  << "\t" << "$fp,$sp"    << std::endl;
 			dst << std::endl;
 			dst << "# ------------ Program Assembly ------------ #" << std::endl;
+
 			dst << std::endl;
 
 			// Function parameters
 			if(parameter_list != NULL) // Handles 4 argument for now
 			{
-				int argument_frame_pointer = 8;
+				int argument_frame_pointer = 8; // Set to 8 to prevent stack frame clash
+
 				std::string argument_registers[4]  = {"a0", "a1", "a2", "a3"};
 
 				for(int i = 0; i < parameter_list->size(); i++)

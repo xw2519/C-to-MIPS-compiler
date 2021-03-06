@@ -104,6 +104,8 @@ struct Context
 			// Update trackers
 			register_counter++;
 			frame_pointer -= 8;
+
+			std::cerr << "FP update" << frame_pointer << std::endl;
 		}
 
 		void deallocate_stack()
@@ -136,15 +138,19 @@ struct Context
 			dst << "\t" << "lw" << "\t" << "$" << register_1 << "," << frame_offset << "($" << register_2 << ")" << std::endl;
 		}
 
+		// Testing
+		void output_store_operation(std::ostream& dst, type load_type, std::string register_1, std::string register_2, int frame_offset)
+		{
+			dst << "\t" << "sw" << "\t" << "$" << register_1 << "," << frame_offset << "($" << register_2 << ")" << std::endl;
+		}
+
 		// Float operations not done yet
 
 		/* ------------------------------------						  	  Variable Functions					------------------------------------ */
 		
 		variable new_variable(std::string variable_name, type variable_type, declaration_type variable_declaration_type)
 		{
-			frame_pointer -= (1*8);
-
-			std::cerr << frame_pointer << std::endl;
+			frame_pointer -= (8);
 
 			(*context_tracker)[variable_name] = new variable(frame_pointer, LOCAL, variable_declaration_type, variable_type);
 
@@ -163,7 +169,7 @@ struct Context
 		/* ------------------------------------						  	  Argument Functions					------------------------------------ */
 
 		void make_new_argument(std::string argument_name, type argument_type, declaration_type argument_declaration, int argument_address)
-		{
+		{ 
 			(*context_tracker)[argument_name] = new variable(argument_address, LOCAL, argument_declaration, argument_type);
 		}
 
