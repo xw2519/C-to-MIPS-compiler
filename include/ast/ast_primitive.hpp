@@ -40,19 +40,25 @@ class Identifier : public Primitive // Local variables with constant
 
 		virtual void compile(std::ostream &dst, Context& context) const override
 		{	
+			dst << "# Access variable" << std::endl;
 			variable compile_variable = context.get_variable(variable_name);
 			int destination_address = context.get_frame_pointer();
 			std::string destination_register = "v0";
 
 			load_variable_address(dst, context);
+
+			context.load_register(dst, destination_register, destination_address);
+			context.output_load_operation(dst, INT, destination_register, destination_register, 0);
+			context.store_register(dst, destination_register, destination_address);
 		}
 
 		virtual void load_variable_address(std::ostream &dst, Context& context) const
 		{
+			dst << "# Load variable" << std::endl;
 			int destination_address = context.get_frame_pointer();
 			std::string destination_register = "v0";
 			variable compile_variable = context.get_variable(variable_name);
-
+		
 			dst<< "\t" << "addiu" << "\t" << "$" << destination_register << ",$fp," << compile_variable.get_variable_address() << std::endl;
 
 			context.store_register(dst, destination_register, destination_address);

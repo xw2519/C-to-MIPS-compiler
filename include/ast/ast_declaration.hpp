@@ -35,6 +35,8 @@ class External_Declaration : public Node {};
 class Declarator : public External_Declaration 
 {
 	public:
+		virtual std::string get_variable_name() { }
+
 		virtual void compile_declaration(std::ostream &dst, Context& context, type declarator_type) const {}
 		virtual void compile_declaration_initialisation(std::ostream &dst, Context& context, type declarator_type, Expression* expressions) const {}
 };
@@ -46,6 +48,9 @@ class Variable_Declarator : public Declarator
 
 	public:
 		Variable_Declarator(std::string _variable_name) : variable_name(_variable_name) {}
+
+		// Parameter functions
+		virtual std::string get_variable_name() { return variable_name; }
 
 		// Print MIPS
 		virtual void compile(std::ostream& dst, Context& context) const override 
@@ -107,6 +112,11 @@ class Declaration : public External_Declaration
 		Declaration(std::string _TYPE, std::vector<Declarator*>* _declaration_list = NULL) 
 		: TYPE(_TYPE), declaration_list(_declaration_list) {}
 
+		virtual std::string get_parameter()
+		{
+			return (*declaration_list)[0]->get_variable_name();
+		}
+
 		virtual void compile(std::ostream &dst, Context& context) const override
 		{
 			
@@ -165,9 +175,6 @@ class Function_Definition : public External_Declaration // Very basic
 			// Handle function return 
 			context.make_label("RETURN");
 
-			// Handle function arguments
-			
-			
 			/* -------------------------------- 		   Opening directives 			-------------------------------- */
 			dst << "# ------------ Opening directives ------------ #" << std::endl;
 			dst << "\t" << ".text"  << std::endl;
@@ -176,29 +183,32 @@ class Function_Definition : public External_Declaration // Very basic
 			dst << "\t" << ".type"  << "\t" << ID <<", @function" << std::endl;
 			dst << std::endl;
 			/* -------------------------------- 	 			Function	 			-------------------------------- */
+			dst << std::endl;
 			dst << "# ------------ Function call ------------ #" << std::endl;
 			dst <<  ID  << ":" << std::endl;
-			dst << "\t" << ".set" << "\t" << "noreorder" << std::endl;
-			dst << "\t" << ".set" << "\t" << "nomacro" 	<< std::endl;
 			dst << std::endl;
-			// Allocate basic stack size before adjustment
-			dst << "# ------------ Allocate stack frame ------------ #" << std::endl;
-			dst << "\t" << "addiu" << "\t" << "$sp,$sp,-"  << "8" << std::endl; 
-			dst << "\t" << "sw"    << "\t" << "$fp,"	   << "8" << "($sp)" <<std::endl;
+			dst << "# ------------ Allocate stack frame ------------ #" << std::endl; // Allocate basic stack size before adjustment
+			dst << std::endl;
+			dst << "\t" << "sw"    << "\t" << "$31,"	   << "-8"  << "($sp)" << "\t" << "# Set return point" << std::endl;
+			dst << "\t" << "sw"    << "\t" << "$fp,"	   << "-16" << "($sp)" << "\t" << "# Initialise frame pointer" << std::endl;
+			dst << "\t" << "addiu" << "\t" << "$sp,$sp,"   << "-16" << std::endl; 
 			dst << "\t" << "move"  << "\t" << "$fp,$sp"    << std::endl;
 			dst << std::endl;
 			dst << "# ------------ Program Assembly ------------ #" << std::endl;
+			dst << std::endl;
+
 			// Function parameters
 			if(parameter_list != NULL) // Handles 4 argument for now
 			{
-				int argment_frame_pointer = 0;
+				int argument_frame_pointer = 8;
 				std::string argument_registers[4]  = {"a0", "a1", "a2", "a3"};
 
 				for(int i = 0; i < parameter_list->size(); i++)
 				{
-					argment_frame_pointer += 8;
-		
-					context.output_load_operation(dst, INT, argument_registers[i], "fp", argment_frame_pointer);
+					argument_frame_pointer += 8;
+
+					context.store_register(dst, argument_registers[i], argument_frame_pointer);
+					context.make_new_argument((*parameter_list)[i]->get_parameter(), INT, NORMAL, argument_frame_pointer);
 				}
 			}
 			
@@ -219,23 +229,20 @@ class Function_Definition : public External_Declaration // Very basic
 			}
 			
 			dst << "\t" << context.get_function_return_label() << ":" << std::endl; 
-			dst << std::endl;
-
-			// Deallocate stack
+			dst << std::endl;		
 			dst << "# ------------ Deallocate stack frame ------------ #" << std::endl;
+			dst << std::endl;
 			dst << "\t" << "move"  << "\t" << "$sp, $fp"  << std::endl; 
-        	dst << "\t" << "lw"    << "\t" << "$fp," << "8" << "($sp)" << std::endl;
-			dst << "\t" << "addiu" << "\t" << "$sp, $sp," << "8" << std::endl; 
-			dst << "\t" << "j" 	   << "\t" << "$ra"  << std::endl;
+			dst << "\t" << "addiu" << "\t" << "$sp, $sp," << "16" << std::endl; 
+			dst << "\t" << "lw"    << "\t" << "$fp," << "-16" << "($sp)" << std::endl;
+			dst << "\t" << "lw"    << "\t" << "$ra," << "-8" << "($sp)" << std::endl;
+			dst << "\t" << "j" 	   << "\t" << "$31"  << std::endl;
 			dst << "\t" << "nop" << "\t" << std::endl;
 			dst << std::endl;
 
 			/* -------------------------------- 		    Closing directives 			-------------------------------- */
 			dst << "# ------------ Closing directives ------------ #" << std::endl;
 			dst << "\t" << ".end" << "\t" << ID << std::endl;
-			dst << "\t" << ".set" << "\t" << "macro" << std::endl;
-			dst << "\t" << ".set" << "\t" << "reorder"  << std::endl;
-
 
 			context.shrink_variable_scope();
 			context.set_GLOBAL();

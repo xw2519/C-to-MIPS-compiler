@@ -116,6 +116,7 @@ class Jump_Statement : public Statement
 			// Check if there is an expression attached
 			if(expression != NULL)
 			{
+				dst << "# Return" << std::endl;
 				// Allocate 
 				context.allocate_stack();
 				int destination_address = context.get_frame_pointer();
@@ -130,7 +131,7 @@ class Jump_Statement : public Statement
 				std::string destination_register = "v0";
 				context.load_register(dst, destination_register, destination_address);
 				
-				dst << "\t" << "move" << "\t" << "v0" << ",$" << destination_register << std::endl;
+				dst << "\t" << "move" << "\t" << "$v0" << ",$" << destination_register << std::endl;
 
 				// Branch 
 				dst << "\t" << "b " << context.get_function_return_label() << std::endl;

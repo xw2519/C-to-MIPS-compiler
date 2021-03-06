@@ -6,53 +6,37 @@ bin/compiler compiler_tests/functions/call_constant_external.c \
 
 echo "========================================="
 echo " Cleaning the temporaries and outputs"
-make clean
 echo "========================================="
+make clean
 
 echo "========================================="
 echo " Compiling"
-make all
 echo "========================================="
+make all
 
+COMPILER=bin/c_compiler
 
 input_dir="compiler_tests/basic/function_empty"
-working="output/basic"
+output_dir="temp/"
+mkdir -p ${output_dir}
 
-mkdir -p ${working}
-rm ${working}/*
+# Compile test function with compiler under test 
+$COMPILER < compiler_tests/local_var/identity.c > add_driver.s 
 
-for j in ${input_dir}/* ; do
+# Compile driver with normal GCC
+mips-linux-gnu-gcc -mfp32 -o add_driver.o -c add_driver.s
 
-    test_group=$j;
-    if [ -z "$(ls -A ${test_group})" ]; then
-        echo "NO TESTS FOR [$(basename $test_group)]"
-    else
-        echo "TESTING [$(basename $test_group)] :"
-        for i in ${test_group}/*.driver.c ; do
+# Link driver object and assembly into executable
+mips-linux-gnu-gcc -mfp32 -static -o EXEC add_driver.o compiler_tests/local_var/identity_driver.c
 
-            base=$(echo $i | sed -E -e "s|${test_group}/([^.]+)[.]driver[.]c|\1|g");
+# Run the actual executable
+qemu-mips EXEC
 
-         	# Compile the driver to .o
-            mips-linux-gnu-gcc -march=mips1 -mfp32  -S $i -o $working/$base.driver.s
+ret=$?
+if [[ $ret -ne 0 ]]; then
+    echo "FAILED! Testcase returned $ret, but expected 0."
 
-            if [[ ${have_compiler} -eq 1 ]] ; then
-                # Compile to .c to .s
-                $compiler --compile ${test_group}/$base.c -o ${working}/$base-slave.s
-                
-                # Link driver and slave
-                mips-linux-gnu-gcc -std=c89 -march=mips1 -mfp32 --static -O0 ${working}/$base-slave.s $working/$base.driver.s -o $working/$base-test
-                
-                # Run driver
-                qemu-mips $working/$base-test
-                TEST_OUT=$?    
-            fi
+else
+    echo "PASSED!"
 
-            if [[ $TEST_OUT -ne 0 ]] ; then
-                echo "$base, Fail, $TEST_OUT"
-            else
-                echo "$base, Pass"
-            fi
-        done
-    fi
-
-done
+fi

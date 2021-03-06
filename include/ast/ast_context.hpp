@@ -133,7 +133,7 @@ struct Context
 
 		void output_load_operation(std::ostream& dst, type load_type, std::string register_1, std::string register_2, int frame_offset)
 		{
-			dst << "\t" << "sw" << "\t" << "$" << register_1 << "," << frame_offset << "($" << register_2 << ")" << std::endl;
+			dst << "\t" << "lw" << "\t" << "$" << register_1 << "," << frame_offset << "($" << register_2 << ")" << std::endl;
 		}
 
 		// Float operations not done yet
@@ -144,6 +144,8 @@ struct Context
 		{
 			frame_pointer -= (1*8);
 
+			std::cerr << frame_pointer << std::endl;
+
 			(*context_tracker)[variable_name] = new variable(frame_pointer, LOCAL, variable_declaration_type, variable_type);
 
 			return *((*context_tracker)[variable_name]);
@@ -151,7 +153,7 @@ struct Context
 
 		variable get_variable(std::string variable_name)
 		{
-			// Return number of occurrences of a variable
+			// Return variable
 			if((*context_tracker).count(variable_name))
 			{
 				return *((*context_tracker)[variable_name]);
