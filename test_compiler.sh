@@ -21,13 +21,13 @@ output_dir="temp/"
 mkdir -p ${output_dir}
 
 # Compile test function with compiler under test 
-$COMPILER < compiler_tests/local_var/identity.c > add_driver.s 
+$COMPILER < compiler_tests/integer/mul.c > add_driver.s 
 
 # Compile driver with normal GCC
 mips-linux-gnu-gcc -mfp32 -o add_driver.o -c add_driver.s
 
 # Link driver object and assembly into executable
-mips-linux-gnu-gcc -mfp32 -static -o EXEC add_driver.o compiler_tests/local_var/identity_driver.c
+mips-linux-gnu-gcc -mfp32 -static -o EXEC add_driver.o compiler_tests/integer/mul_driver.c
 
 # Run the actual executable
 qemu-mips EXEC

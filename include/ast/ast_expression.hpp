@@ -162,10 +162,10 @@ class Sub_Expression : public Operator
 	public:
 		Sub_Expression (Expression* _left, Expression* _right) : Operator (_left, _right) {}
 
-		virtual void compile(std::ostream &dst, Context& context) const override
+		virtual void execute(std::ostream &dst, Context& context, type type, std::string destination_register, std::string temprorary_register) const override
 		{
-
-		}
+			dst << "\t" << "subu" << "\t" << "$" << destination_register << ",$" << destination_register << ",$" << temprorary_register << std::endl;
+		}	
 };
 
 class Multiply_Expression : public Operator
@@ -173,6 +173,13 @@ class Multiply_Expression : public Operator
 	public:
 		Multiply_Expression (Expression* _left, Expression* _right) : Operator (_left,_right) {}
 
+		virtual void execute(std::ostream &dst, Context& context, type type, std::string destination_register, std::string temprorary_register) const override
+		{
+			// https://stackoverflow.com/questions/16050338/mips-integer-multiplication-and-division
+
+			dst << "\t" << "multu" << "\t" << "$" << destination_register << ",$" << temprorary_register << std::endl;
+			dst << "\t" << "mflo" << "\t" << "$" << destination_register << std::endl;
+		}	
 
 };
 
@@ -181,6 +188,14 @@ class Divide_Expression : public Operator
 	public:
 		Divide_Expression (Expression* _left, Expression* _right) : Operator (_left,_right) {}
 
+		virtual void execute(std::ostream &dst, Context& context, type type, std::string destination_register, std::string temprorary_register) const override
+		{
+			// https://stackoverflow.com/questions/16050338/mips-integer-multiplication-and-division
+
+			dst << "\t" << "divu" << "\t" << "$" << destination_register << ",$" << destination_register << ",$" << temprorary_register << std::endl;
+			dst << "\t" << "mfhi" << "\t" << "$" << destination_register << std::endl;
+			dst << "\t" << "mflo" << "\t" << "$" << destination_register << std::endl;
+		}	
 };
 
 /* ------------------------------------					   Relational Operator Expressions				------------------------------------ */
