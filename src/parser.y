@@ -247,8 +247,8 @@ type_specifier : T_CHAR                                                         
                | T_FLOAT                                                                           { $$ = new PrimitiveType(T_FLOAT); }
                | T_DOUBLE                                                                          { $$ = new PrimitiveType(T_DOUBLE); }
                | T_UNSIGNED                                                                        { $$ = new PrimitiveType(T_UNSIGNED); }
-               | T_TYPEIDENTIFIER                                                                  { $$ = new TypeIDType($1); }
-               | struct_specifier                                                                  { $$ = new StructType(*$1); }
+               | T_TYPEIDENTIFIER                                                                  { $$ = new TypeIDType(*$1); }
+               | struct_specifier                                                                  { $$ = new StructType($1); }
                | enum_specifier                                                                    { $$ = new EnumType($1); }
 
 init_declarator : declarator                                                                       { $$ = InitDeclarator($1); }
