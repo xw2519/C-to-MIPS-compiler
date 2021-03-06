@@ -55,10 +55,10 @@ declaration : declaration_specifiers T_SEMICOLON                                
 
 declaration_specifiers : T_TYPEDEF                                                                 { /* $$ = new DeclarationSpecifiers(); */ }
                        | T_TYPEDEF declaration_specifiers                                          { $$ = new TypedefDeclaration($2); }
-                       | type_specifier                                                            { $$ = $1; }
-                       | type_specifier declaration_specifiers                                     { $$ = new PrimitiveType($1, $2); }
+                       | type_specifier                                                            { $$ = new std::vector<PrimitiveType*>{$1}; }
+                       | type_specifier declaration_specifiers                                     { $2->push_back($1); $$ = $2; }
 
-init_declarator_list : init_declarator                                                             { $$ = new std::vector<init_declarator*>{$1}; }
+init_declarator_list : init_declarator                                                             { $$ = new std::vector<InitDeclarator*>{$1}; }
                      | init_declarator_list T_COMMA init_declarator                                { $1->push_back($3); $$ = $1; }
 
 type_specifier : T_CHAR                                                                            { $$ = new PrimitiveType(D_CHAR); }
@@ -106,7 +106,7 @@ parameter_list : parameter_declaration                                          
 /* Structs */
 struct_specifier : T_STRUCT T_IDENTIFIER T_CURLY_LBRACKET struct_declaration_list T_CURLY_RBRACKET { $$ = new StructSpecifier(*$2, $4); }
                  | T_STRUCT T_CURLY_LBRACKET struct_declaration_list T_CURLY_RBRACKET              { $$ = new StructSpecifier($3); }
-               | T_STRUCT T_IDENTIFIER                                                             { $$ = new Identifier(*$2); }
+               | T_STRUCT T_IDENTIFIER                                                             { $$ = new StructSpecifier(*$2); }
 
 struct_declaration_list : struct_declaration                                                       { $$ = new std::vector<StructDeclaration*>{$1}; }
                         | struct_declaration_list struct_declaration                               { $1->push_back($2); $$ = $1; }
