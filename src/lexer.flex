@@ -29,37 +29,37 @@ OCT                     [0-7]
 [~]               { return (T_BITWISE_NOT); }
 [&]               { return (T_BITWISE_AND); }
 [|]               { return (T_BITWISE_OR); }
-[\^]              { return (T_BITWISE_XOR); }
-[<<]              { return (T_BITWISE_SHIFT_LEFT); }
-[>>]              { return (T_BITWISE_SHIFT_RIGHT); }
+"\^"              { return (T_BITWISE_XOR); }
+"<<"              { return (T_BITWISE_SHIFT_LEFT); }
+">>"              { return (T_BITWISE_SHIFT_RIGHT); }
 
   /* Logical Operators */
 [!]               { return (T_LOGICAL_NOT); }
-[&&]              { return (T_LOGICAL_AND); }
-[||]              { return (T_LOGICAL_OR); }
+"&&"              { return (T_LOGICAL_AND); }
+"||"              { return (T_LOGICAL_OR); }
 
   /* Comparison */
-[==]              { return (T_EQUAL); }
-[!=]              { return (T_NOT_EQUAL); }
+"=="              { return (T_EQUAL); }
+"!="              { return (T_NOT_EQUAL); }
 [>]               { return (T_GREATER); }
 [<]               { return (T_LESS); }
-[<=]              { return (T_LESS_EQUAL); }
-[>=]              { return (T_GREATER_EQUAL); }
+"<="              { return (T_LESS_EQUAL); }
+">="              { return (T_GREATER_EQUAL); }
 
   /* Assignment */
 [=]               { return (T_ASSIGN); }
-[+=]              { return (T_ADD_ASSIGN); }
-[-=]              { return (T_SUB_ASSIGN); }
-[*=]              { return (T_MUL_ASSIGN); }
-[/=]              { return (T_DIV_ASSIGN); }
-[%=]              { return (T_MOD_ASSIGN); }
-[&=]              { return (T_AND_ASSIGN); }
-[|=]              { return (T_OR_ASSIGN); }
-[^=]              { return (T_XOR_ASSIGN); }
-[<<=]             { return (T_SHIFT_LEFT_ASSIGN); }
-[>>=]             { return (T_SHIFT_RIGHT_ASSIGN); }
-[++]              { return (T_INCREMENT); }
-[--]              { return (T_DECREMENT); }
+"+="              { return (T_ADD_ASSIGN); }
+"-="              { return (T_SUB_ASSIGN); }
+"*="              { return (T_MUL_ASSIGN); }
+"/="              { return (T_DIV_ASSIGN); }
+"%="              { return (T_MOD_ASSIGN); }
+"&="              { return (T_AND_ASSIGN); }
+"|="              { return (T_OR_ASSIGN); }
+"^="              { return (T_XOR_ASSIGN); }
+"<<="             { return (T_SHIFT_LEFT_ASSIGN); }
+">>="             { return (T_SHIFT_RIGHT_ASSIGN); }
+"++"              { return (T_INCREMENT); }
+"--"              { return (T_DECREMENT); }
 
   /* Characters */
 [(]               { return (T_LBRACKET); }
@@ -72,7 +72,7 @@ OCT                     [0-7]
 [;]               { lex_context.back().InTypedef=false; return (T_SEMICOLON); }
 [.]               { return (T_DOT); }
 [,]               { return (T_COMMA); }
-[->]              { return (T_ARROW); }
+"->"              { return (T_ARROW); }
 
   /* Types */
 "int"					    { return (T_INT); }

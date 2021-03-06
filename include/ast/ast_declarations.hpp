@@ -2,7 +2,7 @@
 #define DECLARATIONS
 
 #include "ast_node.hpp"
-#include "ast_expression.hpp"
+#include "ast_expressions.hpp"
 
 enum DeclarationEnum { D_CHAR, D_UCHAR, D_INT, D_FLOAT, D_DOUBLE, D_UNSIGNED };
 

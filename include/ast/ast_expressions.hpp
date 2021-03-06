@@ -789,7 +789,7 @@ class RelationalExpression : public Operator                   // works with int
     }
 };
 
-class BitwiseExpression : public Operator                      // complete
+class BitwiseExpression : public Operator                      // VERY WRONG, LOGICAL AND OP AND OR OP, NOT BITWISE
 {
 
 	public:
@@ -909,3 +909,5 @@ class AssignmentExpression : public Expression                 // should work fo
 
     }
 };
+
+#endif

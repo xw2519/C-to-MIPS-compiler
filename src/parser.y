@@ -15,6 +15,18 @@
   std::string *string;
 }
 
+%type <node> ROOT
+primary_expression postfix_expression unary_expression multiplicative_expression additive_expression shift_expression relational_expression
+equality_expression and_expression exclusive_or_expression inclusive_or_expression logical_and_expression
+assignment_expression constant_expression declaration declaration_specifiers init_declarator type_specifier
+struct_specifier struct_declaration struct_declarator enum_specifier enumerator declarator direct_declarator pointer
+ identifier_list  initializer statement labeled_statement compound_statement
+expression_statement selection_statement iteration_statement jump_statement external_declaration function_definition
+// type_name abstract_declarator direct_abstract_declarator parameter_declaration
+%type <list> translation_unit init_declarator_list struct_declaration_list specifier_qualifier_list struct_declarator_list enumerator_list
+initializer_list declaration_list argument_expression_list statement_list
+//parameter_list
+
 // Assignment Operators
 %token T_ASSIGN T_ADD_ASSIGN T_SUB_ASSIGN T_MUL_ASSIGN T_DIV_ASSIGN T_MOD_ASSIGN T_INCREMENT T_DECREMENT
 %token T_AND_ASSIGN T_OR_ASSIGN T_XOR_ASSIGN T_SHIFT_LEFT_ASSIGN T_SHIFT_RIGHT_ASSIGN
@@ -32,11 +44,12 @@
 // Types Operators
 %token T_CHAR T_INT T_FLOAT T_DOUBLE T_UNSIGNED
 // Structures Operators
-%token T_SWITCH T_WHILE T_FOR T_IF T_ELSE T_CONTINUE T_BREAK T_RETURN
+%token T_SWITCH T_WHILE T_DO T_FOR T_IF T_ELSE T_CONTINUE T_BREAK T_RETURN T_CASE T_DEFAULT
 // Keywords Operators
 %token T_TYPEDEF T_STRUCT T_ENUM T_SIZEOF
 // Rules
-%token T_IDENTIFIER T_CONSTANT T_STRING_LITERAL
+%token T_IDENTIFIER T_TYPEIDENTIFIER T_CONSTANT T_FLOAT_CONSTANT T_STRING_LITERAL
+%type <string> T_IDENTIFIER T_TYPEIDENTIFIER T_CONSTANT T_FLOAT_CONSTANT T_STRING_LITERAL
 
 %start ROOT
 
@@ -92,17 +105,18 @@ direct_declarator : T_IDENTIFIER                                                
                   | T_LBRACKET declarator T_RBRACKET                                               { $$ = $2; }
                   | direct_declarator T_SQUARE_LBRACKET constant_expression T_SQUARE_RBRACKET      { $$ = ArrayDeclarator($1, $3); }
                   | direct_declarator T_SQUARE_LBRACKET T_SQUARE_RBRACKET                          { $$ = ArrayDeclarator($1); }
-                  | direct_declarator T_LBRACKET parameter_list T_RBRACKET                         { $$ = FunctionDeclarator($1, $3); }
+
                   | direct_declarator T_LBRACKET identifier_list T_RBRACKET                        { $$ = FunctionDeclarator($1, $3); }
                   | direct_declarator T_LBRACKET T_RBRACKET                                        { $$ = FunctionDeclarator($1); }
-
+/*
+                  | direct_declarator T_LBRACKET parameter_list T_RBRACKET                         { $$ = FunctionDeclarator($1, $3); }
+*/
 identifier_list : T_IDENTIFIER                                                                     { $$ = new vector<Identifier*>{new Identifier(*$1)}; }
                 | identifier_list T_COMMA T_IDENTIFIER                                             { $1->push_back(new Identifier(*$3)); $$ = $1; }
-
+/*
 parameter_list : parameter_declaration                                                             { $$ = new std::vector<ParameterDeclaration*>{$1}; }
                | parameter_list T_COMMA parameter_declaration                                      { $1->push_back($3); $$ = $1; }
-
-
+*/
 /* Structs */
 struct_specifier : T_STRUCT T_IDENTIFIER T_CURLY_LBRACKET struct_declaration_list T_CURLY_RBRACKET { $$ = new StructSpecifier(*$2, $4); }
                  | T_STRUCT T_CURLY_LBRACKET struct_declaration_list T_CURLY_RBRACKET              { $$ = new StructSpecifier($3); }
@@ -227,8 +241,9 @@ unary_expression : postfix_expression                                           
                 | T_BITWISE_NOT unary_expression                                                   { $$ = new UnaryExpression(BITWISE_NOT, $2); }
                 | T_LOGICAL_NOT unary_expression                                                   { $$ = new UnaryExpression(LOGICAL_NOT, $2); }
                 | T_SIZEOF unary_expression                                                        { $$ = new UnaryExpression(SIZEOF, $2); }
+/*
                 | T_SIZEOF T_LBRACKET type_name T_RBRACKET                                         { $$ = new UnaryExpression(SIZEOF, $3); }
-
+*/
 multiplicative_expression : unary_expression                                                       { $$ = $1; }
                          | multiplicative_expression T_MULTIPLY unary_expression                   { $$ = new MultiplicativeExpression(MULTIPLY, $1, $3); }
                          | multiplicative_expression T_DIVIDE unary_expression                     { $$ = new MultiplicativeExpression(DIVIDE, $1, $3); }
@@ -262,10 +277,10 @@ inclusive_or_expression : exclusive_or_expression                               
                        | inclusive_or_expression T_BITWISE_OR exclusive_or_expression              { $$ = new BitwiseExpression(BITWISE_OR, $1, $3); }
 
 logical_and_expression : inclusive_or_expression                                                   { $$ = $1; }
-                      | logical_and_expression T_BITWISE_AND inclusive_or_expression               { $$ = new BitwiseExpression(BITWISE_AND, $1, $3); }
+                      | logical_and_expression T_LOGICAL_AND inclusive_or_expression               { $$ = new BitwiseExpression(BITWISE_AND, $1, $3); }
 
 constant_expression : logical_and_expression                                                       { $$ = $1; }
-                   | constant_expression T_BITWISE_OR logical_and_expression                       { $$ = new BitwiseExpression(BITWISE_OR, $1, $3); }
+                   | constant_expression T_LOGICAL_OR logical_and_expression                       { $$ = new BitwiseExpression(BITWISE_OR, $1, $3); }
 
 assignment_expression : constant_expression                                                        { $$ = $1; }
                      | unary_expression T_ASSIGN assignment_expression                             { $$ = new AssignmentExpression(ASSIGN, $1, $3); }

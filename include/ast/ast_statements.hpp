@@ -1,8 +1,8 @@
 #ifndef STATEMENTS
 #define STATEMENTS
 #include "ast_node.hpp"
-#include "ast_expression.hpp"
-#include "ast_declaration.hpp"
+#include "ast_expressions.hpp"
+#include "ast_declarations.hpp"
 
 enum StatementEnum { CASE, DEFAULT, EXPRESSION, IF, ELSE, SWITCH, DO, WHILE, FOR, CONTINUE, BREAK, RETURN, COMPOUND };
 
