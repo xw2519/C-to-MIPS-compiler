@@ -26,7 +26,7 @@ class Program : public Node
 		}
 };
 
-/* ------------------------------------						    Declaration Class					------------------------------------ */
+/* ------------------------------------						       Base Class						------------------------------------ */
 
 class External_Declaration : public Node {};
 
@@ -53,33 +53,34 @@ class Variable_Declarator : public Declarator
 		virtual std::string get_variable_name() { return variable_name; }
 
 		// Print MIPS
-		virtual void compile(std::ostream& dst, Context& context) const override 
+		virtual void compile_declaration(std::ostream& dst, Context& context, type declaration_type) const override 
 		{
 			// Get necessary information
-			variable compile_variable = context.new_variable(variable_name, INT, NORMAL );
+			variable compile_variable = context.new_variable(variable_name, INT, NORMAL);
 
 			type variable_type = compile_variable.get_variable_type();
-			context_scope variable_scope = compile_variable.get_variable_scope();
 			int frame_pointer_1 = compile_variable.get_variable_address();
-			
+
 			// Print MIPS
 			context.output_store_operation(dst, variable_type, "0", "fp", frame_pointer_1);
 		}
 
 		virtual void compile_declaration_initialisation(std::ostream &dst, Context& context, type declarator_type, Expression* expressions) const override 
 		{
-			// Allocate memory
+			variable declared_variable = context.new_variable(variable_name, declarator_type, NORMAL);
+
+			// Allocate temporary registers
 			context.allocate_stack();
-			int frame_pointer = context.get_frame_pointer();
-
-			// Get necessary information
-			variable compile_variable = context.new_variable(variable_name, declarator_type, NORMAL);
-
+			int frame_pointer_1 = context.get_frame_pointer();
+			std::string temp_register_1 = "t0";
+			
 			expressions->compile(dst, context);
 
+			// Deallocate
 			context.deallocate_stack();
-			context.store_register(dst, "v0", frame_pointer);
-			context.output_load_operation(dst, declarator_type, "v0", "fp", compile_variable.get_variable_address()*8);
+
+			context.load_register(dst, temp_register_1, frame_pointer_1);
+			context.output_store_operation(dst, declarator_type, temp_register_1, "fp", declared_variable.get_variable_address());
 		}
 };
 
@@ -100,33 +101,38 @@ class Initialisation_Variable_Declarator : public Declarator
 		}
 };
 
-/* ------------------------------------						  Declaration Class					------------------------------------ */
+/* ------------------------------------						    Declaration Class					------------------------------------ */
 
 class Declaration : public External_Declaration
 {
 	private:
-		std::string TYPE;
+		type TYPE;
 		std::vector<Declarator*>* declaration_list;
 
 	public:
 		Declaration(std::string _TYPE, std::vector<Declarator*>* _declaration_list = NULL) 
-		: TYPE(_TYPE), declaration_list(_declaration_list) {}
+		: TYPE(convert_type(_TYPE)), declaration_list(_declaration_list) {}
 
 		virtual std::string get_parameter()
 		{
 			return (*declaration_list)[0]->get_variable_name();
 		}
 
+		type convert_type(std::string TYPE)
+		{
+			if(TYPE == "int") { return INT; }
+			else if(TYPE == "void") { return VOID; } 
+		}
+
 		virtual void compile(std::ostream &dst, Context& context) const override
 		{
-			
 			if (declaration_list != NULL)
 			{				
 				for (int i = 0; i < declaration_list->size(); i++)
 				{
 					Declarator* temp_declarator = declaration_list->at(i);
 					
-					(*temp_declarator).compile(dst, context);
+					(*temp_declarator).compile_declaration(dst, context, TYPE);
 					
 				}
 			}

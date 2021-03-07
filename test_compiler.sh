@@ -36,13 +36,13 @@ echo "==========================================================================
 COMPILER=bin/c_compiler
 
 # Specify directories
-INPUT_DIR="compiler_tests/integer"
+INPUT_DIR="compiler_tests/local_var"
 OUTPUT_DIR="temp"
 mkdir -p ${OUTPUT_DIR}
 
 # Formatting
-FORMAT_PASS="%-5s %-20s ${GREEN} %-20s ${NC} %-5s \n"
-FORMAT_FAIL="%-5s %-20s ${RED} %-20s ${NC} %-5s \n"
+FORMAT_PASS="%-5s %-40s ${GREEN} %-20s ${NC} %-5s \n"
+FORMAT_FAIL="%-5s %-40s ${RED} %-20s ${NC} %-5s \n"
 
 for i in ${INPUT_DIR}/*_driver.c ; do
 
@@ -68,7 +68,7 @@ for i in ${INPUT_DIR}/*_driver.c ; do
     # https://stackoverflow.com/questions/26130909/bash-output-column-formatting
 
     RETURN=$?
-    if [[ $ret -ne 0 ]]; then
+    if [[ $RETURN -ne 0 ]]; then
         RESULT="FAIL"
         printf  "${FORMAT_FAIL}" $INDEX $TEST $RESULT $RETURN    
     else

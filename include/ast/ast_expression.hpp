@@ -21,7 +21,6 @@ class Expression : public Node
 
 /* ------------------------------------						     Unary Expression						------------------------------------ */
 
-
 class Unary_Expression : public Expression
 {
 	protected:
@@ -29,6 +28,11 @@ class Unary_Expression : public Expression
 
 	public:
 		Unary_Expression (Expression* _expression) : expression(_expression) {}
+
+		virtual void compile(std::ostream &dst, Context& context) const override
+		{
+			dst << "Triggered 1" << std::endl;
+		}
 };
 
 /* ------------------------------------						    Post-fix Expression						------------------------------------ */
@@ -37,6 +41,11 @@ class Post_Increment_Expression : public Unary_Expression
 {
 	public:
 		Post_Increment_Expression (Expression* _expression) : Unary_Expression(_expression) {}
+
+		virtual void compile(std::ostream &dst, Context& context) const override
+		{
+			dst << "Triggered 2" << std::endl;
+		}
 };
 
 
@@ -52,7 +61,7 @@ class Function_Call_Expression : public Unary_Expression
 
 		virtual void compile(std::ostream &dst, Context& context) const override
 		{
-
+			dst << "Triggered 3" << std::endl;
 		}
 
 };
@@ -67,6 +76,11 @@ class Assignment_Expression : public Expression // Base class
 			
 	public:
 		Assignment_Expression (Expression* _left_value, Expression* _expression) : left_value (_left_value), expression (_expression) {}
+
+		virtual void compile(std::ostream &dst, Context& context) const override
+		{
+			dst << "Triggered 4" << std::endl;
+		}
 };
 
 class Direct_Assignment : public Assignment_Expression
@@ -105,7 +119,6 @@ class Direct_Assignment : public Assignment_Expression
 			context.store_register(dst, destination_register, frame_pointer_1);
 		}
 };
-
 
 /* ------------------------------------						   Operator Expression						------------------------------------ */
 

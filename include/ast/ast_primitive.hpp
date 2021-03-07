@@ -41,7 +41,7 @@ class Identifier : public Primitive // Local variables with constant
 		virtual void compile(std::ostream &dst, Context& context) const override
 		{	
 			int destination_address = context.get_frame_pointer();
-			dst << "# Access variable" << std::endl;
+			dst << "\t" << "# Access variable" << std::endl;
 			variable compile_variable = context.get_variable(variable_name);
 			std::string destination_register = "v0";
 			//dst << "1" << destination_address << std::endl;
@@ -55,7 +55,7 @@ class Identifier : public Primitive // Local variables with constant
 
 		virtual void load_variable_address(std::ostream &dst, Context& context) const override
 		{
-			dst << "# Load variable" << std::endl;
+			dst << "\t" << "# Load variable" << std::endl;
 			int destination_address = context.get_frame_pointer();
 			std::string destination_register = "v0";
 			variable compile_variable = context.get_variable(variable_name);

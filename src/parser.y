@@ -68,7 +68,7 @@ void yyerror(const char *);
 %type <declaration_node> declaration parameter_declaration 
 %type <declaration_list_vector> declaration_list parameter_list
 
-%type <expression_node> primary_expression postfix_expression 
+%type <expression_node> primary_expression prefix_expression postfix_expression 
 // Arthmetic expressions
 %type <expression_node> multiply_expression add_expression 
 // Bitwse expressions
@@ -119,7 +119,7 @@ initialisation_list 			:   assignment_expression 										{ $$ = new std::vecto
 								|	initialisation_list T_COMMA assignment_expression 			{ $1->push_back($3); $$=$1; }
 
 initialisation_declarator		: 	declarator 													{ $$ = $1; }
-								| 	declarator T_EQUAL assignment_expression 					{ $$ = new Initialisation_Variable_Declarator($1, $3); }
+								| 	declarator T_ASSIGN assignment_expression 					{ $$ = new Initialisation_Variable_Declarator($1, $3); }
 
 initialisation_declarator_list	: 	initialisation_declarator 											{ $$ = new std::vector<Declarator*>(1, $1);	}
 								|	initialisation_declarator_list T_COMMA initialisation_declarator	{ $1->push_back($3); $$ = $1; }
@@ -146,7 +146,9 @@ primary_expression				: 	T_CONSTANT														{ $$ = new Constant($1); }
 								| 	T_LITERAL			 											{ $$ = new StringLiteral(*$1); }	
 								| 	T_LBRACKET expression T_RBRACKET								{ $$ = $2; }		
 
-postfix_expression				:	primary_expression												{ $$ = $1; }
+prefix_expression				: 	postfix_expression
+
+postfix_expression				:	primary_expression												
 								|	primary_expression INC_OP										{ $$ = new Post_Increment_Expression($1); }
 								|	primary_expression T_LBRACKET T_RBRACKET						{ $$ = new Function_Call_Expression($1) ; }
 								|	primary_expression T_LBRACKET argument_list T_RBRACKET			{ $$ = new Function_Call_Expression($1, $3); }
@@ -196,8 +198,10 @@ logical_OR_expression			: 	logical_AND_expression
 
 ternary_expression 				: 	logical_OR_expression 
 
+/* ------------------------------------						   Assignment Expression						------------------------------------ */
+
 assignment_expression			: 	ternary_expression 
-								|	postfix_expression T_ASSIGN assignment_expression 				{ $$ = new Direct_Assignment($1, $3); }	
+								|	prefix_expression T_ASSIGN assignment_expression 				{ $$ = new Direct_Assignment($1, $3); }	
 
 argument_list					: 	expression 														
 								| 	argument_list T_COMMA expression 								{ $1->push_back($3); $$ = $1; }
@@ -210,10 +214,8 @@ statement 						: 	jump_statement														{ $$ = $1; }
 								| 	condition_statement													{ $$ = $1; }
 								|	iteration_statement													{ $$ = $1; }
 
-
 statement_list 					: 	statement 															{ $$ = new std::vector<Statement*>(1, $1); }
 								| 	statement_list statement											{ $1->push_back($2); $$ = $1; }
-
 
 compound_statement  			: 	T_CURLY_LBRACKET T_CURLY_RBRACKET									{ $$ = new Compound_Statement(); }
 								| 	T_CURLY_LBRACKET statement_list T_CURLY_RBRACKET					{ $$ = new Compound_Statement(NULL, $2); }
@@ -231,7 +233,6 @@ condition_statement 			:	T_IF T_LBRACKET expression T_RBRACKET statement						{ 
 
 iteration_statement				:	T_WHILE T_LBRACKET expression T_RBRACKET statement 												{ $$ = new While_Statement($3,$5); }
 								|	T_FOR T_LBRACKET expression T_SEMICOLON expression T_SEMICOLON expression T_RBRACKET statement	{ $$ = new For_Statement($3,$5,$7,$9); }
-
 
 /* ------------------------------------								Others									------------------------------------ */
 
