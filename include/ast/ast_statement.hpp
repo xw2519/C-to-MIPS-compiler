@@ -69,7 +69,7 @@ class Condition_If_Statement : public Statement
 
 		virtual void compile(std::ostream& dst, Context& context) const override
 		{
-			// Allocate temprorary registers
+			// Allocate temporary registers
 			context.allocate_stack();
 			std::string temp_register_1 = "v0";
 			int frame_pointer_1 = context.get_frame_pointer();
@@ -114,6 +114,34 @@ class While_Statement : public Statement
 	public:
 		While_Statement (Expression* _condition_expression, Statement* _true_statement)
 		: condition_expression(_condition_expression), true_statement(_true_statement) {}
+
+		virtual void compile(std::ostream& dst, Context& context) const override
+		{
+			// Set loop boundaries
+			std::string START_label = context.make_label("START_WHILE");
+			std::string FINISH_label = context.make_label("FINISH_WHILE");
+
+			dst << START_label << ":" << std::endl;
+
+			// Allocate temporary registers
+			context.allocate_stack();
+			std::string temp_register_1 = "v0";
+			int frame_pointer_1 = context.get_frame_pointer();
+			context.load_register(dst, temp_register_1, frame_pointer_1);
+
+			// Execute the conditional statement
+			condition_expression->compile(dst, context);
+
+			// Deallocate
+			context.deallocate_stack();
+			
+			dst << "\t" << "beq " << "\t" << "$0" << ",$" << temp_register_1 << "," << FINISH_label << std::endl;
+
+			true_statement->compile(dst, context);
+
+			dst << "\t" << "b " << "\t" << START_label << std::endl;
+			dst << "\t" << FINISH_label << ":" << std::endl;
+		}
 
 };
 
