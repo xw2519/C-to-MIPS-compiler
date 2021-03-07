@@ -8,7 +8,7 @@
 #include "ast/ast_declarations.hpp"
 #include "ast/ast_context.hpp"
 
-extern std::vector<const Node*> parseAST();
+extern const Root *parse();
 extern void yyset_in(FILE* fd);
 
 #endif

@@ -4,7 +4,7 @@
 #include "ast_expressions.hpp"
 #include "ast_declarations.hpp"
 
-enum StatementEnum { CASE, DEFAULT, EXPRESSION, IF, ELSE, SWITCH, DO, WHILE, FOR, CONTINUE, BREAK, RETURN, COMPOUND };
+enum StatementEnum { CASE, DEFAULT, EXPRESSION, IF, ELSE, SWITCH, DO, WHILE, FOR, CONTINUE, BREAK, RETURN, COMPOUND, EXPR_STMT };
 
 /*struct Statement
 {
@@ -68,6 +68,8 @@ class CompoundStatement : public Statement
 	public:
 		CompoundStatement(std::vector<Declaration*>* _declaration_list=NULL, std::vector<Statement*>* _statement_list=NULL)
 		: statement_list (_statement_list), declaration_list (_declaration_list) { type = COMPOUND; }
+    CompoundStatement(std::vector<Statement*>* _statement_list)
+		: statement_list (_statement_list) { type = COMPOUND; }
 
 		virtual void print_mips(std::ostream &dst, Context& context) const override
 		{
@@ -92,7 +94,16 @@ class CompoundStatement : public Statement
 };
 
 class LabeledStatement : public Statement
-{};
+{
+  private:
+    StatementEnum type;
+    Expression* expression;
+    Statement*	statement;
+
+  public:
+    LabeledStatement (StatementEnum _type, Statement* _statement, Expression* _expression=NULL)
+    : type(_type), expression(_expression), statement(_statement) {}
+};
 
 class ExpressionStatement : public Statement                   // complete
 {
@@ -115,7 +126,7 @@ class ExpressionStatement : public Statement                   // complete
 
 		virtual void print_mips(std::ostream &dst, Context& context) const override
 		{
-      int total_regs = context.size_in_words(expression->get_id());
+      int total_regs = context.size_of(expression->get_id());
       std::string destReg = context.alloc_reg(context.get_type(expression->get_id()), total_regs);
       expression->print_mips(dst, context, destReg);
       context.dealloc_reg(destReg, total_regs);
@@ -146,7 +157,7 @@ class IfStatement : public Statement                           // should handle 
 
     virtual void print_mips(std::ostream &dst, Context& context) const override
     {
-      int total_regs = context.size_in_words(condition->get_id());
+      int total_regs = context.size_of(condition->get_id());
       std::string destReg = context.alloc_reg(INT, total_regs);
       std::string label = context.make_label();
 
@@ -180,7 +191,7 @@ class ElseStatement : public Statement                         // should handle 
 
     virtual void print_mips(std::ostream &dst, Context& context) const override
     {
-      int total_regs = context.size_in_words(condition->get_id());
+      int total_regs = context.size_of(condition->get_id());
       std::string destReg = context.alloc_reg(INT, total_regs);
       std::string true_label = context.make_label();
       std::string false_label = context.make_label();
@@ -201,14 +212,23 @@ class ElseStatement : public Statement                         // should handle 
 };
 
 class SwitchStatement : public Statement
-{};
+{
+  private:
+    StatementEnum type;
+    Expression* expression;
+    Statement*	statement;
+
+  public:
+    SwitchStatement (StatementEnum _type, Statement* _statement, Expression* _expression)
+    : type(_type), expression(_expression), statement(_statement) {}
+};
 
 class WhileStatement : public Statement                        // should handle integral types
 {
-	private:
+protected:
 		Expression* condition;
 		Statement*  statement;
-
+    StatementEnum type;
 	public:
 		WhileStatement (StatementEnum _type, Expression* _condition, Statement* _statement)
 		: type(_type), condition(_condition), statement(_statement) {}
@@ -221,7 +241,7 @@ class WhileStatement : public Statement                        // should handle 
 
     virtual void print_mips(std::ostream &dst, Context& context) const override
     {
-      int total_regs = context.size_in_words(condition->get_id());
+      int total_regs = context.size_of(condition->get_id());
       std::string destReg = context.alloc_reg(INT, total_regs);
       std::string begin_label = context.make_label();
       if(type==WHILE){
@@ -250,13 +270,13 @@ class WhileStatement : public Statement                        // should handle 
 class ForStatement : public Statement
 {
 	private:
-		Expression* initialisation_expression;
-		Expression* condition_expression;
+		Statement* initialisation_expression;
+		Statement* condition_expression;
 		Expression* update_expression;
 		Statement*	true_statement;
 
 	public:
-		For_Statement (Expression* _init_expr, Expression* _condition_expression, Expression* _update_expression, Statement* _true_statement)
+		ForStatement (Statement* _init_expr, Statement* _condition_expression, Statement* _true_statement, Expression* _update_expression=NULL)
 		: initialisation_expression(_init_expr),condition_expression(_condition_expression), update_expression(_update_expression), true_statement(_true_statement) {}
 
 };
@@ -264,15 +284,21 @@ class ForStatement : public Statement
 class JumpStatement : public Statement
 {
 	private:
-		Expression* expression;
-
+		StatementEnum type;
 	public:
-		Jump_Statement (Expression* _expression = NULL)
-		: expression(_expression) {}
+		JumpStatement (StatementEnum _type)
+		: type(_type) {}
 
 };
 
 class ReturnStatement : public Statement
-{};
+{
+  private:
+    Expression* expression;
+
+  public:
+    ReturnStatement (Expression* _expression = NULL)
+    : expression(_expression) {}
+};
 
 #endif

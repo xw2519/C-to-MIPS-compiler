@@ -1,30 +1,71 @@
 %code requires{
-  #include "ast.hpp"
+  #include "../include/ast.hpp"
 
   #include <cassert>
 
-  extern const Node *root;
+  extern const Root *root;
 
   int yylex(void);
   void yyerror(const char *);
 }
 
 %union{
-  const Node *node;
-  Statement *statement_node;
+  Node *node;
+  Expression *expr;
+  Statement *stmt;
+  Declaration *declrion;
+  PrimitiveType *prim_type;
+  InitDeclarator *init_declatator;
+  Initializer *init;
+  Enumerator *enum_t;
+  StructDeclaration *struct_declr;
+  Declarator *declr;
+  Pointer *point;
+  StructSpecifier *struct_spec;
+  EnumSpecifier *enum_spec;
+
   std::string *string;
+
+  std::vector<Node*> *node_list;
+  std::vector<PrimitiveType*> *type_list;
+  std::vector<InitDeclarator*> *init_declatator_list;
+  std::vector<Initializer*> *init_list;
+  std::vector<Enumerator*> *enum_list;
+  std::vector<StructDeclaration*> *struct_declr_list;
+  std::vector<Declarator*> *declr_list;
+  std::vector<Declaration*> *declrion_list;
+  std::vector<Expression*> *expr_list;
+  std::vector<Statement*> *stmt_list;
+  std::vector<Identifier*> *ident_list;
 }
 
-%type <node> ROOT
-primary_expression postfix_expression unary_expression multiplicative_expression additive_expression shift_expression relational_expression
-equality_expression and_expression exclusive_or_expression inclusive_or_expression logical_and_expression
-assignment_expression constant_expression declaration declaration_specifiers init_declarator type_specifier
-struct_specifier struct_declaration struct_declarator enum_specifier enumerator declarator direct_declarator pointer
- identifier_list  initializer statement labeled_statement compound_statement
-expression_statement selection_statement iteration_statement jump_statement external_declaration function_definition
+%type <node> ROOT external_declaration function_definition direct_declarator
+%type <expr> primary_expression postfix_expression unary_expression multiplicative_expression additive_expression shift_expression relational_expression
+equality_expression and_expression exclusive_or_expression inclusive_or_expression logical_and_expression assignment_expression constant_expression
+%type <stmt> statement labeled_statement compound_statement expression_statement selection_statement iteration_statement jump_statement
+
+%type <enum_spec> enum_specifier
+%type <struct_spec> struct_specifier
+%type <point> pointer
+%type <prim_type> type_specifier specifier_qualifier_list
+%type <init_declatator> init_declarator
+%type <init> initializer
+%type <enum_t> enumerator
+%type <struct_declr> struct_declaration
+%type <declr> declarator struct_declarator
+%type <declrion> declaration
 // type_name abstract_declarator direct_abstract_declarator parameter_declaration
-%type <list> translation_unit init_declarator_list struct_declaration_list specifier_qualifier_list struct_declarator_list enumerator_list
-initializer_list declaration_list argument_expression_list statement_list
+%type <node_list> translation_unit
+%type <type_list> declaration_specifiers
+%type <init_declatator_list> init_declarator_list
+%type <init_list> initializer_list
+%type <enum_list> enumerator_list
+%type <struct_declr_list> struct_declaration_list
+%type <declr_list> struct_declarator_list
+%type <declrion_list> declaration_list
+%type <expr_list> argument_expression_list
+%type <stmt_list> statement_list
+%type <ident_list> identifier_list
 //parameter_list
 
 // Assignment Operators
@@ -55,9 +96,9 @@ initializer_list declaration_list argument_expression_list statement_list
 
 %%
 /* Root */
-ROOT : translation_unit                                                                            { root = new Node($1); }
+ROOT : translation_unit                                                                            { root = new Root($1); }
 
-translation_unit : external_declaration                                                            { $$ = new std::vector<FunnyClass*>{$1}; }
+translation_unit : external_declaration                                                            { $$ = new std::vector<Node*>; $$->push_back($1); }
                  | translation_unit external_declaration                                           { $1->push_back($2); $$ = $1; }
 
 external_declaration : function_definition                                                         { $$ = $1; }
@@ -67,11 +108,11 @@ declaration : declaration_specifiers T_SEMICOLON                                
             | declaration_specifiers init_declarator_list T_SEMICOLON                              { $$ = new Declaration($1, $2); }
 
 declaration_specifiers : T_TYPEDEF                                                                 { /* $$ = new DeclarationSpecifiers(); */ }
-                       | T_TYPEDEF declaration_specifiers                                          { $$ = new TypedefDeclaration($2); }
-                       | type_specifier                                                            { $$ = new std::vector<PrimitiveType*>{$1}; }
+                       | T_TYPEDEF declaration_specifiers                                          { $2->push_back(new PrimitiveType(TYPEDEF)); $$ = $2; }
+                       | type_specifier                                                            { $$ = new std::vector<PrimitiveType*>; $$->push_back($1); }
                        | type_specifier declaration_specifiers                                     { $2->push_back($1); $$ = $2; }
 
-init_declarator_list : init_declarator                                                             { $$ = new std::vector<InitDeclarator*>{$1}; }
+init_declarator_list : init_declarator                                                             { $$ = new std::vector<InitDeclarator*>; $$->push_back($1); }
                      | init_declarator_list T_COMMA init_declarator                                { $1->push_back($3); $$ = $1; }
 
 type_specifier : T_CHAR                                                                            { $$ = new PrimitiveType(D_CHAR); }
@@ -79,18 +120,18 @@ type_specifier : T_CHAR                                                         
                | T_FLOAT                                                                           { $$ = new PrimitiveType(D_FLOAT); }
                | T_DOUBLE                                                                          { $$ = new PrimitiveType(D_DOUBLE); }
                | T_UNSIGNED                                                                        { $$ = new PrimitiveType(D_UNSIGNED); }
-               | T_TYPEIDENTIFIER                                                                  { $$ = new TypeIDType(*$1); }
-               | struct_specifier                                                                  { $$ = new StructType($1); }
-               | enum_specifier                                                                    { $$ = new EnumType($1); }
+               | T_TYPEIDENTIFIER                                                                  { $$ = new PrimitiveType(TYPEID, *$1); }
+               | struct_specifier                                                                  { $$ = new PrimitiveType($1); }
+               | enum_specifier                                                                    { $$ = new PrimitiveType($1); }
 
-init_declarator : declarator                                                                       { $$ = $1; }
-                | declarator T_ASSIGN initializer                                                  { $$ = InitDeclarator($1, $3); }
+init_declarator : declarator                                                                       { $$ = new InitDeclarator($1); }
+                | declarator T_ASSIGN initializer                                                  { $$ = new InitDeclarator($1, $3); }
 
-initializer : assignment_expression                                                                { $$ = Initializer($1); }
-            | T_CURLY_LBRACKET initializer_list T_CURLY_RBRACKET                                   { $$ = Initializer($2); }
-            | T_CURLY_LBRACKET initializer_list T_COMMA T_CURLY_RBRACKET                           { $$ = Initializer($2); }
+initializer : assignment_expression                                                                { $$ = new Initializer($1); }
+            | T_CURLY_LBRACKET initializer_list T_CURLY_RBRACKET                                   { $$ = new Initializer($2); }
+            | T_CURLY_LBRACKET initializer_list T_COMMA T_CURLY_RBRACKET                           { $$ = new Initializer($2); }
 
-initializer_list : initializer                                                                     { $$ = new std::vector<Initializer*>{$1}; }
+initializer_list : initializer                                                                     { $$ = new std::vector<Initializer*>; $$->push_back($1); }
                  | initializer_list T_COMMA initializer                                            { $1->push_back($3); $$ = $1; }
 
 function_definition : declaration_specifiers declarator compound_statement                         { $$ = new FunctionDefinition($1, $2, $3); }
@@ -101,17 +142,18 @@ declarator : pointer direct_declarator                                          
 pointer : T_MULTIPLY                                                                               { $$ = new Pointer(); }
         | T_MULTIPLY pointer                                                                       { $$ = new Pointer($2); }
 
-direct_declarator : T_IDENTIFIER                                                                   { $$ = Identifier(*$1); }
+direct_declarator : T_IDENTIFIER                                                                   { $$ = new Identifier(*$1); }
                   | T_LBRACKET declarator T_RBRACKET                                               { $$ = $2; }
-                  | direct_declarator T_SQUARE_LBRACKET constant_expression T_SQUARE_RBRACKET      { $$ = ArrayDeclarator($1, $3); }
-                  | direct_declarator T_SQUARE_LBRACKET T_SQUARE_RBRACKET                          { $$ = ArrayDeclarator($1); }
+                  | direct_declarator T_SQUARE_LBRACKET constant_expression T_SQUARE_RBRACKET      { $$ = new ArrayDeclarator($1, $3); }
+                  | direct_declarator T_SQUARE_LBRACKET T_SQUARE_RBRACKET                          { $$ = new ArrayDeclarator($1); }
 
-                  | direct_declarator T_LBRACKET identifier_list T_RBRACKET                        { $$ = FunctionDeclarator($1, $3); }
-                  | direct_declarator T_LBRACKET T_RBRACKET                                        { $$ = FunctionDeclarator($1); }
+
+                  | direct_declarator T_LBRACKET T_RBRACKET                                        { $$ = new FunctionDeclarator($1); }
 /*
                   | direct_declarator T_LBRACKET parameter_list T_RBRACKET                         { $$ = FunctionDeclarator($1, $3); }
+                  | direct_declarator T_LBRACKET identifier_list T_RBRACKET                        { $$ = new FunctionDeclarator($1, $3); }
 */
-identifier_list : T_IDENTIFIER                                                                     { $$ = new vector<Identifier*>{new Identifier(*$1)}; }
+identifier_list : T_IDENTIFIER                                                                     { $$ = new std::vector<Identifier*>; $$->push_back(new Identifier(*$1)); }
                 | identifier_list T_COMMA T_IDENTIFIER                                             { $1->push_back(new Identifier(*$3)); $$ = $1; }
 /*
 parameter_list : parameter_declaration                                                             { $$ = new std::vector<ParameterDeclaration*>{$1}; }
@@ -122,7 +164,7 @@ struct_specifier : T_STRUCT T_IDENTIFIER T_CURLY_LBRACKET struct_declaration_lis
                  | T_STRUCT T_CURLY_LBRACKET struct_declaration_list T_CURLY_RBRACKET              { $$ = new StructSpecifier($3); }
                | T_STRUCT T_IDENTIFIER                                                             { $$ = new StructSpecifier(*$2); }
 
-struct_declaration_list : struct_declaration                                                       { $$ = new std::vector<StructDeclaration*>{$1}; }
+struct_declaration_list : struct_declaration                                                       { $$ = new std::vector<StructDeclaration*>; $$->push_back($1); }
                         | struct_declaration_list struct_declaration                               { $1->push_back($2); $$ = $1; }
 
 struct_declaration : specifier_qualifier_list struct_declarator_list T_SEMICOLON                   { $$ = new StructDeclaration($1, $2); }
@@ -130,7 +172,7 @@ struct_declaration : specifier_qualifier_list struct_declarator_list T_SEMICOLON
 specifier_qualifier_list : type_specifier                                                          { $$ = $1; }
                          | type_specifier specifier_qualifier_list                                 { $$ = new PrimitiveType($1, $2); }
 
-struct_declarator_list : struct_declarator                                                         { $$ = new std::vector<Declarator*>{$1}; }
+struct_declarator_list : struct_declarator                                                         { $$ = new std::vector<Declarator*>; $$->push_back($1); }
                        | struct_declarator_list T_COMMA struct_declarator                          { $1->push_back($3); $$ = $1; }
 
 struct_declarator : declarator                                                                     { $$ = $1; }
@@ -143,7 +185,7 @@ enum_specifier : T_ENUM T_CURLY_LBRACKET enumerator_list T_CURLY_RBRACKET       
                | T_ENUM T_IDENTIFIER T_CURLY_LBRACKET enumerator_list T_CURLY_RBRACKET             { $$ = new EnumSpecifier(*$2, $4); }
                | T_ENUM T_IDENTIFIER                                                               { $$ = new EnumSpecifier(*$2); }
 
-enumerator_list : enumerator                                                                       { $$ = new std::vector<Enumerator*>{$1}; }
+enumerator_list : enumerator                                                                       { $$ = new std::vector<Enumerator*>; $$->push_back($1); }
                 | enumerator_list T_COMMA enumerator                                               { $1->push_back($3); $$ = $1; }
 
 enumerator : T_IDENTIFIER                                                                          { $$ = new Enumerator(*$1); }
@@ -178,10 +220,10 @@ compound_statement : T_CURLY_LBRACKET T_CURLY_RBRACKET                          
                    | T_CURLY_LBRACKET declaration_list T_CURLY_RBRACKET                            { $$ = new CompoundStatement($2); }
                    | T_CURLY_LBRACKET declaration_list statement_list T_CURLY_RBRACKET             { $$ = new CompoundStatement($2, $3); }
 
-declaration_list : declaration                                                                     { $$ = new std::vector<Declaration*>{$1}; }
+declaration_list : declaration                                                                     { $$ = new std::vector<Declaration*>; $$->push_back($1); }
                  | declaration_list declaration                                                    { $1->push_back($2); $$ = $1; }
 
-statement_list : statement                                                                         { $$ = new std::vector<Statement*>{$1}; }
+statement_list : statement                                                                         { $$ = new std::vector<Statement*>; $$->push_back($1); }
                | statement_list statement                                                          { $1->push_back($2); $$ = $1; }
 
 statement : labeled_statement                                                                      { $$ = $1; }
@@ -191,7 +233,7 @@ statement : labeled_statement                                                   
           | iteration_statement                                                                    { $$ = $1; }
           | jump_statement                                                                         { $$ = $1; }
 
-labeled_statement : T_CASE constant_expression T_COLON statement                                   { $$ = new LabeledStatement(CASE, $2, $4); }
+labeled_statement : T_CASE constant_expression T_COLON statement                                   { $$ = new LabeledStatement(CASE, $4, $2); }
                   | T_DEFAULT T_COLON statement                                                    { $$ = new LabeledStatement(DEFAULT, $3); }
 
 expression_statement : T_SEMICOLON                                                                 { $$ = new ExpressionStatement(); }
@@ -199,12 +241,12 @@ expression_statement : T_SEMICOLON                                              
 
 selection_statement : T_IF T_LBRACKET assignment_expression T_RBRACKET statement                   { $$ = new IfStatement($3, $5); }
                     | T_IF T_LBRACKET assignment_expression T_RBRACKET statement T_ELSE statement  { $$ = new ElseStatement($3, $5, $7); }
-                    | T_SWITCH T_LBRACKET assignment_expression T_RBRACKET statement               { $$ = new SwitchStatement($3, $5); }
+                    | T_SWITCH T_LBRACKET assignment_expression T_RBRACKET statement               { $$ = new SwitchStatement(SWITCH, $5, $3); }
 
 iteration_statement : T_WHILE T_LBRACKET assignment_expression T_RBRACKET statement                                         { $$ = new WhileStatement(WHILE, $3, $5); }
                     | T_DO statement T_WHILE T_LBRACKET assignment_expression T_RBRACKET T_SEMICOLON                        { $$ = new WhileStatement(DO, $5, $2); }
                     | T_FOR T_LBRACKET expression_statement expression_statement T_RBRACKET statement                       { $$ = new ForStatement($3, $4, $6); }
-                    | T_FOR T_LBRACKET expression_statement expression_statement assignment_expression T_RBRACKET statement { $$ = new ForStatement($3, $4, $5, $7); }
+                    | T_FOR T_LBRACKET expression_statement expression_statement assignment_expression T_RBRACKET statement { $$ = new ForStatement($3, $4, $7, $5); }
 
 jump_statement : T_CONTINUE T_SEMICOLON                                                            { $$ = new JumpStatement(CONTINUE); }
                | T_BREAK T_SEMICOLON                                                               { $$ = new JumpStatement(BREAK); }
@@ -228,7 +270,7 @@ postfix_expression : primary_expression                                         
                   | postfix_expression T_INCREMENT                                                 { $$ = new PostfixExpression(INCREMENT, $1); }
                   | postfix_expression T_DECREMENT                                                 { $$ = new PostfixExpression(DECREMENT, $1); }
 
-argument_expression_list : assignment_expression                                                   { $$ = new std::vector<Expression*>{$1}; }
+argument_expression_list : assignment_expression                                                   { $$ = new std::vector<Expression*>; $$->push_back($1); }
                         | argument_expression_list T_COMMA assignment_expression                   { $1->push_back($3); $$ = $1; }
 
 unary_expression : postfix_expression                                                              { $$ = $1; }
@@ -296,23 +338,13 @@ assignment_expression : constant_expression                                     
                      | unary_expression T_XOR_ASSIGN assignment_expression                         { $$ = new AssignmentExpression(XOR_ASSIGN, $1, $3); }
 
 %%
-#include <stdio.h>
+
 
 extern char yytext[];
-extern int column;
 
-yyerror(s)
-char *s;
-{
-	fflush(stdout);
-	printf("\n%*s\n%*s\n", column, "^", column, s);
-}
+const Root *root; // Definition of variable (to match declaration earlier)
 
-%%
-
-const Node *root; // Definition of variable (to match declaration earlier)
-
-const Node *parse()
+const Root *parse()
 {
   root=0;
   yyparse();

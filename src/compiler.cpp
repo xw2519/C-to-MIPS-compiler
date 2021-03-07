@@ -5,10 +5,10 @@ int main ()
 {
 	// Set up AST
 	Context context;
-	const Node *root = parse();
+	const Root *root = parse();
 
 	// Execute compiler
-	root->compile(std::cout, context);
+	root->print_mips(std::cout, context);
 
 	return 0;
 }

@@ -8,7 +8,7 @@ extern "C" int fileno(FILE *stream);
 #include "../include/lexer_hack.hpp"
 
 std::vector<LexerContext> lex_context;
-lex_context.push_back(LexerContext());
+int lexer_hack(std::string *text);
 
 %}
 
@@ -125,19 +125,20 @@ void yyerror (char const *s)
   exit(1);
 }
 
-int lexer_hack(std::string text)   // implements lexer hack
+int lexer_hack(std::string *text)   // implements lexer hack
 {
   int was_type = T_IDENTIFIER;
+  if(lex_context.size()==0){ lex_context.push_back(LexerContext()); }
   for (int i=0; i<lex_context.back().typeIdentifiers.size(); i++)   // checks if text is ID or TypeID
   {
-		if(text == lex_context.back().typeIdentifiers[i])
+		if(*text == lex_context.back().typeIdentifiers[i])
     {
 			was_type = T_TYPEIDENTIFIER;
 		}
 	}
 
   if(lex_context.back().InTypedef && was_type==T_IDENTIFIER){
-  	lex_context.back().typeIdentifiers.push_back(text);
+  	lex_context.back().typeIdentifiers.push_back(*text);
   }
 
   return was_type;

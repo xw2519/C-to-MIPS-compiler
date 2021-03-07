@@ -22,10 +22,10 @@ $8 	- $15				Temporary registers that can be overwritten by called procedures
 $16 - $23				Temporary registers but cannot be overwritten by procedures
 $24	- $25				Temporary registers
 */
-
+enum context_scope { GLOBAL, LOCAL };
 /* ------------------------------------ 			  				Typedef variables		 					------------------------------------ */
 
-typedef std::map<std::string, variable*> type_mapping;
+typedef std::map<std::string, ExpressionEnum> type_mapping;
 
 /* ------------------------------------								Context Functions							------------------------------------ */
 struct Context
@@ -115,31 +115,80 @@ struct Context
 
 		/* ------------------------------------						Context Variable Functions		  		------------------------------------ */
 
-		variable add_variable()
+		ExpressionEnum add_variable()
+		{
+			return INT;
+		}
 
     /* ------------------------------------				  Functions for code generation				  ------------------------------------ */
 
     std::string get_float_label(double value)                                   // get label of  ".word <float value> directive"
-    std::string get_string_label(std::String value)                             // get label of  ".ascii <string literal/000> directive"
+		{
+			return "not implemented yet";
+		}
+    std::string get_string_label(std::string value)                             // get label of  ".ascii <string literal/000> directive"
+		{
+			return "not implemented yet";
+		}
     std::string make_label()                                                    // generate unique label and return as string
+		{
+			return "not implemented yet";
+		}
 
     std::string next_reg(std::string someReg)                                   // return name of next register
+		{
+			return "not implemented yet";
+		}
     std::string alloc_reg(ExpressionEnum type, int amount=1)                    // return name of free register, mark it and following amount as occupied
+		{
+			return "not implemented yet";
+		}
     void dealloc_reg(std::string someReg, int amount=1)                         // free register and following amount of registers
+		{}
 
     bool check_global(std::string identifier)                                   // return true if identifier is global
+		{
+			return false;
+		}
 
     ExpressionEnum get_type(std::string identifier)                             // return type of identifier
+		{
+			return INT;
+		}
     ExpressionEnum get_type_pointed(std::string identifier)                     // return type pointed to by identifier
+		{
+			return INT;
+		}
     ExpressionEnum get_type_member(std::string identifier, std::string member)  // return type of member of struct
+		{
+			return INT;
+		}
 
     std::string id_to_addr(std::string identifier)                              // return address, relative to $fp, of identifier
+		{
+			return "not implemented yet";
+		}
     std::string member_to_addr(std::string identifier, std::string member)      // return address of member, relative to beginning of struct
+		{
+			return "not implemented yet";
+		}
 
     int size_of_pointed(std::string identifier)                                 // return size of value pointed to by identifier, in words
-    int size_of_member(std::string identifier, std::string member);             // return size of member, in words
+		{
+			return 1;
+		}
+    int size_of_member(std::string identifier, std::string member)              // return size of member, in words
+		{
+			return 1;
+		}
     int size_of(std::string identifier)                                         // return size of identifier in words
+		{
+			return 1;
+		}
     int size_of(Declaration* declr)                                             // return size of declaration
+		{
+			return 1;
+		}
 
 };
 

@@ -28,5 +28,6 @@ clean :
 	rm src/*.o
 	rm bin/*
 	rm src/*.tab.cpp
+	rm src/*.tab.hpp
 	rm src/*.yy.cpp
 	rm src/*.output

@@ -4,46 +4,22 @@
 #include "ast_node.hpp"
 #include "ast_expressions.hpp"
 
-enum DeclarationEnum { D_CHAR, D_UCHAR, D_INT, D_FLOAT, D_DOUBLE, D_UNSIGNED };
+struct Context;
+class Statement;
+class PrimitiveType;
 
-class FunnyClass : public Node
-{
+enum DeclarationEnum { D_CHAR, D_UCHAR, D_INT, D_FLOAT, D_DOUBLE, D_UNSIGNED, TYPEDEF, TYPEID };
+
+class FunnyClass: public Node{
   protected:
     DeclarationEnum type;
-	public:
+	/*public:
 		virtual void print(std::ostream &dst) const =0;
-		virtual DeclarationEnum get_type() const =0;
-		virtual void print_mips(std::ostream &dst, Context& context) const =0;
+		virtual void print_mips(std::ostream &dst, Context& context) const =0;*/
 };
 
-class PrimitiveType : public FunnyClass
-{
-  public:
-    PrimitiveType(DeclarationEnum _type): type(_type) {}
 
-		virtual void print(std::ostream &dst) const override
-		{
-			switch(type){
-				case D_CHAR:     dst << "char";          break;
-				case D_UCHAR:    dst << "unsigned char"; break;
-				case D_INT:      dst << "int";           break;
-				case D_FLOAT:    dst << "float";         break;
-				case D_DOUBLE:   dst << "double";        break;
-				case D_UNSIGNED: dst << "unsigned";      break;
-			}
-			dst << std::endl;
-		}
-
-		virtual DeclarationEnum get_type() const override
-		{
-			return type;
-		}
-
-	  virtual void print_mips(std::ostream &dst, Context& context) const override
-		{}
-};
-
-class Identifier : public FunnyClass
+/*class Identifier : public FunnyClass
 {
 	protected:
 		std::string ident;
@@ -68,7 +44,7 @@ class Identifier : public FunnyClass
 
 		virtual void print_mips(std::ostream &dst, Context& context) const override
 		{}
-};
+};*/
 
 class Pointer : public FunnyClass
 {
@@ -84,6 +60,11 @@ class Pointer : public FunnyClass
 			depth = prec->get_depth()+1;
 			delete prec;
 		}
+
+    int get_depth()
+    {
+      return depth;
+    }
 };
 
 class TypeIDType : public FunnyClass
@@ -93,24 +74,6 @@ class TypeIDType : public FunnyClass
 	public:
 		TypeIDType(std::string &_type_id)
 		: type_id(_type_id) {}
-};
-
-class StructType : public FunnyClass
-{
-	protected:
-		StructSpecifier* declr;
-	public:
-		StructType(StructSpecifier* _declr)
-		: declr(_declr) {}
-};
-
-class EnumType : public FunnyClass
-{
-	protected:
-		EnumSpecifier* declr;
-	public:
-		EnumType(EnumSpecifier* _declr)
-		: declr(_declr) {}
 };
 
 class TypedefDeclaration : public FunnyClass
@@ -123,33 +86,32 @@ class TypedefDeclaration : public FunnyClass
 };
 
 
-
 class ArrayDeclarator : public FunnyClass
 {
 	protected:
-		FunnyClass* declr;
+		Node* declr;
 		Expression* size;
 	public:
-		ArrayDeclarator(FunnyClass* _declr, Expression* _size)
+		ArrayDeclarator(Node* _declr, Expression* _size=NULL)
 		: declr(_declr), size(_size) {}
 };
 
 class FunctionDeclarator : public FunnyClass
 {
 	protected:
-		FunnyClass* declr;
+		Node* declr;
 	public:
-		FunctionDeclarator(FunnyClass* _declr)
+		FunctionDeclarator(Node* _declr)
 		: declr(_declr) {}
 };
 
 class Declarator : public FunnyClass
 {
 	protected:
-		FunnyClass* declr;
+		Node* declr;
 		int point_depth;
 	public:
-		Declarator(FunnyClass* _declr, Pointer* pointer=NULL) : declr(_declr)
+		Declarator(Node* _declr, Pointer* pointer=NULL) : declr(_declr)
 		{
 			if(pointer){
 				point_depth = pointer->get_depth();
@@ -166,6 +128,8 @@ class Initializer : public FunnyClass
 	public:
 		Initializer(std::vector<Initializer*>* _init_list=NULL, Expression* _expr=NULL)
 		: init_list(_init_list), expr(_expr) {}
+    Initializer(Expression* _expr)
+		: expr(_expr) {}
 };
 
 class InitDeclarator : public FunnyClass
@@ -186,6 +150,7 @@ class Declaration : public FunnyClass
 	public:
 		Declaration(std::vector<PrimitiveType*>* _types, std::vector<InitDeclarator*>* _declarators=NULL)
 		: types(_types), declarators(_declarators) {}
+    Declaration(Node* _typedef, std::vector<Node*>* _nodes) {}  // should never happen
 };
 
 class FunctionDefinition : public FunnyClass
@@ -193,12 +158,22 @@ class FunctionDefinition : public FunnyClass
 	protected:
 		std::vector<PrimitiveType*>* return_type;
 		Declarator* declr;
-		CompoundStatement* statement;
+		Statement* statement;
 	public:
-		FunctionDefinition(std::vector<PrimitiveType*>* _return_type, Declarator* _declr, CompoundStatement* _statement)
+		FunctionDefinition(std::vector<PrimitiveType*>* _return_type, Declarator* _declr, Statement* _statement)
 		: return_type(_return_type), declr(_declr), statement(_statement) {}
 };
 
+
+class StructDeclaration : public FunnyClass
+{
+	protected:
+		PrimitiveType* type;
+		std::vector<Declarator*>* declarators;
+	public:
+		StructDeclaration(PrimitiveType* _type, std::vector<Declarator*>* _declarators)
+		: type(_type), declarators(_declarators) {}
+};
 
 class StructSpecifier : public FunnyClass
 {
@@ -206,34 +181,12 @@ class StructSpecifier : public FunnyClass
 		std::string ident;
 		std::vector<StructDeclaration*>* member_declrs;
 	public:
-		StructSpecifier(std::string &_ident, std::vector<StructDeclaration*>* _member_declrs==NULL)
+		StructSpecifier(std::string &_ident, std::vector<StructDeclaration*>* _member_declrs=NULL)
 		: ident(_ident), member_declrs(_member_declrs) {}
 		StructSpecifier(std::vector<StructDeclaration*>* _member_declrs)
 		: member_declrs(_member_declrs) {}
 };
 
-class StructDeclaration : public FunnyClass
-{
-	protected:
-		PrimitiveType* type;
-		std::vector<Declarator*>* declrators;
-	public:
-		StructDeclaration(PrimitiveType* _type, std::vector<Declarator*>* _declarators)
-		: type(_type), declarators(_declarators) {}
-};
-
-
-class EnumSpecifier : public FunnyClass
-{
-	protected:
-		std::string ident;
-		std::vector<Enumerator*>* enum_declrs;
-	public:
-		StructSpecifier(std::string &_ident, std::vector<Enumerator*>* _enum_declrs==NULL)
-		: ident(_ident), enum_declrs(_enum_declrs) {}
-		StructSpecifier(std::vector<Enumerator*>* _enum_declrs)
-		: enum_declrs(_enum_declrs) {}
-};
 
 class Enumerator : public FunnyClass
 {
@@ -245,5 +198,73 @@ class Enumerator : public FunnyClass
 		: ident(_ident), expr(_expr) {}
 };
 
+class EnumSpecifier : public FunnyClass
+{
+	protected:
+		std::string ident;
+		std::vector<Enumerator*>* enum_declrs;
+	public:
+		EnumSpecifier(std::string &_ident, std::vector<Enumerator*>* _enum_declrs=NULL)
+		: ident(_ident), enum_declrs(_enum_declrs) {}
+		EnumSpecifier(std::vector<Enumerator*>* _enum_declrs)
+		: enum_declrs(_enum_declrs) {}
+};
+
+
+class PrimitiveType : public FunnyClass
+{
+  protected:
+    DeclarationEnum type;
+    std::string name;
+    StructSpecifier* struct_declr;
+    EnumSpecifier* enum_declr;
+
+  public:
+    PrimitiveType(DeclarationEnum _type): type(_type) {}
+    PrimitiveType(DeclarationEnum _type, std::string &_name): type(_type), name(_name) {}
+    PrimitiveType(StructSpecifier* _struct_declr): struct_declr(_struct_declr) {}
+    PrimitiveType(EnumSpecifier* _enum_declr): enum_declr(_enum_declr) {}
+    PrimitiveType(PrimitiveType* type1, PrimitiveType* type2)
+    {
+      if((type1->get_type() == INT) || (type2->get_type() == INT)){
+        type = D_UNSIGNED;
+      }else{
+        type = D_UCHAR;
+      }
+      delete type1;
+      delete type2;
+    }
+
+		virtual void print(std::ostream &dst) const
+		{
+			switch(type){
+				case D_CHAR:     dst << "char";          break;
+				case D_UCHAR:    dst << "unsigned char"; break;
+				case D_INT:      dst << "int";           break;
+				case D_FLOAT:    dst << "float";         break;
+				case D_DOUBLE:   dst << "double";        break;
+				case D_UNSIGNED: dst << "unsigned";      break;
+			}
+			dst << std::endl;
+		}
+
+		virtual DeclarationEnum get_type() const
+		{
+			return type;
+		}
+
+	  virtual void print_mips(std::ostream &dst, Context& context) const
+		{}
+};
+
+
+class Root : public Node
+{
+	protected:
+		std::vector<Node*>* translational_unit;
+	public:
+		Root(std::vector<Node*>* _translational_unit)
+		: translational_unit(_translational_unit) {}
+};
 
 #endif
