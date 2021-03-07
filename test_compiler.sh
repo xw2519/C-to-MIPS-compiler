@@ -1,43 +1,81 @@
-
 bin/compiler compiler_tests/functions/call_constant_external.c \
     > working/output/compiled.txt
 
+Black        0;30     Dark Gray     1;30
+Red          0;31     Light Red     1;31
+Green        0;32     Light Green   1;32
+Brown/Orange 0;33     Yellow        1;33
+Blue         0;34     Light Blue    1;34
+Purple       0;35     Light Purple  1;35
+Cyan         0;36     Light Cyan    1;36
+Light Gray   0;37     White         1;37
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+NC='\033[0m' # No Color
+
+
 #!/bin/bash
 
-echo "========================================="
-echo " Cleaning the temporaries and outputs"
-echo "========================================="
+echo "=================================================================================="
+echo "                      Cleaning the temporaries and outputs                        "
+echo "=================================================================================="
+
 make clean
 
-echo "========================================="
-echo " Compiling"
-echo "========================================="
+echo "=================================================================================="
+echo "                             Compiling test compiler                              "
+echo "=================================================================================="
+
 make all
+
+echo "=================================================================================="
+echo "                               Running test-bench                                 "
+echo "=================================================================================="
 
 COMPILER=bin/c_compiler
 
-input_dir="compiler_tests/basic/function_empty"
-output_dir="temp/"
-mkdir -p ${output_dir}
+# Specify directories
+INPUT_DIR="compiler_tests/integer"
+OUTPUT_DIR="temp"
+mkdir -p ${OUTPUT_DIR}
 
-# Compile test function with compiler under test 
-$COMPILER < compiler_tests/control_flow/while_multiple.c > add_driver.s 
+# Formatting
+FORMAT_PASS="%-5s %-20s ${GREEN} %-20s ${NC} %-5s \n"
+FORMAT_FAIL="%-5s %-20s ${RED} %-20s ${NC} %-5s \n"
 
-# Compile driver with normal GCC
-mips-linux-gnu-gcc -mfp32 -o add_driver.o -c add_driver.s
+for i in ${INPUT_DIR}/*_driver.c ; do
 
-# Link driver object and assembly into executable
-mips-linux-gnu-gcc -mfp32 -static -o EXEC add_driver.o compiler_tests/control_flow/while_multiple_driver.c
+    # Extract variables
+    INDEX=$((INDEX+1));  
+    TEST=$(basename $i _driver.c)
+    TEST_FILE=${INPUT_DIR}/${TEST}.c
 
-# Run the actual executable
-qemu-mips EXEC
+    # Compile test function with compiler under test 
+    ${COMPILER} < ${TEST_FILE} > ${OUTPUT_DIR}/${TEST}.s
 
-# Check result output
-ret=$?
-if [[ $ret -ne 0 ]]; then
-    echo "FAILED! Testcase returned $ret, but expected 0."
+    # Compile driver with normal GCC
+    mips-linux-gnu-gcc -mfp32 -o ${OUTPUT_DIR}/${TEST}.o -c ${OUTPUT_DIR}/${TEST}.s
 
-else
-    echo "PASSED!"
+    # Link driver object and assembly into executable
+    mips-linux-gnu-gcc -mfp32 -static -o ${OUTPUT_DIR}/${TEST}_qemu ${OUTPUT_DIR}/${TEST}.o ${INPUT_DIR}/${TEST}_driver.c
 
-fi
+    # Run the actual executable
+    qemu-mips ${OUTPUT_DIR}/${TEST}_qemu
+
+
+    # https://stackoverflow.com/questions/5947742/how-to-change-the-output-color-of-echo-in-linux
+    # https://stackoverflow.com/questions/26130909/bash-output-column-formatting
+
+    RETURN=$?
+    if [[ $ret -ne 0 ]]; then
+        RESULT="FAIL"
+        printf  "${FORMAT_FAIL}" $INDEX $TEST $RESULT $RETURN    
+    else
+        RESULT="PASS"
+        printf  "${FORMAT_PASS}" $INDEX $TEST $RESULT $RETURN    
+    fi
+
+done
+
+

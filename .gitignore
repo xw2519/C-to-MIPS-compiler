@@ -9,3 +9,4 @@ include/ast/ast_expression.hpp
 b.out
 add_driver.s
 EXEC
+temp/

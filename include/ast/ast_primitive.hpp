@@ -60,8 +60,8 @@ class Identifier : public Primitive // Local variables with constant
 			std::string destination_register = "v0";
 			variable compile_variable = context.get_variable(variable_name);
 
-			std::cerr << variable_name << std::endl;
-			std::cerr << compile_variable.get_variable_address() << std::endl;
+			// std::cerr << variable_name << std::endl;
+			// std::cerr << compile_variable.get_variable_address() << std::endl;
 		
 			dst << "\t" << "addiu" << "\t" << "$" << destination_register << ",$fp," << compile_variable.get_variable_address() << std::endl;
 

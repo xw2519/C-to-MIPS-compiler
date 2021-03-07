@@ -111,7 +111,7 @@ struct Context
 			register_counter++;
 			frame_pointer -= 8;
 
-			std::cerr << "FP update" << frame_pointer << std::endl;
+			// std::cerr << "FP update" << frame_pointer << std::endl;
 		}
 
 		void deallocate_stack()
