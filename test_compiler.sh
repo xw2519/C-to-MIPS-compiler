@@ -21,13 +21,13 @@ output_dir="temp/"
 mkdir -p ${output_dir}
 
 # Compile test function with compiler under test 
-$COMPILER < compiler_tests/integer/equal.c > add_driver.s 
+$COMPILER < compiler_tests/control_flow/if_true.c > add_driver.s 
 
 # Compile driver with normal GCC
 mips-linux-gnu-gcc -mfp32 -o add_driver.o -c add_driver.s
 
 # Link driver object and assembly into executable
-mips-linux-gnu-gcc -mfp32 -static -o EXEC add_driver.o compiler_tests/integer/equal_driver.c
+mips-linux-gnu-gcc -mfp32 -static -o EXEC add_driver.o compiler_tests/control_flow/if_true_driver.c
 
 # Run the actual executable
 qemu-mips EXEC

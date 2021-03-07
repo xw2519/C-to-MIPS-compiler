@@ -67,6 +67,29 @@ class Condition_If_Statement : public Statement
 		Condition_If_Statement (Expression* _condition_expression, Statement* _true_statement)
 		: condition_expression (_condition_expression), true_statement (_true_statement) {}
 
+		virtual void compile(std::ostream& dst, Context& context) const override
+		{
+			// Allocate temprorary registers
+			context.allocate_stack();
+			std::string temp_register_1 = "v0";
+			int frame_pointer_1 = context.get_frame_pointer();
+
+			// Execute the conditional statement
+			condition_expression->compile(dst, context);
+
+			// Deallocate
+			context.deallocate_stack();
+
+			// Handle conditional jumps
+			std::string return_label = context.make_label("IF_RETURN");
+			context.load_register(dst, temp_register_1, frame_pointer_1);
+
+			dst << "\t" << "beq " << "\t" << "$0" << ",$" << temp_register_1 << "," << return_label << std::endl;
+
+			true_statement->compile(dst, context);
+
+			dst << return_label << ":" << std::endl;
+		}
 };
 
 class Condition_If_Else_Statement : public Statement
@@ -122,7 +145,6 @@ class Jump_Statement : public Statement
 			// Check if there is an expression attached
 			if(expression != NULL)
 			{
-				dst << "# Return" << std::endl;
 				// Allocate 
 				context.allocate_stack();
 				int destination_address = context.get_frame_pointer();

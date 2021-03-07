@@ -20,9 +20,9 @@ class Constant : public Primitive
 
 		virtual void compile(std::ostream &dst, Context& context) const override
 		{
-			context.allocate_stack();
 			int frame_pointer = context.get_frame_pointer();
 			std::string destination_register = "v0";
+
 
 			dst << "\t" << "li" << "\t" << "$" << "v0" << ", " << value << std::endl;
 
