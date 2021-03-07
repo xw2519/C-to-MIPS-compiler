@@ -3,6 +3,7 @@
 
 #include "ast_node.hpp"
 
+
 /*
 $0	        $zero	    Hard-wired to 0 										(Not used for normal use)
 $1	        $at	        Reserved for pseudo-instructions						(Not used for normal use)
@@ -22,6 +23,7 @@ $8 	- $15				Temporary registers that can be overwritten by called procedures
 $16 - $23				Temporary registers but cannot be overwritten by procedures
 $24	- $25				Temporary registers
 */
+
 enum context_scope { GLOBAL, LOCAL };
 /* ------------------------------------ 			  				Typedef variables		 					------------------------------------ */
 
@@ -190,6 +192,13 @@ struct Context
 			return 1;
 		}
 
+		void add_identifier(std::string ident) {}
+		std::string typeid_to_type(std::string typeident) { return "no"; }
+		void add_enum(std::string ident, std::vector<Enumerator*>* enum_declrs) {}
+		void add_struct(std::string ident, std::vector<StructDeclaration*>* member_declrs) {}
+		void add_function(std::string type, std::string ident, Statement* statements) {}
+		std::string get_label_function(std::string ident) {}
+		std::string get_stack_size(std::string ident) {}
 };
 
 

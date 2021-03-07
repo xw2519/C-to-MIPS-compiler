@@ -9,6 +9,4 @@ int main ()
 
 	// Execute compiler
 	root->print_mips(std::cout, context);
-
-	return 0;
 }

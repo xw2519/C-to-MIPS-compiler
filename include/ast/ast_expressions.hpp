@@ -1,16 +1,7 @@
 #ifndef EXPRESSIONS
 #define EXPRESSIONS
-
-#include "ast_node.hpp"
-
-enum ExpressionEnum { DOT, ARROW, INCREMENT, DECREMENT, REFERENCE, DEREFERENCE, BITWISE_AND, BITWISE_OR, BITWISE_XOR,
-                      PLUS, MINUS, BITWISE_NOT, LOGICAL_NOT, SIZEOF, MULTIPLY, DIVIDE, MODULO, SHIFT_LEFT, SHIFT_RIGHT,
-                      LESS, GREATER, LESS_EQUAL, GREATER_EQUAL, EQUAL, NOT_EQUAL, ASSIGN, ADD_ASSIGN, SUB_ASSIGN, MUL_ASSIGN,
-                      DIV_ASSIGN, MOD_ASSIGN, SHIFT_LEFT_ASSIGN, SHIFT_RIGHT_ASSIGN, AND_ASSIGN, OR_ASSIGN, XOR_ASSIGN,
-                      INT, CHAR, UCHAR, UNSIGNED, FLOAT, DOUBLE, STRING_LITERAL, STRUCT };
-
-class Declaration;
 #include "ast_context.hpp"
+
 
 /* -------------------------------- Expression Base Class -------------------------------- */
 
@@ -22,6 +13,7 @@ protected:
 public:
     virtual ~Expression()
     {}
+    virtual double evaluate() const { return 0; }
     virtual std::string get_id() const =0;
     virtual void print(std::ostream &dst) const =0;
     virtual void mips_address(std::ostream &dst, Context &context, std::string destReg) const =0;
@@ -169,6 +161,11 @@ class Identifier : public Expression                           // complete
       }else{
         dst << "addiu " << destReg << ",$fp," << addr << std::endl;
       }
+    }
+
+    virtual void print_mips(std::ostream &dst, Context &context) const
+    {
+      context.add_identifier(value);
     }
 
 		virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const override
@@ -646,7 +643,7 @@ class MultiplicativeExpression : public Operator               // works with all
     }
 };
 
-class AdditiveExpression : public Operator                     // works with integral type, NEED TO FINISH
+class AdditiveExpression : public Operator                     // complete
 {
   protected:
     ExpressionEnum type;
@@ -681,11 +678,16 @@ class AdditiveExpression : public Operator                     // works with int
       std::string instr, freeReg;
       if(type==PLUS){ instr = "add"; }
       else{ instr = "sub"; }
-      if((context.get_type(left->get_id())==FLOAT) || (context.get_type(left->get_id())==DOUBLE)){ instr += ".s"; }
-      else{ instr += "u"; }
+      if(context.get_type(left->get_id())==FLOAT){ instr += ".s "; }
+      else if(context.get_type(left->get_id())==DOUBLE){ instr += ".d "; }
+      else{ instr += "u "; }
 
       if(context.get_type(left->get_id())==DOUBLE){
-        // do double
+        freeReg = context.alloc_reg(FLOAT,2);
+        left->print_mips(dst, context, destReg);
+        right->print_mips(dst, context, freeReg);
+        dst << instr << destReg << "," << destReg << "," << freeReg << std::endl;
+        context.dealloc_reg(freeReg,2);
       }else{
         if(context.get_type(left->get_id())==FLOAT){ freeReg = context.alloc_reg(FLOAT); }
         else{ freeReg = context.alloc_reg(INT); }
@@ -693,9 +695,7 @@ class AdditiveExpression : public Operator                     // works with int
         right->print_mips(dst, context, freeReg);
         dst << instr << destReg << "," << destReg << "," << freeReg << std::endl;
         if(context.get_type(left->get_id())==CHAR){
-          dst << "move " << freeReg << ",$0" << std::endl;
-          dst << "li " << freeReg << ",255" << std::endl;
-          dst << "and " << destReg << "," << freeReg << "," << destReg << std::endl;
+          dst << "andi " << destReg << "," << destReg << ",0x00ff" << std::endl;
         }
         context.dealloc_reg(freeReg);
       }
@@ -811,7 +811,7 @@ class RelationalExpression : public Operator                   // works with int
     }
 };
 
-class BitwiseExpression : public Operator                      // VERY WRONG, LOGICAL AND OP AND OR OP, NOT BITWISE
+class BitwiseExpression : public Operator                      // complete
 {
   protected:
     ExpressionEnum type;
@@ -847,11 +847,16 @@ class BitwiseExpression : public Operator                      // VERY WRONG, LO
       left->print_mips(dst, context, destReg);
       right->print_mips(dst, context, freeReg);
 
-      if(type==BITWISE_AND){ instr = "and "; }
-      else if(type==BITWISE_OR){ instr = "or "; }
-      else{ instr = "xor "; }
-
-      dst << instr << destReg << "," << freeReg << "," << destReg << std::endl;
+      if((type==LOGICAL_AND) || (type==LOGICAL_OR)){
+        dst << "sltu " << destReg << ",$0," << destReg << std::endl;
+        dst << "sltu " << freeReg << ",$0," << freeReg << std::endl;
+        dst << "and " << destReg << "," << destReg << "," << freeReg << std::endl;
+      }else{
+        if(type==BITWISE_AND){ instr = "and "; }
+        else if(type==BITWISE_OR){ instr = "or "; }
+        else{ instr = "xor "; }
+        dst << instr << destReg << "," << freeReg << "," << destReg << std::endl;
+      }
       context.dealloc_reg(freeReg);
     }
 };

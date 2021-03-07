@@ -23,6 +23,7 @@
   Pointer *point;
   StructSpecifier *struct_spec;
   EnumSpecifier *enum_spec;
+  FunnyClass *direct_declr;
 
   std::string *string;
 
@@ -39,11 +40,12 @@
   std::vector<Identifier*> *ident_list;
 }
 
-%type <node> ROOT external_declaration function_definition direct_declarator
+%type <node> ROOT external_declaration function_definition
 %type <expr> primary_expression postfix_expression unary_expression multiplicative_expression additive_expression shift_expression relational_expression
 equality_expression and_expression exclusive_or_expression inclusive_or_expression logical_and_expression assignment_expression constant_expression
 %type <stmt> statement labeled_statement compound_statement expression_statement selection_statement iteration_statement jump_statement
 
+%type <direct_declr> direct_declarator
 %type <enum_spec> enum_specifier
 %type <struct_spec> struct_specifier
 %type <point> pointer
@@ -65,7 +67,7 @@ equality_expression and_expression exclusive_or_expression inclusive_or_expressi
 %type <declrion_list> declaration_list
 %type <expr_list> argument_expression_list
 %type <stmt_list> statement_list
-%type <ident_list> identifier_list
+// %type <ident_list> identifier_list
 //parameter_list
 
 // Assignment Operators
@@ -121,8 +123,8 @@ type_specifier : T_CHAR                                                         
                | T_DOUBLE                                                                          { $$ = new PrimitiveType(D_DOUBLE); }
                | T_UNSIGNED                                                                        { $$ = new PrimitiveType(D_UNSIGNED); }
                | T_TYPEIDENTIFIER                                                                  { $$ = new PrimitiveType(TYPEID, *$1); }
-               | struct_specifier                                                                  { $$ = new PrimitiveType($1); }
-               | enum_specifier                                                                    { $$ = new PrimitiveType($1); }
+               | struct_specifier                                                                  { $$ = new PrimitiveType(STRUCTS, $1); }
+               | enum_specifier                                                                    { $$ = new PrimitiveType(ENUMS, $1); }
 
 init_declarator : declarator                                                                       { $$ = new InitDeclarator($1); }
                 | declarator T_ASSIGN initializer                                                  { $$ = new InitDeclarator($1, $3); }
@@ -142,7 +144,7 @@ declarator : pointer direct_declarator                                          
 pointer : T_MULTIPLY                                                                               { $$ = new Pointer(); }
         | T_MULTIPLY pointer                                                                       { $$ = new Pointer($2); }
 
-direct_declarator : T_IDENTIFIER                                                                   { $$ = new Identifier(*$1); }
+direct_declarator : T_IDENTIFIER                                                                   { $$ = new DeclarationIdentifier(*$1); }
                   | T_LBRACKET declarator T_RBRACKET                                               { $$ = $2; }
                   | direct_declarator T_SQUARE_LBRACKET constant_expression T_SQUARE_RBRACKET      { $$ = new ArrayDeclarator($1, $3); }
                   | direct_declarator T_SQUARE_LBRACKET T_SQUARE_RBRACKET                          { $$ = new ArrayDeclarator($1); }
@@ -152,10 +154,10 @@ direct_declarator : T_IDENTIFIER                                                
 /*
                   | direct_declarator T_LBRACKET parameter_list T_RBRACKET                         { $$ = FunctionDeclarator($1, $3); }
                   | direct_declarator T_LBRACKET identifier_list T_RBRACKET                        { $$ = new FunctionDeclarator($1, $3); }
-*/
+
 identifier_list : T_IDENTIFIER                                                                     { $$ = new std::vector<Identifier*>; $$->push_back(new Identifier(*$1)); }
                 | identifier_list T_COMMA T_IDENTIFIER                                             { $1->push_back(new Identifier(*$3)); $$ = $1; }
-/*
+
 parameter_list : parameter_declaration                                                             { $$ = new std::vector<ParameterDeclaration*>{$1}; }
                | parameter_list T_COMMA parameter_declaration                                      { $1->push_back($3); $$ = $1; }
 */
@@ -190,7 +192,6 @@ enumerator_list : enumerator                                                    
 
 enumerator : T_IDENTIFIER                                                                          { $$ = new Enumerator(*$1); }
            | T_IDENTIFIER T_ASSIGN constant_expression                                             { $$ = new Enumerator(*$1, $3); }
-
 
 /* idk
 type_name : specifier_qualifier_list                                                               { $$ = new TypeName($1); }
@@ -252,7 +253,6 @@ jump_statement : T_CONTINUE T_SEMICOLON                                         
                | T_BREAK T_SEMICOLON                                                               { $$ = new JumpStatement(BREAK); }
                | T_RETURN T_SEMICOLON                                                              { $$ = new ReturnStatement(); }
                | T_RETURN assignment_expression T_SEMICOLON                                        { $$ = new ReturnStatement($2); }
-
 
 /* Expressions */
 primary_expression : T_IDENTIFIER                                                                  { $$ = new Identifier(*$1); }
@@ -319,10 +319,10 @@ inclusive_or_expression : exclusive_or_expression                               
                        | inclusive_or_expression T_BITWISE_OR exclusive_or_expression              { $$ = new BitwiseExpression(BITWISE_OR, $1, $3); }
 
 logical_and_expression : inclusive_or_expression                                                   { $$ = $1; }
-                      | logical_and_expression T_LOGICAL_AND inclusive_or_expression               { $$ = new BitwiseExpression(BITWISE_AND, $1, $3); }
+                      | logical_and_expression T_LOGICAL_AND inclusive_or_expression               { $$ = new BitwiseExpression(LOGICAL_AND, $1, $3); }
 
 constant_expression : logical_and_expression                                                       { $$ = $1; }
-                   | constant_expression T_LOGICAL_OR logical_and_expression                       { $$ = new BitwiseExpression(BITWISE_OR, $1, $3); }
+                   | constant_expression T_LOGICAL_OR logical_and_expression                       { $$ = new BitwiseExpression(LOGICAL_OR, $1, $3); }
 
 assignment_expression : constant_expression                                                        { $$ = $1; }
                      | unary_expression T_ASSIGN assignment_expression                             { $$ = new AssignmentExpression(ASSIGN, $1, $3); }
