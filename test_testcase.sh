@@ -4,33 +4,40 @@ bin/compiler compiler_tests/functions/call_constant_external.c \
 
 #!/bin/bash
 
-echo "========================================="
-echo " Cleaning the temporaries and outputs"
-echo "========================================="
+echo "=================================================================================="
+echo "                   Cleaning the temporaries and outputs                           "
+echo "=================================================================================="
+
 make clean
 
-echo "========================================="
-echo " Compiling"
-echo "========================================="
+echo "=================================================================================="
+echo "                               Compiling                                          "
+echo "=================================================================================="
+
 make all
+
+echo "=================================================================================="
+echo "                              Running test                                        "
+echo "=================================================================================="
 
 COMPILER=bin/c_compiler
 
-input_dir="compiler_tests/local_var/"
+input_dir="compiler_tests/control_flow/if_else_true"
 output_dir="temp/"
+rm -r ${output_dir}
 mkdir -p ${output_dir}
 
 # Compile test function with compiler under test 
-$COMPILER < ${input_dir}/while_multiple.c > constant_initialiser.s 
+$COMPILER < ${input_dir}.c > ${output_dir}assembly.s 
 
 # Compile driver with normal GCC
-mips-linux-gnu-gcc -mfp32 -o add_driver.o -c add_driver.s
+mips-linux-gnu-gcc -mfp32 -o ${output_dir}object_file.o -c ${output_dir}assembly.s
 
 # Link driver object and assembly into executable
-mips-linux-gnu-gcc -mfp32 -static -o EXEC add_driver.o ${input_dir}/constant_initialiser_driver.c
+mips-linux-gnu-gcc -mfp32 -static -o ${output_dir}EXEC ${output_dir}object_file.o ${input_dir}_driver.c
 
 # Run the actual executable
-qemu-mips EXEC
+qemu-mips ${output_dir}EXEC
 
 # Check result output
 ret=$?

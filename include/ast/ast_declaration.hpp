@@ -69,18 +69,21 @@ class Variable_Declarator : public Declarator
 		{
 			variable declared_variable = context.new_variable(variable_name, declarator_type, NORMAL);
 
-			// Allocate temporary registers
-			context.allocate_stack();
-			int frame_pointer_1 = context.get_frame_pointer();
-			std::string temp_register_1 = "t0";
-			
-			expressions->compile(dst, context);
+			if(context.get_context_scope() == LOCAL)
+			{
+				// Allocate temporary registers
+				context.allocate_stack();
+				int frame_pointer_1 = context.get_frame_pointer();
+				std::string temp_register_1 = "t0";
+				
+				expressions->compile(dst, context);
 
-			// Deallocate
-			context.deallocate_stack();
+				// Deallocate
+				context.deallocate_stack();
 
-			context.load_register(dst, temp_register_1, frame_pointer_1);
-			context.output_store_operation(dst, declarator_type, temp_register_1, "fp", declared_variable.get_variable_address());
+				context.load_register(dst, temp_register_1, frame_pointer_1);
+				context.output_store_operation(dst, declarator_type, temp_register_1, "fp", declared_variable.get_variable_address());
+			}
 		}
 };
 
@@ -175,7 +178,7 @@ class Function_Definition : public External_Declaration // Very basic
 		{
 			/* -------------------------------- 		  Function preparation 			-------------------------------- */
 
-			context.expand_variable_scope();
+			context.expand_context_scope();
 			context.set_LOCAL();
 
 			// Handle function return 
@@ -201,8 +204,8 @@ class Function_Definition : public External_Declaration // Very basic
 			dst << "# ------------ Allocate stack frame ------------ #" << std::endl; // Allocate basic stack size before adjustment
 			dst << std::endl;
 
-			dst << "\t" << "sw"    << "\t" << "$31,"	   << "-8"  << "($sp)" << std::endl;
-			dst << "\t" << "sw"    << "\t" << "$fp,"	   << "-16" << "($sp)" << std::endl;
+			dst << "\t" << "sw"    << "\t" << "\t" << "$31,"	   << "-8"  << "($sp)" << std::endl;
+			dst << "\t" << "sw"    << "\t" << "\t" << "$fp,"	   << "-16" << "($sp)" << std::endl;
 			dst << "\t" << "addiu" << "\t" << "$sp,$sp,"   << "-16" << std::endl; 
 			dst << "\t" << "move"  << "\t" << "$fp,$sp"    << std::endl;
 
@@ -238,7 +241,8 @@ class Function_Definition : public External_Declaration // Very basic
             	dst << "\t" << "move" << "\t" << "$2, $0" << std::endl; 
         	}
 			
-			dst << "\t" << context.get_function_return_label() << ":" << std::endl; 
+			dst << std::endl;
+			dst << context.get_function_return_label() << ":" << std::endl; 
 
 			dst << std::endl;		
 			dst << "# ------------ Deallocate stack frame ------------ #" << std::endl;
@@ -246,15 +250,16 @@ class Function_Definition : public External_Declaration // Very basic
 
 			dst << "\t" << "move"  << "\t" << "$sp, $fp"  << std::endl; 
 			dst << "\t" << "addiu" << "\t" << "$sp, $sp," << "16" << std::endl; 
-			dst << "\t" << "lw"    << "\t" << "$fp," << "-16" << "($sp)" << std::endl;
-			dst << "\t" << "lw"    << "\t" << "$ra," << "-8" << "($sp)" << std::endl;
-			dst << "\t" << "j" 	   << "\t" << "$31"  << std::endl;
+			dst << "\t" << "lw"    << "\t" << "\t" << "$fp," << "-16" << "($sp)" << std::endl;
+			dst << "\t" << "lw"    << "\t" << "\t" << "$ra," << "-8" << "($sp)" << std::endl;
+			dst << "\t" << "j" 	   << "\t" << "\t" << "$31"  << std::endl;
 
 			dst << std::endl;
 			dst << "# ------------ Closing directives ------------ #" << std::endl;
+			dst << std::endl;
 			dst << "\t" << ".end" << "\t" << ID << std::endl;
 
-			context.shrink_variable_scope();
+			context.shrink_context_scope();
 			context.set_GLOBAL();
 		}
 };

@@ -113,7 +113,7 @@ class Direct_Assignment : public Assignment_Expression
 			context.output_store_operation(dst, operator_type, temp_register_1, destination_register, 0);
 
 			// Output Direct Assignment operation
-			dst << "\t" << "move" << "\t" << "$" << destination_register << ",$" << temp_register_1 << std::endl;
+			dst << "\t" << "move" << "\t" << "\t" << "$" << destination_register << ",$" << temp_register_1 << std::endl;
 
 			// Store results
 			context.store_register(dst, destination_register, frame_pointer_1);
@@ -173,7 +173,7 @@ class Add_Expression : public Operator
 
 		virtual void execute(std::ostream &dst, Context& context, type type, std::string destination_register, std::string temprorary_register) const override
 		{
-			dst << "\t" << "addu" << "\t" << "$" << destination_register << ",$" << destination_register << ",$" << temprorary_register << std::endl;
+			dst << "\t" << "addu" << "\t" << "\t" << "$" << destination_register << ",$" << destination_register << ",$" << temprorary_register << std::endl;
 		}
 };
 
@@ -184,7 +184,7 @@ class Sub_Expression : public Operator
 
 		virtual void execute(std::ostream &dst, Context& context, type type, std::string destination_register, std::string temprorary_register) const override
 		{
-			dst << "\t" << "subu" << "\t" << "$" << destination_register << ",$" << destination_register << ",$" << temprorary_register << std::endl;
+			dst << "\t" << "subu" << "\t" << "\t" << "$" << destination_register << ",$" << destination_register << ",$" << temprorary_register << std::endl;
 		}	
 };
 
@@ -197,8 +197,8 @@ class Multiply_Expression : public Operator
 		{
 			// https://stackoverflow.com/questions/16050338/mips-integer-multiplication-and-division
 
-			dst << "\t" << "multu" << "\t" << "$" << destination_register << ",$" << temprorary_register << std::endl;
-			dst << "\t" << "mflo" << "\t" << "$" << destination_register << std::endl;
+			dst << "\t" << "multu" << "\t" << "\t"  << "$" << destination_register << ",$" << temprorary_register << std::endl;
+			dst << "\t" << "mflo" << "\t" << "\t"  << "$" << destination_register << std::endl;
 		}	
 
 };
@@ -212,9 +212,9 @@ class Divide_Expression : public Operator
 		{
 			// https://stackoverflow.com/questions/16050338/mips-integer-multiplication-and-division
 
-			dst << "\t" << "divu" << "\t" << "$" << destination_register << ",$" << destination_register << ",$" << temprorary_register << std::endl;
-			dst << "\t" << "mfhi" << "\t" << "$" << destination_register << std::endl;
-			dst << "\t" << "mflo" << "\t" << "$" << destination_register << std::endl;
+			dst << "\t" << "divu" << "\t" << "\t" << "$" << destination_register << ",$" << destination_register << ",$" << temprorary_register << std::endl;
+			dst << "\t" << "mfhi" << "\t" << "\t" << "$" << destination_register << std::endl;
+			dst << "\t" << "mflo" << "\t" << "\t" << "$" << destination_register << std::endl;
 		}	
 };
 
@@ -229,7 +229,7 @@ class Less_Than_Expression : public Operator
 		{
 			// https://www.cs.tufts.edu/comp/140/lectures/Day_3/mips_summary.pdf
 
-			dst << "\t" << "slt " << "\t" << "$" << destination_register << ",$" << destination_register << ",$" << temprorary_register << std::endl;
+			dst << "\t" << "slt " << "\t" << "\t" << "$" << destination_register << ",$" << destination_register << ",$" << temprorary_register << std::endl;
 		}	
 };
 
@@ -242,7 +242,7 @@ class More_Than_Expression : public Operator
 		{
 			// https://www.cs.tufts.edu/comp/140/lectures/Day_3/mips_summary.pdf
 
-			dst << "\t" << "slt " << "\t" << "$" << destination_register << ",$" << temprorary_register << ",$" << destination_register << std::endl;
+			dst << "\t" << "slt " << "\t" << "\t" << "$" << destination_register << ",$" << temprorary_register << ",$" << destination_register << std::endl;
 		}
 };
 
@@ -255,9 +255,9 @@ class Less_Than_Equal_Expression : public Operator
 		{
 			// https://www.cs.tufts.edu/comp/140/lectures/Day_3/mips_summary.pdf
 
-			dst << "\t" << "slt "  << "\t" << "$" << destination_register << ",$" << temprorary_register << ",$" << destination_register << std::endl;
-			dst << "\t" << "xori " << "\t" << "$" << destination_register << ",$" << destination_register << "," << 0x1 << std::endl;
-			dst << "\t" << "andi " << "\t" << "$" << destination_register << ",$" << destination_register << "," << 0x00ff << std::endl;
+			dst << "\t" << "slt "  << "\t" << "\t" << "$" << destination_register << ",$" << temprorary_register << ",$" << destination_register << std::endl;
+			dst << "\t" << "xori " << "\t" << "\t" << "$" << destination_register << ",$" << destination_register << "," << 0x1 << std::endl;
+			dst << "\t" << "andi " << "\t" << "\t" << "$" << destination_register << ",$" << destination_register << "," << 0x00ff << std::endl;
 		}	
 };
 
@@ -270,8 +270,8 @@ class More_Than_Equal_Expression : public Operator
 		{
 			// https://www.cs.tufts.edu/comp/140/lectures/Day_3/mips_summary.pdf
 
-			dst << "\t" << "slt "  << "\t" << "$" << destination_register << ",$" << temprorary_register << ",$" << destination_register << std::endl;
-			dst << "\t" << "xori " << "\t" << "$" << destination_register << ",$" << destination_register << "," << 0x1 << std::endl;
+			dst << "\t" << "slt "  << "\t" << "\t" << "$" << destination_register << ",$" << temprorary_register << ",$" << destination_register << std::endl;
+			dst << "\t" << "xori " << "\t" << "\t" << "$" << destination_register << ",$" << destination_register << "," << 0x1 << std::endl;
 		}
 };
 
@@ -283,8 +283,8 @@ class Equal_Expression : public Operator
 		virtual void execute(std::ostream &dst, Context& context, type type, std::string destination_register, std::string temprorary_register) const override
 		{
 
-			dst << "\t" << "xor " << "\t" << "$" << destination_register << ",$" << destination_register << ",$" << temprorary_register << std::endl;
-			dst << "\t" << "sltiu " << "\t" << "$" << destination_register << ",$" << destination_register << "," << 1 << std::endl;
+			dst << "\t" << "xor " << "\t" << "\t" << "$" << destination_register << ",$" << destination_register << ",$" << temprorary_register << std::endl;
+			dst << "\t" << "sltiu " << "\t" << "\t" << "$" << destination_register << ",$" << destination_register << "," << 1 << std::endl;
 		}	
 };
 
@@ -296,8 +296,8 @@ class Not_Equal_Expression : public Operator
 		virtual void execute(std::ostream &dst, Context& context, type type, std::string destination_register, std::string temprorary_register) const override
 		{
 			
-			dst << "\t" << "xor " << "\t" << "$" << destination_register << ",$" << destination_register << ",$" << temprorary_register << std::endl;
-			dst << "\t" << "sltu " << "\t" << "$" << destination_register << ",$0" << ",$" << destination_register << std::endl;
+			dst << "\t" << "xor " << "\t" << "\t" << "$" << destination_register << ",$" << destination_register << ",$" << temprorary_register << std::endl;
+			dst << "\t" << "sltu " << "\t" << "\t" << "$" << destination_register << ",$0" << ",$" << destination_register << std::endl;
 		}	
 };
 
@@ -312,7 +312,7 @@ class Bitwise_AND_Expression : public Operator
 		{
 			// https://www.cs.tufts.edu/comp/140/lectures/Day_3/mips_summary.pdf
 
-			dst << "\t" << "and " << "\t" << "$" << destination_register << ",$" << destination_register << ",$" << temprorary_register << std::endl;
+			dst << "\t" << "and " << "\t" << "\t" << "$" << destination_register << ",$" << destination_register << ",$" << temprorary_register << std::endl;
 		}	
 };
 
@@ -325,7 +325,7 @@ class Bitwise_OR_Expression : public Operator
 		{
 			// https://www.cs.tufts.edu/comp/140/lectures/Day_3/mips_summary.pdf
 
-			dst << "\t" << "or " << "\t" << "$" << destination_register << ",$" << destination_register << ",$" << temprorary_register << std::endl;
+			dst << "\t" << "or " << "\t" << "\t" << "$" << destination_register << ",$" << destination_register << ",$" << temprorary_register << std::endl;
 		}	
 };
 
@@ -338,7 +338,7 @@ class Bitwise_XOR_Expression : public Operator
 		{
 			// https://www.cs.tufts.edu/comp/140/lectures/Day_3/mips_summary.pdf
 
-			dst << "\t" << "xor " << "\t" << "$" << destination_register << ",$" << destination_register << ",$" << temprorary_register << std::endl;
+			dst << "\t" << "xor " << "\t" << "\t" << "$" << destination_register << ",$" << destination_register << ",$" << temprorary_register << std::endl;
 		}	
 };
 
@@ -361,7 +361,7 @@ class Logical_AND_Expression : public Operator
 			left->compile(dst, context);
 			context.load_register(dst, destination_name, destination_address);
 
-			dst << "\t" << "beq " << "\t" << "$" << destination_register << ",$" << 0 << "," << return_label << std::endl;
+			dst << "\t" << "beq " << "\t" << "\t" << "$" << destination_register << ",$" << 0 << "," << return_label << std::endl;
 			
 			context.allocate_stack();
 			int frame_pointer_temp_reg = context.get_frame_pointer();
@@ -372,10 +372,10 @@ class Logical_AND_Expression : public Operator
 			context.load_register(dst, temp_register_1, frame_pointer_temp_reg);
 			context.deallocate_stack();
 
-			dst << "\t" << "move " << "\t" << "$" << destination_register << ",$" << 0 << std::endl;
-			dst << "\t" << "beq " << "\t" << "$" << temp_register_1 << ",$" << 0 << "," << return_label << std::endl;
+			dst << "\t" << "move " << "\t" << "\t" << "$" << destination_register << ",$" << 0 << std::endl;
+			dst << "\t" << "beq " << "\t" << "\t" << "$" << temp_register_1 << ",$" << 0 << "," << return_label << std::endl;
 
-			dst << "\t" << "addiu " << "\t" << "$" << destination_register << ",$" << 0 << "," << 1 << std::endl;
+			dst << "\t" << "addiu " << "\t" << "\t" << "$" << destination_register << ",$" << 0 << "," << 1 << std::endl;
 
 			context.store_register(dst, destination_name, destination_address);
 		}
@@ -399,7 +399,7 @@ class Logical_OR_Expression : public Operator
 			left->compile(dst, context);
 			context.load_register(dst, destination_name, destination_address);
 
-			dst << "\t" << "bne " << "\t" << "$" << destination_register << ",$" << 0 << "," << return_label_1 << std::endl;
+			dst << "\t" << "bne " << "\t" << "\t" << "$" << destination_register << ",$" << 0 << "," << return_label_1 << std::endl;
 			
 			context.allocate_stack();
 			int frame_pointer_temp_reg = context.get_frame_pointer();

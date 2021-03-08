@@ -21,9 +21,7 @@ class Expression_Statement : public Statement
 				expression->compile(dst, context);
 				context.deallocate_stack();
 			}
-
 		}
-
 };
 
 class Compound_Statement : public Statement
@@ -38,6 +36,7 @@ class Compound_Statement : public Statement
 
 		virtual void compile(std::ostream& dst, Context& context) const override
 		{
+			context.expand_context_scope();
 
 			if (declaration_list != NULL)
 			{
@@ -54,6 +53,8 @@ class Compound_Statement : public Statement
 					(*statement)->compile(dst, context);
 				}
 			}
+
+			context.shrink_context_scope();
 		}
 };
 
@@ -81,14 +82,14 @@ class Condition_If_Statement : public Statement
 			context.deallocate_stack();
 
 			// Handle conditional jumps
-			std::string return_label = context.make_label("IF_RETURN");
+			std::string if_return_label = context.make_label("IF_RETURN");
 			context.load_register(dst, temp_register_1, frame_pointer_1);
 
-			dst << "\t" << "beq " << "\t" << "$0" << ",$" << temp_register_1 << "," << return_label << std::endl;
+			dst << "\t" << "beq " << "\t" << "$0" << ",$" << temp_register_1 << "," << if_return_label << std::endl;
 
 			true_statement->compile(dst, context);
 
-			dst << return_label << ":" << std::endl;
+			dst << if_return_label << ":" << std::endl;
 		}
 };
 
@@ -102,6 +103,40 @@ class Condition_If_Else_Statement : public Statement
 	public:
 		Condition_If_Else_Statement (Expression* _condition_expression, Statement* _true_statement, Statement* _false_statement)
 		: condition_expression (_condition_expression), true_statement (_true_statement), false_statement (_false_statement) {}
+
+		virtual void compile(std::ostream& dst, Context& context) const override
+		{
+			// Allocate temporary registers
+			context.allocate_stack();
+			std::string temp_register_1 = "v0";
+			int frame_pointer_1 = context.get_frame_pointer();
+
+			// Execute the conditional statement
+			condition_expression->compile(dst, context);
+			context.load_register(dst, temp_register_1, frame_pointer_1);
+
+			// Deallocate
+			context.deallocate_stack();
+
+			// Handle conditional jumps
+			std::string if_return_label = context.make_label("IF_RETURN");
+			std::string else_return_label = context.make_label("ELSE_RETURN");
+
+			dst << "\t" << "beq " << "\t" << "$0" << ",$" << temp_register_1 << "," << if_return_label << std::endl;
+
+			true_statement->compile(dst, context);
+
+			dst << "\t" << "b " << "\t" << "\t" << else_return_label << std::endl;
+
+			dst << std::endl;
+			dst << if_return_label << ":" << std::endl;
+
+			false_statement->compile(dst, context);
+
+			dst << std::endl;
+			dst << else_return_label << ":" << std::endl;
+
+		}
 
 };
 
@@ -139,7 +174,7 @@ class While_Statement : public Statement
 
 			true_statement->compile(dst, context);
 
-			dst << "\t" << "b " << "\t" << START_label << std::endl;
+			dst << "\t" << "b " << "\t"  << "\t" << START_label << std::endl;
 			dst << "\t" << FINISH_label << ":" << std::endl;
 		}
 
@@ -187,10 +222,10 @@ class Jump_Statement : public Statement
 				std::string destination_register = "v0";
 				context.load_register(dst, destination_register, destination_address);
 				
-				dst << "\t" << "move" << "\t" << "$v0" << ",$" << destination_register << std::endl;
+				// dst << "\t" << "move" << "\t" << "$v0" << ",$" << destination_register << std::endl;
 
 				// Branch 
-				dst << "\t" << "b " << context.get_function_return_label() << std::endl;
+				dst << "\t" << "b " << "\t"  << "\t" << context.get_function_return_label() << std::endl;
 			}
 		}
 

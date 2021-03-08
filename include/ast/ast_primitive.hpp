@@ -24,7 +24,7 @@ class Constant : public Primitive
 			std::string destination_register = "v0";
 
 
-			dst << "\t" << "li" << "\t" << "$" << "v0" << ", " << value << std::endl;
+			dst << "\t" << "li" << "\t" << "\t" << "$" << "v0" << ", " << value << std::endl;
 
 			context.store_register(dst, destination_register, frame_pointer);	
 		}

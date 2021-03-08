@@ -38,6 +38,7 @@ COMPILER=bin/c_compiler
 # Specify directories
 INPUT_DIR="compiler_tests/local_var"
 OUTPUT_DIR="temp"
+rm -r ${output_dir}
 mkdir -p ${OUTPUT_DIR}
 
 # Formatting
