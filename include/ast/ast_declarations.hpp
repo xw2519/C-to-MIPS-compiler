@@ -442,7 +442,11 @@ class FunctionDefinition : public FunnyClass                   // complete
       std::string label = declr->get_id();
       int stack_size = context.get_stack_size(declr->get_id());
 
-      dst << label << ":" << std::endl;
+      dst << ".text" << std::endl;
+      dst << ".globl " << label << std::endl;
+      dst << ".ent " << label << std::endl;
+      dst << ".type " << label << ", @function" << std::endl;
+      dst << std::endl << label << ":" << std::endl;
       dst << "addiu $sp,$sp,-" << stack_size << std::endl;
       dst << "sw $31," << std::to_string(stack_size-4) << "($sp)" << std::endl;
       dst << "sw $fp," << std::to_string(stack_size-8) << "($sp)" << std::endl;
@@ -457,6 +461,7 @@ class FunctionDefinition : public FunnyClass                   // complete
       dst << "addiu $sp,$sp," << stack_size << std::endl;
       dst << "j $31" << std::endl;
       dst << "nop" << std::endl;
+      dst << std::endl << ".end " << label << std::endl;
     }
 };
 

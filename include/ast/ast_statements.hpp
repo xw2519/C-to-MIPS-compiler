@@ -82,7 +82,7 @@ class IfStatement : public Statement                           // should handle 
       dst << "beq " << destReg << ",$0," << label << std::endl;
       dst << "nop" << std::endl;
       statement->print_mips(dst, context);
-      dst << label << ":" << std::endl;
+      dst << std::endl << label << ":" << std::endl;
 
       context.dealloc_reg(destReg, total_regs);
     }
@@ -119,9 +119,9 @@ class ElseStatement : public Statement                         // should handle 
       true_statement->print_mips(dst, context);
       dst << "b " << true_label << std::endl;
       dst << "nop" << std::endl;
-      dst << false_label << ":" << std::endl;
+      dst << std::endl << false_label << ":" << std::endl;
       false_statement->print_mips(dst, context);
-      dst << true_label << ":" << std::endl;
+      dst << std::endl << true_label << ":" << std::endl;
 
       context.dealloc_reg(destReg, total_regs);
     }
