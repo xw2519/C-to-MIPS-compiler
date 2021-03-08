@@ -472,13 +472,13 @@ class UnaryExpression : public Expression                      // complete
 {
 	protected:
 		Expression* expr;
-    Declaration* declr;
+    PrimitiveType* declr;
     ExpressionEnum type;
 	public:
 		UnaryExpression(ExpressionEnum _type, Expression* _expr)
     : type(_type)
     , expr(_expr) {}
-    UnaryExpression(ExpressionEnum _type, Declaration* _declr)
+    UnaryExpression(ExpressionEnum _type, PrimitiveType* _declr)
     : type(_type)
     , declr(_declr) {}
 

@@ -19,6 +19,7 @@ class StructDeclaration;
 class Expression;
 class Statement;
 class Declaration;
+class PrimitiveType;
 
 enum ExpressionEnum { DOT, ARROW, INCREMENT, DECREMENT, REFERENCE, DEREFERENCE, BITWISE_AND, BITWISE_OR, BITWISE_XOR,
                       PLUS, MINUS, BITWISE_NOT, LOGICAL_NOT, SIZEOF, MULTIPLY, DIVIDE, MODULO, SHIFT_LEFT, SHIFT_RIGHT,

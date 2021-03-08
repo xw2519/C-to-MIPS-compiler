@@ -331,13 +331,51 @@ class StructDeclaration : public FunnyClass
 		virtual void print_mips(std::ostream &dst, Context& context) const override {}
 };
 
+class ParameterDeclaration : public FunnyClass
+{
+  protected:
+    PrimitiveType* type;
+    Declarator* declr;
+  public:
+    ParameterDeclaration(std::vector<PrimitiveType*>* _type, Declarator* _declr) : declr(_declr)
+    {
+      if(_type->size()==1){
+        type = _type->at(0);
+      }else{
+        type = new PrimitiveType(_type->at(0), _type->at(1));
+      }
+      delete _type;
+    }
+
+    virtual std::string get_type() const
+    {
+      return type->get_id();
+    }
+
+    virtual std::string get_id() const override
+    {
+      return declr->get_id();
+    }
+
+		virtual void print(std::ostream &dst) const override
+    {
+      declr->print(dst);
+    }
+
+		virtual void print_mips(std::ostream &dst, Context& context) const override
+    {}
+};
+
 class FunctionDeclarator : public FunnyClass
 {
 	protected:
 		FunnyClass* declr;
+    std::vector<ParameterDeclaration*>* param_declrs;
 	public:
 		FunctionDeclarator(FunnyClass* _declr)
 		: declr(_declr) {}
+    FunctionDeclarator(FunnyClass* _declr, std::vector<ParameterDeclaration*>* _param_declrs)
+		: declr(_declr), param_declrs(_param_declrs) {}
 
     virtual std::string get_id() const
     {
@@ -349,7 +387,16 @@ class FunctionDeclarator : public FunnyClass
 
 		virtual void print_mips(std::ostream &dst, Context& context) const override
     {
-      context.declare_function(declr->get_id());
+      std::vector<std::string> types, idents;
+      if(param_declrs){
+        for(int i=0; i<param_declrs->size(); i++){
+          types.push_back((param_declrs->at(i))->get_type());
+          idents.push_back((param_declrs->at(i))->get_id());
+        }
+        context.declare_function(declr->get_id(), types, idents);
+      }else{
+        context.declare_function(declr->get_id());
+      }
     }
 };
 
@@ -390,7 +437,8 @@ class FunctionDefinition : public FunnyClass                   // complete
 
 		virtual void print_mips(std::ostream &dst, Context& context) const override
     {
-      context.add_function(return_type->get_id(), declr->get_id(), statement);
+      declr->print_mips(dst, context);
+      context.add_function(return_type->get_id(), declr->get_id());
       std::string label = declr->get_id();
       int stack_size = context.get_stack_size(declr->get_id());
 

@@ -106,7 +106,7 @@ OCT                     [0-7]
 {D}*\.{D}+([Ee][+-]?{D}+)?[Ff]?    { yylval.string = new std::string(yytext); return (T_FLOAT_CONSTANT); }              // Floating constants
 {D}+([Ee][+-]?{D}+)[Ff]?           { yylval.string = new std::string(yytext); return (T_FLOAT_CONSTANT); }
 
-[1-9]{D}*[Uu]?                    { yylval.string = new std::string(yytext); fprintf(stdout, "yeaaaaaahs\n"); return (T_CONSTANT); }              // Integer constants
+[1-9]{D}*[Uu]?                    { yylval.string = new std::string(yytext); return (T_CONSTANT); }              // Integer constants
 [0]{OCT}*[Uu]?                     { yylval.string = new std::string(yytext); return (T_CONSTANT); }
 [0][Xx]{HEX}+[Uu]?                 { yylval.string = new std::string(yytext); return (T_CONSTANT); }
 

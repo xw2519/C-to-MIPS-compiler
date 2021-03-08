@@ -24,6 +24,7 @@
   StructSpecifier *struct_spec;
   EnumSpecifier *enum_spec;
   FunnyClass *direct_declr;
+  ParameterDeclaration *param_declrion;
 
   std::string *string;
 
@@ -37,7 +38,7 @@
   std::vector<Declaration*> *declrion_list;
   std::vector<Expression*> *expr_list;
   std::vector<Statement*> *stmt_list;
-  std::vector<Identifier*> *ident_list;
+  std::vector<ParameterDeclaration*> *param_declrion_list;
 }
 
 %type <node> ROOT external_declaration function_definition
@@ -49,14 +50,15 @@ equality_expression and_expression exclusive_or_expression inclusive_or_expressi
 %type <enum_spec> enum_specifier
 %type <struct_spec> struct_specifier
 %type <point> pointer
-%type <prim_type> type_specifier specifier_qualifier_list
+%type <prim_type> type_specifier specifier_qualifier_list type_name
 %type <init_declatator> init_declarator
 %type <init> initializer
 %type <enum_t> enumerator
 %type <struct_declr> struct_declaration
-%type <declr> declarator struct_declarator
+%type <declr> declarator
 %type <declrion> declaration
-// type_name abstract_declarator direct_abstract_declarator parameter_declaration
+%type <param_declrion> parameter_declaration
+// abstract_declarator direct_abstract_declarator
 %type <node_list> translation_unit
 %type <type_list> declaration_specifiers
 %type <init_declatator_list> init_declarator_list
@@ -67,8 +69,7 @@ equality_expression and_expression exclusive_or_expression inclusive_or_expressi
 %type <declrion_list> declaration_list
 %type <expr_list> argument_expression_list
 %type <stmt_list> statement_list
-// %type <ident_list> identifier_list
-//parameter_list
+%type <param_declrion_list> parameter_list
 
 // Assignment Operators
 %token T_ASSIGN T_ADD_ASSIGN T_SUB_ASSIGN T_MUL_ASSIGN T_DIV_ASSIGN T_MOD_ASSIGN T_INCREMENT T_DECREMENT
@@ -150,19 +151,12 @@ direct_declarator : T_IDENTIFIER                                                
                   | T_LBRACKET declarator T_RBRACKET                                               { $$ = $2; }
                   | direct_declarator T_SQUARE_LBRACKET constant_expression T_SQUARE_RBRACKET      { $$ = new ArrayDeclarator($1, $3); }
                   | direct_declarator T_SQUARE_LBRACKET T_SQUARE_RBRACKET                          { $$ = new ArrayDeclarator($1); }
-
-
                   | direct_declarator T_LBRACKET T_RBRACKET                                        { $$ = new FunctionDeclarator($1); }
-/*
-                  | direct_declarator T_LBRACKET parameter_list T_RBRACKET                         { $$ = FunctionDeclarator($1, $3); }
-                  | direct_declarator T_LBRACKET identifier_list T_RBRACKET                        { $$ = new FunctionDeclarator($1, $3); }
-
-identifier_list : T_IDENTIFIER                                                                     { $$ = new std::vector<Identifier*>; $$->push_back(new Identifier(*$1)); }
-                | identifier_list T_COMMA T_IDENTIFIER                                             { $1->push_back(new Identifier(*$3)); $$ = $1; }
+                  | direct_declarator T_LBRACKET parameter_list T_RBRACKET                         { $$ = new FunctionDeclarator($1, $3); }
 
 parameter_list : parameter_declaration                                                             { $$ = new std::vector<ParameterDeclaration*>{$1}; }
                | parameter_list T_COMMA parameter_declaration                                      { $1->push_back($3); $$ = $1; }
-*/
+
 /* Structs */
 struct_specifier : T_STRUCT T_IDENTIFIER T_CURLY_LBRACKET struct_declaration_list T_CURLY_RBRACKET { $$ = new StructSpecifier(*$2, $4); }
                  | T_STRUCT T_CURLY_LBRACKET struct_declaration_list T_CURLY_RBRACKET              { $$ = new StructSpecifier($3); }
@@ -176,14 +170,9 @@ struct_declaration : specifier_qualifier_list struct_declarator_list T_SEMICOLON
 specifier_qualifier_list : type_specifier                                                          { $$ = $1; }
                          | type_specifier specifier_qualifier_list                                 { $$ = new PrimitiveType($1, $2); }
 
-struct_declarator_list : struct_declarator                                                         { $$ = new std::vector<Declarator*>; $$->push_back($1); }
-                       | struct_declarator_list T_COMMA struct_declarator                          { $1->push_back($3); $$ = $1; }
+struct_declarator_list : declarator                                                         { $$ = new std::vector<Declarator*>; $$->push_back($1); }
+                       | struct_declarator_list T_COMMA declarator                          { $1->push_back($3); $$ = $1; }
 
-struct_declarator : declarator                                                                     { $$ = $1; }
-/*
-                  | T_COLON constant_expression                                                    { $$ = new StructDeclatator($2); }
-                  | declarator T_COLON constant_expression                                         { $$ = new StructDeclatator($1, $3); }
-*/
 /* Enumerators */
 enum_specifier : T_ENUM T_CURLY_LBRACKET enumerator_list T_CURLY_RBRACKET                          { $$ = new EnumSpecifier($3); }
                | T_ENUM T_IDENTIFIER T_CURLY_LBRACKET enumerator_list T_CURLY_RBRACKET             { $$ = new EnumSpecifier(*$2, $4); }
@@ -195,11 +184,13 @@ enumerator_list : enumerator                                                    
 enumerator : T_IDENTIFIER                                                                          { $$ = new Enumerator(*$1); }
            | T_IDENTIFIER T_ASSIGN constant_expression                                             { $$ = new Enumerator(*$1, $3); }
 
-/* idk
-type_name : specifier_qualifier_list                                                               { $$ = new TypeName($1); }
-          | specifier_qualifier_list abstract_declarator                                           { $$ = new TypeName($1, $2); }
+/* idk */
+type_name : specifier_qualifier_list                                                               { $$ = $1; }
 
 parameter_declaration : declaration_specifiers declarator                                          { $$ = new ParameterDeclaration($1, $2); }
+/*
+          | specifier_qualifier_list abstract_declarator                                           { $$ = new TypeName($1, $2); }
+
                       | declaration_specifiers abstract_declarator                                 { $$ = new ParameterDeclaration($1, $2); }
                       | declaration_specifiers                                                     { $$ = new ParameterDeclaration($1); }
 
@@ -285,9 +276,8 @@ unary_expression : postfix_expression                                           
                 | T_BITWISE_NOT unary_expression                                                   { $$ = new UnaryExpression(BITWISE_NOT, $2); }
                 | T_LOGICAL_NOT unary_expression                                                   { $$ = new UnaryExpression(LOGICAL_NOT, $2); }
                 | T_SIZEOF unary_expression                                                        { $$ = new UnaryExpression(SIZEOF, $2); }
-/*
                 | T_SIZEOF T_LBRACKET type_name T_RBRACKET                                         { $$ = new UnaryExpression(SIZEOF, $3); }
-*/
+
 multiplicative_expression : unary_expression                                                       { $$ = $1; }
                          | multiplicative_expression T_MULTIPLY unary_expression                   { $$ = new MultiplicativeExpression(MULTIPLY, $1, $3); }
                          | multiplicative_expression T_DIVIDE unary_expression                     { $$ = new MultiplicativeExpression(DIVIDE, $1, $3); }

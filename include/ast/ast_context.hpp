@@ -217,18 +217,44 @@ class Context
 			type_scopes.back()[ident] = "structtype";
 		}
 
-		void add_function(std::string type, std::string ident, Statement* statements)
+		void add_function(std::string type, std::string ident)
 		{
 			std::vector<std::string> types;
 			types.push_back(type);
 			type_scopes.back()[ident] = type;
 			other_scopes.back()[ident] = "function";
-			function_types.back()[ident] = types;
+			if((function_types.back()).find(ident)==(function_types.back()).end()){
+				function_types.back()[ident] = types;
+			}else{
+				function_types.back()[ident][0] = type;
+			}
 			current_function = ident;
 		}
 
 		void declare_function(std::string ident)
-		{}
+		{
+			if((type_scopes.back()).find(ident)==(type_scopes.back()).end()){
+				type_scopes.back()[ident] = "unknown";
+			}
+			other_scopes.back()[ident] = "function";
+		}
+
+		void declare_function(std::string ident, std::vector<std::string> types, std::vector<std::string> idents)
+		{
+			if((type_scopes.back()).find(ident)==(type_scopes.back()).end()){
+				type_scopes.back()[ident] = "unknown";
+			}
+			other_scopes.back()[ident] = "function";
+
+			std::vector<std::string> typesfull;
+			typesfull.push_back("unknown");
+			for (int i=0; i<types.size(); i++) {
+				typesfull.push_back(types[i]);
+			}
+			if((function_types.back()).find(ident)==(function_types.back()).end()){
+				function_types.back()[ident] = typesfull;
+			}
+		}
 
 		void add_array(std::string ident, int size)
 		{}
@@ -306,7 +332,7 @@ class Context
 			return 1;
 		}
 
-    int size_of(Declaration* declr)                                             // return size of declaration
+    int size_of(PrimitiveType* declr)                                             // return size of declaration
 		{
 			return 1;
 		}
