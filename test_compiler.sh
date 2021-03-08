@@ -1,14 +1,14 @@
 bin/compiler compiler_tests/functions/call_constant_external.c \
     > working/output/compiled.txt
 
-Black        0;30     Dark Gray     1;30
-Red          0;31     Light Red     1;31
-Green        0;32     Light Green   1;32
-Brown/Orange 0;33     Yellow        1;33
-Blue         0;34     Light Blue    1;34
-Purple       0;35     Light Purple  1;35
-Cyan         0;36     Light Cyan    1;36
-Light Gray   0;37     White         1;37
+# Black         0;30     Dark Gray     1;30
+# Red           0;31     Light Red     1;31
+# Green         0;32     Light Green   1;32
+# Brown/Orange  0;33     Yellow        1;33
+# Blue          0;34     Light Blue    1;34
+# Purple        0;35     Light Purple  1;35
+# Cyan          0;36     Light Cyan    1;36
+# Light Gray    0;37     White         1;37
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -16,30 +16,29 @@ NC='\033[0m' # No Color
 
 
 #!/bin/bash
+INPUT_DIR="compiler_tests/default"
+OUTPUT_DIR="temp"
 
 echo "=================================================================================="
 echo "                      Cleaning the temporaries and outputs                        "
 echo "=================================================================================="
 
 make clean
+rm -r ${OUTPUT_DIR}
 
 echo "=================================================================================="
 echo "                             Compiling test compiler                              "
 echo "=================================================================================="
 
 make all
+mkdir -p ${OUTPUT_DIR}
+
 
 echo "=================================================================================="
 echo "                               Running test-bench                                 "
 echo "=================================================================================="
 
 COMPILER=bin/c_compiler
-
-# Specify directories
-INPUT_DIR="compiler_tests/local_var"
-OUTPUT_DIR="temp"
-rm -r ${output_dir}
-mkdir -p ${OUTPUT_DIR}
 
 # Formatting
 FORMAT_PASS="%-5s %-40s ${GREEN} %-20s ${NC} %-5s \n"
