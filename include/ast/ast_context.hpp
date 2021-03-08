@@ -89,10 +89,10 @@ class variable
 
 
 /* ------------------------------------ 			      			    Type class		 						------------------------------------ */
- // Handles the properties of the variable types including:
- // 	- The type of variable e.g. int, void
- //		- Parameters or values attached with the variable type e.g. arrays
- //		- Array tracker variables 
+// Handles the properties of the variable types including:
+// 	- The type of variable e.g. int, void
+//	- Parameters or values attached with the variable type e.g. arrays
+//	- Array tracker variables 
 
 class type_definition
 {
@@ -218,7 +218,6 @@ class Context
 			dst << "\t" << "lw" << "\t" << "\t" << "$" << register_1 << "," << frame_offset << "($" << register_2 << ")" << std::endl;
 		}
 
-		// Testing
 		void output_store_operation(std::ostream& dst, type load_type, std::string register_1, std::string register_2, int frame_offset)
 		{
 			dst << "\t" << "sw" << "\t" << "\t" << "$" << register_1 << "," << frame_offset << "($" << register_2 << ")" << std::endl;
@@ -230,6 +229,7 @@ class Context
 		
 		variable new_variable(std::string variable_name, type variable_type, declaration_type variable_declaration_type)
 		{
+			// Set of multiples of 8
 			if(scope_tracker == LOCAL)
 			{
 				frame_pointer -= (8);

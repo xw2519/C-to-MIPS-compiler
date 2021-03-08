@@ -58,6 +58,8 @@ class Compound_Statement : public Statement
 		}
 };
 
+// https://www.cs.umd.edu/~meesh/cmsc311/clin-cmsc311/Lectures/lecture15/C_code.pdf
+
 class Condition_If_Statement : public Statement
 {
 	private:
@@ -191,6 +193,59 @@ class For_Statement : public Statement
 	public:
 		For_Statement (Expression* _init_expr, Expression* _condition_expression, Expression* _update_expression, Statement* _true_statement)
 		: initialisation_expression(_init_expr),condition_expression(_condition_expression), update_expression(_update_expression), true_statement(_true_statement) {}
+
+		virtual void compile(std::ostream& dst, Context& context) const override
+		{
+			// Set loop boundaries
+			std::string START_label = context.make_label("START_FOR");
+			std::string FINISH_label = context.make_label("FINISH_FOR");
+
+			// Handle initialisation expressions
+			if(initialisation_expression != NULL)
+			{
+				context.allocate_stack();
+				int stack_pointer_1 = context.get_frame_pointer();
+
+				initialisation_expression->compile(dst, context);
+
+				context.deallocate_stack();
+			}
+
+			dst << START_label << ":" << std::endl;
+
+			// Allocate temporary registers
+			context.allocate_stack();
+			std::string temp_condition_reg = "t0";
+			int stack_pointer_2 = context.get_frame_pointer();
+
+			if(condition_expression != NULL)
+			{
+				condition_expression->compile(dst, context);
+			}
+
+			context.load_register(dst, temp_condition_reg, stack_pointer_2);
+
+			// Deallocate
+			context.deallocate_stack();
+
+			dst << "\t" << "beq " << "\t" << "$0" << ",$" << temp_condition_reg << "," << FINISH_label << std::endl;
+
+			true_statement->compile(dst, context);
+
+			if(update_expression != NULL)
+			{
+				context.allocate_stack();
+				std::string temp_update_reg = "t0";
+
+				update_expression->compile(dst, context);
+				
+				context.deallocate_stack();
+			}
+
+			dst << "\t" << "b " << "\t"  << "\t" << START_label << std::endl;
+
+			dst << "\t" << FINISH_label << ":" << std::endl;
+		}
 
 };
 
