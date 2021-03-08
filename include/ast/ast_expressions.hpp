@@ -20,7 +20,6 @@ public:
     virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const =0;
 };
 
-
 /* -------------------------------- Primitives -------------------------------- */
 
 class IntegralConstant : public Expression                     // complete
@@ -74,8 +73,13 @@ class IntegralConstant : public Expression                     // complete
 
 		virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const override
 		{
-      dst << "li " << destReg << "," << (value&&(0x00000000FFFF0000)) << std::endl;
-      dst << "ori " << destReg << "," << destReg << ",0x" << std::hex << (value%65536) << std::dec << std::endl;
+      if(value > 65535){
+        dst << "li " << destReg << "," << (value&(0x00000000FFFF0000)) << std::endl;
+        dst << "ori " << destReg << "," << destReg << ",0x" << std::hex << (value%65536) << std::dec << std::endl;
+      }else{
+        dst << "li " << destReg << "," << value << std::endl;
+      }
+
 		}
 };
 
@@ -119,7 +123,7 @@ class FloatConstant : public Expression                        // complete
 
     virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const override
 		{
-      std::string label = context.get_float_label(value);
+      std::string label = context.make_float_label(value);
       std::string freeReg = context.alloc_reg(INT);
       dst << "lui " << freeReg << ",%hi(" << label << ")" << std::endl;
       if(type==FLOAT){
@@ -219,19 +223,18 @@ class StringLiteral : public Expression                        // might need wor
 
     virtual void mips_address(std::ostream &dst, Context &context, std::string destReg) const override
     {
-      std::string addr = context.get_string_label(value);
+      std::string addr = context.make_string_label(value);
       dst << "lui " << destReg << ",%hi(" << addr << ")" << std::endl;
       dst << "addiu " << destReg << "," << destReg << ",%lo(" << addr << ")" << std::endl;
     }
 
 		virtual void print_mips(std::ostream &dst, Context &context, std::string destReg) const
 		{
-      std::string addr = context.get_string_label(value);
+      std::string addr = context.make_string_label(value);
       dst << "lui " << destReg << ",%hi(" << addr << ")" << std::endl;
       dst << "addiu " << destReg << "," << destReg << ",%lo(" << addr << ")" << std::endl;
 		}
 };
-
 
 /* -------------------------------- Post-fix Expression -------------------------------- */
 
@@ -360,7 +363,7 @@ class FunctionPostfixExpression : public Expression            // works if args 
         }
       }
 
-      dst << "jal " << context.id_to_addr(postfix_expr->get_id()) << std::endl;
+      dst << "jal " << postfix_expr->get_id() << std::endl;
       dst << "nop" << std::endl;
       if(arguments->size()>4){ context.dealloc_reg(freeReg); }
     }
@@ -565,7 +568,6 @@ class UnaryExpression : public Expression                      // complete
     }
 };
 
-
 /* -------------------------------- Operator Expression -------------------------------- */
 
 class Operator : public Expression                             // complete
@@ -750,7 +752,6 @@ class ShiftExpression : public Operator                        // complete
     }
 };
 
-
 /* -------------------------------- Relational Binary Expressions -------------------------------- */
 
 class RelationalExpression : public Operator                   // works with integral type, NEED TO FINISH
@@ -860,7 +861,6 @@ class BitwiseExpression : public Operator                      // complete
       context.dealloc_reg(freeReg);
     }
 };
-
 
 /* -------------------------------- Assignment Expression -------------------------------- */
 

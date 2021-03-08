@@ -24,152 +24,268 @@ $16 - $23				Temporary registers but cannot be overwritten by procedures
 $24	- $25				Temporary registers
 */
 
-enum context_scope { GLOBAL, LOCAL };
 /* ------------------------------------ 			  				Typedef variables		 					------------------------------------ */
 
-typedef std::map<std::string, ExpressionEnum> type_mapping;
+typedef std::map<std::string, std::string> type_store;
+typedef std::map<std::string, std::vector<std::string>> function_store;
 
-/* ------------------------------------								Context Functions							------------------------------------ */
-struct Context
+/* ------------------------------------									Context Functions						------------------------------------ */
+class Context
 {
 	private:
-		type_mapping* context_tracker = new type_mapping();
-
-		// Context scope
-		std::stack <type_mapping*> context_scope_stack_tracker;
-		std::stack <int> context_scope_frame_pointer;
+		std::vector<type_store> type_scopes;               // stores identifier and associated type
+		std::vector<type_store> other_scopes;              // stores identifier and whether it is a function, array, struct or enum
+		std::vector<function_store> function_types;        // stores function with return type and param types
+		std::vector<type_store> typedef_types;             // stores typeIDs followed by types
+		std::vector<std::string> id_locations;
 
 		// Trackers and counters
-		int frame_pointer;
-		int register_counter;
+		int label_count = 0;
+		std::vector<bool> int_regs;
+		std::vector<bool> float_regs;
+		bool global = true;
+		std::string current_function = "global";
 
-		context_scope scope_tracker = GLOBAL; // Set to global by default
+		std::map<std::string, double> float_labels;
+		std::map<std::string, std::string> string_labels;
 
 	public:
-		/* ------------------------------------						     Scope Functions						------------------------------------ */
-
-		void set_LOCAL()
+		Context()
 		{
-			scope_tracker = LOCAL;
-		}
-
-		void set_GLOBAL()
-		{
-			scope_tracker = GLOBAL;
-		}
-
-		void expand_variable_scope()
-		{
-			context_scope_stack_tracker.push(context_tracker);
-			context_tracker = new type_mapping(*context_tracker);
-			context_scope_frame_pointer.push(frame_pointer);
-		}
-
-		void shrink_variable_scope()
-		{
-			frame_pointer = context_scope_frame_pointer.top();
-
-			delete context_tracker;
-			context_tracker = context_scope_stack_tracker.top();
-
-			context_scope_frame_pointer.pop();
-			context_scope_stack_tracker.pop();
-		}
-
-		/* ------------------------------------						    Stack frame Functions					------------------------------------ */
-
-		void allocate_stack()
-		{
-			// Update trackers
-			register_counter++;
-			frame_pointer -= 4;
-		}
-
-		void deallocate_stack()
-		{
-			// Only deallocate if there are registers already allocated
-			if (register_counter != 0)
-			{
-				frame_pointer += 4;
-				register_counter--;
+			for(int i=0; i<10; i++){
+				int_regs.push_back(false);
+				float_regs.push_back(false);
 			}
-		}
 
-		int get_frame_pointer()
+			type_scopes.push_back(type_store());
+			other_scopes.push_back(type_store());
+			function_types.push_back(function_store());
+			typedef_types.push_back(type_store());
+		}
+		/* ------------------------------------						    Label Functions						------------------------------------ */
+
+		std::string make_label()
 		{
-		return frame_pointer;
+			std::string label = "$LC";
+			label += std::to_string(label_count);
+			label_count++;
+			return label;
 		}
 
-
-		/* ------------------------------------						     Register Functions						------------------------------------ */
-
-		void load_register(std::ostream& dst, std::string register_name, int memory_location)
+		std::string make_float_label(double value)                                   // get label of  ".word <float value> directive"
 		{
-			dst << "lw $" << register_name << "," << memory_location << "($fp)" <<std::endl;
+			std::string label = "$LC";
+			label += std::to_string(label_count);
+			label_count++;
+			float_labels[label] = value;
+			return label;
 		}
 
-		void store_register(std::ostream& dst, std::string register_name, int memory_location)
+    std::string make_string_label(std::string value)                             // get label of  ".ascii <string literal/000> directive"
 		{
-			dst << "sw $" << register_name << "," << memory_location << "($fp)" <<std::endl;
+			std::string label = "$LC";
+			label += std::to_string(label_count);
+			label_count++;
+			string_labels[label] = value;
+			return label;
 		}
 
-		// Float operations not done yet
-
-		/* ------------------------------------						Context Variable Functions		  		------------------------------------ */
-
-		ExpressionEnum add_variable()
-		{
-			return INT;
-		}
-
-    /* ------------------------------------				  Functions for code generation				  ------------------------------------ */
-
-    std::string get_float_label(double value)                                   // get label of  ".word <float value> directive"
-		{
-			return "not implemented yet";
-		}
-    std::string get_string_label(std::string value)                             // get label of  ".ascii <string literal/000> directive"
-		{
-			return "not implemented yet";
-		}
-    std::string make_label()                                                    // generate unique label and return as string
-		{
-			return "not implemented yet";
-		}
+    /* ------------------------------------				  Register Allocation				  ------------------------------------ */
 
     std::string next_reg(std::string someReg)                                   // return name of next register
 		{
-			return "not implemented yet";
+			int next;
+			if(someReg[1]=='f'){
+				if(someReg.size()==3){
+					next = someReg.back()+1;
+					someReg.pop_back();
+				}else{
+					next = someReg.back()+11;
+					someReg.pop_back();
+					someReg.pop_back();
+				}
+			}else{     // 8-15, 24, 25
+				if(someReg.size()==2){
+					next = someReg.back()+1;
+					someReg.pop_back();
+				}else{
+					next = someReg.back();
+					someReg.pop_back();
+					next = next + 10*someReg.back();
+					someReg.pop_back();
+					if(next==16){ next = 24; }
+					else{ next++; }
+				}
+			}
+			someReg += std::to_string(next);
+			return someReg;
 		}
+
     std::string alloc_reg(ExpressionEnum type, int amount=1)                    // return name of free register, mark it and following amount as occupied
 		{
-			return "not implemented yet";
+			bool found = false;
+			int begin, consec = 0;
+			std::string foundReg = "$";
+
+			if((type==FLOAT) || (type==DOUBLE)){
+				foundReg += 'f';
+				for(int i=0; i<16; i++){
+					if(!float_regs[i]){
+						if(!consec){ begin = i; }
+						consec++;
+						if(consec==amount){ break; }
+					}else{
+						consec = 0;
+					}
+				}
+				for(int i = begin; i<begin+amount; i++){
+					float_regs[i] = true;
+				}
+			}else{
+				for(int i=0; i<10; i++){
+					if(!int_regs[i]){
+						if(!consec){ begin = i; }
+						consec++;
+						if(consec==amount){ break; }
+					}else{
+						consec = 0;
+					}
+				}
+				for(int i = begin; i<begin+amount; i++){
+					int_regs[i] = true;
+				}
+				if(begin<8){ begin += 8; }
+				else{ begin += 16; }
+			}
+			foundReg += std::to_string(begin);
+			return foundReg;
 		}
+
     void dealloc_reg(std::string someReg, int amount=1)                         // free register and following amount of registers
+		{
+			int begin = someReg.back();
+			someReg.pop_back();
+			if((someReg.size() - (someReg[1]=='f')) > 1){
+				begin = begin + 10*someReg.back();
+			}
+			if(someReg[1]!='f'){
+				if(begin>15){ begin -= 16; }
+				else{ begin -= 8; }
+			}
+			for(int i=begin; i<begin+amount; i++){
+				if(someReg[1]=='f'){ float_regs[i] = false; }
+				else{ int_regs[i] = false; }
+			}
+		}
+
+    /* ------------------------------------				  Getting information				  ------------------------------------ */
+
+		void add_identifier(std::string ident)
+		{
+			if((type_scopes.back()).find(ident)==(type_scopes.back()).end()){
+				type_scopes.back()[ident] = "unknown";
+			}
+			for(int i=0; i<id_locations.size(); i++){
+				if(id_locations[i]==ident){
+					return;
+				}
+			}
+			id_locations.push_back(ident);
+		}
+
+		void add_variable(std::string type, std::string ident)
+		{
+			type_scopes.back()[ident] = type;
+			for(int i=0; i<id_locations.size(); i++){
+				if(id_locations[i]==ident){
+					return;
+				}
+			}
+			id_locations.push_back(ident);
+		}
+
+		void initialize(std::string ident, Expression* expr)
 		{}
+
+		void add_enum(std::string ident, std::vector<Enumerator*>* enum_declrs)
+		{
+			type_scopes.back()[ident] = "enumtype";
+		}
+
+		void add_struct(std::string ident, std::vector<StructDeclaration*>* member_declrs)
+		{
+			type_scopes.back()[ident] = "structtype";
+		}
+
+		void add_function(std::string type, std::string ident, Statement* statements)
+		{
+			std::vector<std::string> types;
+			types.push_back(type);
+			type_scopes.back()[ident] = type;
+			other_scopes.back()[ident] = "function";
+			function_types.back()[ident] = types;
+			current_function = ident;
+		}
+
+		void declare_function(std::string ident)
+		{}
+
+		void add_array(std::string ident, int size)
+		{}
+
+		void add_typedef(std::string base_type, std::string type_id)
+		{}
+
+    /* ------------------------------------				  Code generation				  ------------------------------------ */
 
     bool check_global(std::string identifier)                                   // return true if identifier is global
 		{
-			return false;
+			return global;
+		}
+
+		void new_scope()
+		{
+			global = false;
+			type_scopes.push_back(type_scopes.back());
+			other_scopes.push_back(other_scopes.back());
+			function_types.push_back(function_types.back());
+			typedef_types.push_back(typedef_types.back());
+		}
+
+		void old_scope()
+		{
+			type_scopes.pop_back();
+			other_scopes.pop_back();
+			function_types.pop_back();
+			typedef_types.pop_back();
+			if(type_scopes.size()==1){ global = true; }
 		}
 
     ExpressionEnum get_type(std::string identifier)                             // return type of identifier
 		{
-			return INT;
+			std::string str_type = type_scopes.back()[identifier];
+			if(str_type==std::string("int")){ return INT; }
 		}
+
     ExpressionEnum get_type_pointed(std::string identifier)                     // return type pointed to by identifier
 		{
 			return INT;
 		}
+
     ExpressionEnum get_type_member(std::string identifier, std::string member)  // return type of member of struct
 		{
 			return INT;
 		}
 
-    std::string id_to_addr(std::string identifier)                              // return address, relative to $fp, of identifier
+    std::string id_to_addr(std::string ident)                              // return address, relative to $fp, of identifier
 		{
-			return "not implemented yet";
+			for(int i=0; i<id_locations.size(); i++){
+				if(id_locations[i]==ident){
+					return std::to_string(4*(id_locations.size()-i)+8);
+				}
+			}
 		}
+
     std::string member_to_addr(std::string identifier, std::string member)      // return address of member, relative to beginning of struct
 		{
 			return "not implemented yet";
@@ -179,26 +295,38 @@ struct Context
 		{
 			return 1;
 		}
+
     int size_of_member(std::string identifier, std::string member)              // return size of member, in words
 		{
 			return 1;
 		}
+
     int size_of(std::string identifier)                                         // return size of identifier in words
 		{
 			return 1;
 		}
+
     int size_of(Declaration* declr)                                             // return size of declaration
 		{
 			return 1;
 		}
 
-		void add_identifier(std::string ident) {}
-		std::string typeid_to_type(std::string typeident) { return "no"; }
-		void add_enum(std::string ident, std::vector<Enumerator*>* enum_declrs) {}
-		void add_struct(std::string ident, std::vector<StructDeclaration*>* member_declrs) {}
-		void add_function(std::string type, std::string ident, Statement* statements) {}
-		std::string get_label_function(std::string ident) {}
-		std::string get_stack_size(std::string ident) {}
+		std::string typeid_to_type(std::string typeident)
+		{
+			return typedef_types.back()[typeident];
+		}
+
+		int get_stack_size(std::string ident)
+		{
+			//return 4*id_locations.size() + 16;
+			return 120;
+		}
+
+		int get_stack_size_current()
+		{
+			//return 4*id_locations.size() + 16;
+			return 120;
+		}
 };
 
 

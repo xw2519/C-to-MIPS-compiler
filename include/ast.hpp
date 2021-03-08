@@ -1,7 +1,7 @@
 #ifndef AST
 #define AST
 
-#include "ast/ast_node.hpp"
+#include "ast/ast_declarations.hpp"
 
 
 extern const Root *parse();

@@ -109,11 +109,13 @@ external_declaration : function_definition                                      
 declaration : declaration_specifiers T_SEMICOLON                                                   { $$ = new Declaration($1); }
             | declaration_specifiers init_declarator_list T_SEMICOLON                              { $$ = new Declaration($1, $2); }
 
-declaration_specifiers : T_TYPEDEF                                                                 { /* $$ = new DeclarationSpecifiers(); */ }
-                       | T_TYPEDEF declaration_specifiers                                          { $2->push_back(new PrimitiveType(TYPEDEF)); $$ = $2; }
+declaration_specifiers : T_TYPEDEF declaration_specifiers                                          { $2->push_back(new PrimitiveType(TYPEDEF)); $$ = $2; }
                        | type_specifier                                                            { $$ = new std::vector<PrimitiveType*>; $$->push_back($1); }
                        | type_specifier declaration_specifiers                                     { $2->push_back($1); $$ = $2; }
-
+/*
+T_TYPEDEF                                                                 { $$ = new std::vector<PrimitiveType*>; $$->push_back(new PrimitiveType(TYPEDEF)); }
+                       |
+*/
 init_declarator_list : init_declarator                                                             { $$ = new std::vector<InitDeclarator*>; $$->push_back($1); }
                      | init_declarator_list T_COMMA init_declarator                                { $1->push_back($3); $$ = $1; }
 

@@ -9,21 +9,6 @@ class Statement : public Node                                  // complete
     StatementEnum type;
 };
 
-class CompoundStatement : public Statement
-{
-	private:
-		std::vector<Statement*>* 	statement_list;
-		std::vector<Declaration*>* 	declaration_list;
-
-	public:
-		CompoundStatement(std::vector<Declaration*>* _declaration_list=NULL, std::vector<Statement*>* _statement_list=NULL)
-		: statement_list (_statement_list), declaration_list (_declaration_list) { type = COMPOUND; }
-    CompoundStatement(std::vector<Statement*>* _statement_list)
-		: statement_list (_statement_list) { type = COMPOUND; }
-
-		virtual void print_mips(std::ostream &dst, Context& context) const override
-		{}
-};
 
 class LabeledStatement : public Statement
 {
@@ -235,13 +220,13 @@ class ReturnStatement : public Statement                       // complete
     virtual void print_mips(std::ostream &dst, Context& context) const override
     {
       if(expression){
-        std::string destReg = context.alloc_reg(INT, context.size_of(expression->get_id()));
+        std::string destReg = "$2";
         expression->print_mips(dst, context, destReg);
-        context.dealloc_reg(destReg, context.size_of(expression->get_id()));
       }
+      int stack_size = context.get_stack_size_current();
       dst << "move $sp,$fp" << std::endl;
-      dst << "lw $fp,4($sp)" << std::endl;
-      dst << "addiu $sp,$sp,8" << std::endl;
+      dst << "lw $fp," << (stack_size-4) << "($sp)" << std::endl;
+      dst << "addiu $sp,$sp," << (stack_size-8) << std::endl;
       dst << "j $31" << std::endl;
       dst << "nop" << std::endl;
     }

@@ -13,9 +13,10 @@
 #include <stdexcept>
 #include <initializer_list>
 
-struct Context;
+class Context;
 class Enumerator;
 class StructDeclaration;
+class Expression;
 class Statement;
 class Declaration;
 

@@ -1,7 +1,7 @@
 #ifndef DECLARATIONS
 #define DECLARATIONS
 #include "ast_statements.hpp"
-
+//int main(){int a; a=5; return a;}
 
 class FunnyClass: public Node                                  // complete
 {
@@ -32,7 +32,7 @@ public:
     dst << value;
   }
 
-  virtual void print_mips(std::ostream &dst, Context &context) const
+  virtual void print_mips(std::ostream &dst, Context &context) const override
   {
     context.add_identifier(value);
   }
@@ -83,7 +83,9 @@ class Declarator : public FunnyClass
 			if(pointer){
 				point_depth = pointer->get_depth();
 				delete pointer;
-			}
+			}else{
+        point_depth = 0;
+      }
 		}
 
     virtual std::string get_id() const
@@ -91,8 +93,13 @@ class Declarator : public FunnyClass
       return declr->get_id();
     }
 
-    virtual void print(std::ostream &dst) const override {}
-		virtual void print_mips(std::ostream &dst, Context& context) const override {}
+    virtual void print(std::ostream &dst) const override
+    {}
+
+		virtual void print_mips(std::ostream &dst, Context& context) const override
+    {
+      declr->print_mips(dst, context);
+    }
 };
 
 class StructSpecifier : public FunnyClass
@@ -319,13 +326,9 @@ class StructDeclaration : public FunnyClass
 
     virtual std::string get_id() const override { return "struct_declrion"; }
 
-    virtual void print(std::ostream &dst) const override
-    {
-      type->print(dst);
-    }
+    virtual void print(std::ostream &dst) const override {}
 
-		virtual void print_mips(std::ostream &dst, Context& context) const override
-    {}
+		virtual void print_mips(std::ostream &dst, Context& context) const override {}
 };
 
 class FunctionDeclarator : public FunnyClass
@@ -341,8 +344,13 @@ class FunctionDeclarator : public FunnyClass
       return declr->get_id();
     }
 
-    virtual void print(std::ostream &dst) const override {}
-		virtual void print_mips(std::ostream &dst, Context& context) const override {}
+    virtual void print(std::ostream &dst) const override
+    {}
+
+		virtual void print_mips(std::ostream &dst, Context& context) const override
+    {
+      context.declare_function(declr->get_id());
+    }
 };
 
 class FunctionDefinition : public FunnyClass                   // complete
@@ -383,21 +391,21 @@ class FunctionDefinition : public FunnyClass                   // complete
 		virtual void print_mips(std::ostream &dst, Context& context) const override
     {
       context.add_function(return_type->get_id(), declr->get_id(), statement);
-      std::string label = context.get_label_function(declr->get_id());
-      std::string stack_size = context.get_stack_size(declr->get_id());
+      std::string label = declr->get_id();
+      int stack_size = context.get_stack_size(declr->get_id());
 
       dst << label << ":" << std::endl;
       dst << "addiu $sp,$sp,-" << stack_size << std::endl;
-      dst << "sw $31," << std::to_string(std::stoi(stack_size)-4) << "($sp)" << std::endl;
-      dst << "sw $fp," << std::to_string(std::stoi(stack_size)-8) << "($sp)" << std::endl;
+      dst << "sw $31," << std::to_string(stack_size-4) << "($sp)" << std::endl;
+      dst << "sw $fp," << std::to_string(stack_size-8) << "($sp)" << std::endl;
       dst << "move $fp,$sp" << std::endl;
 
       statement->print_mips(dst, context);
 
       if(declr->get_id()==std::string("main")){ dst << "move $2,$0" << std::endl; }
       dst << "move $sp,$fp" << std::endl;
-      dst << "lw $31," << std::to_string(std::stoi(stack_size)-4) << "($sp)" << std::endl;
-      dst << "lw $fp," << std::to_string(std::stoi(stack_size)-8) << "($sp)" << std::endl;
+      dst << "lw $31," << std::to_string(stack_size-4) << "($sp)" << std::endl;
+      dst << "lw $fp," << std::to_string(stack_size-8) << "($sp)" << std::endl;
       dst << "addiu $sp,$sp," << stack_size << std::endl;
       dst << "j $31" << std::endl;
       dst << "nop" << std::endl;
@@ -432,7 +440,9 @@ class ArrayDeclarator : public FunnyClass
     }
 
 		virtual void print_mips(std::ostream &dst, Context& context) const override
-    {}
+    {
+      context.add_array(declr->get_id(), size->evaluate());
+    }
 };
 
 class Initializer : public FunnyClass
@@ -446,7 +456,22 @@ class Initializer : public FunnyClass
     Initializer(Expression* _expr)
 		: expr(_expr) {}
 
-    virtual std::string get_id() const override { return "init_list"; }
+    virtual bool is_list() const
+    {
+      if(expr){ return false; }
+      else{ return true; }
+    }
+
+    virtual Expression* get_expr() const
+    {
+      return expr;
+    }
+
+    virtual std::string get_id() const override
+    {
+      return "init list";
+    }
+
     virtual void print(std::ostream &dst) const override {}
 		virtual void print_mips(std::ostream &dst, Context& context) const override {}
 };
@@ -460,9 +485,33 @@ class InitDeclarator : public FunnyClass
 		InitDeclarator(Declarator* _declr, Initializer* _init=NULL)
 		: declr(_declr), init(_init) {}
 
-    virtual std::string get_id() const override { return "init_declr"; }
-    virtual void print(std::ostream &dst) const override {}
-		virtual void print_mips(std::ostream &dst, Context& context) const override {}
+    virtual std::string get_id() const override
+    {
+      return declr->get_id();
+    }
+
+    virtual void print(std::ostream &dst) const override
+    {
+      declr->print(dst);
+    }
+
+		virtual void print_mips(std::ostream &dst, Context& context) const override
+    {
+      declr->print_mips(dst, context);
+      if(init){
+        if(init->is_list()){
+          // deal with init lists
+        }else{
+          context.initialize(declr->get_id(), init->get_expr());
+        }
+      }
+    }
+
+    virtual void print_mips(std::ostream &dst, Context& context, std::string destReg) const
+    {
+      std::string addr = context.id_to_addr(declr->get_id());
+      // iter through inits
+    }
 };
 
 class Declaration : public FunnyClass
@@ -473,11 +522,89 @@ class Declaration : public FunnyClass
 	public:
 		Declaration(std::vector<PrimitiveType*>* _types, std::vector<InitDeclarator*>* _declarators=NULL)
 		: types(_types), declarators(_declarators) {}
-    Declaration(Node* _typedef, std::vector<Node*>* _nodes) {}  // should never happen
 
-    virtual std::string get_id() const override { return "declrion"; }
-    virtual void print(std::ostream &dst) const override {}
-		virtual void print_mips(std::ostream &dst, Context& context) const override {}
+    ~Declaration()
+    {
+      for(int i=0; i<types->size(); i++){
+        delete types->at(i);
+      }
+      delete types;
+      for(int i=0; i<declarators->size(); i++){
+        delete declarators->at(i);
+      }
+      delete declarators;
+    }
+
+    virtual std::string get_id() const override
+    {
+      return "declrion";
+    }
+
+    virtual void print(std::ostream &dst) const override
+    {
+      (types->at(0))->print(dst);
+    }
+
+		virtual void print_mips(std::ostream &dst, Context& context) const override
+    {
+      int size = types->size();
+      std::string base_type;
+      if((types->back())->get_type()==TYPEDEF){
+        base_type = (types->at(size-2))->get_id();
+        for(int i=size-3; i>=0; i--){
+          context.add_typedef(base_type, (types->at(i))->get_id());
+        }
+      }else{
+        if(size==1){
+          base_type = (types->at(0))->get_id();
+        }else{
+          if(((types->at(0))->get_type()==INT) || ((types->at(1))->get_type()==INT)){
+            base_type = "unsigned";
+          }else{ base_type = "uchar"; }
+        }
+        for(int i=0; i<declarators->size(); i++){
+          context.add_variable(base_type, (declarators->at(i))->get_id());
+          (declarators->at(i))->print_mips(dst, context);
+        }
+      }
+    }
+
+    virtual void print_mips(std::ostream &dst, Context& context, std::string destReg) const
+    {
+      for(int i=0; i<declarators->size(); i++){
+        (declarators->at(i))->print_mips(dst, context, destReg);
+      }
+    }
+};
+
+
+class CompoundStatement : public Statement
+{
+	private:
+		std::vector<Statement*>* 	statement_list;
+		std::vector<Declaration*>* 	declaration_list;
+
+	public:
+		CompoundStatement(std::vector<Declaration*>* _declaration_list=NULL, std::vector<Statement*>* _statement_list=NULL)
+		: statement_list (_statement_list), declaration_list (_declaration_list) { type = COMPOUND; }
+    CompoundStatement(std::vector<Statement*>* _statement_list)
+		: statement_list (_statement_list) { type = COMPOUND; }
+
+		virtual void print_mips(std::ostream &dst, Context& context) const override
+		{
+      context.new_scope();
+      if(declaration_list){
+        for(int i=0; i<declaration_list->size(); i++){
+          (declaration_list->at(i))->print_mips(dst, context);
+        }
+      }
+      if(statement_list){
+        for(int i=0; i<statement_list->size(); i++){
+          (statement_list->at(i))->print_mips(dst, context);
+        }
+      }
+      context.old_scope();
+    }
 };
 
 
