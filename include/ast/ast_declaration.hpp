@@ -6,6 +6,8 @@
 
 #include "ast_expression.hpp"
 
+// https://stackoverflow.com/questions/7748726/declarators-in-c
+
 class Statement : public Node {};
 
 /* ------------------------------------						     Program Class						------------------------------------ */
@@ -30,7 +32,7 @@ class Program : public Node
 
 class External_Declaration : public Node {};
 
-/* ------------------------------------						     Declarator Class					------------------------------------ */
+/* ------------------------------------						    Declarator Class					------------------------------------ */
 
 class Declarator : public External_Declaration 
 {
@@ -86,6 +88,43 @@ class Variable_Declarator : public Declarator
 			}
 		}
 };
+
+// https://stackoverflow.com/questions/54721000/c-array-indexing-in-mips-assembly
+
+class Array_Declarator : public Declarator 
+{
+	private: 
+		std::string variable_name;
+		int array_size;
+
+	public:
+		Array_Declarator(std::string _variable_name, Expression *_array_size_expression) 
+		{
+			variable_name = _variable_name;
+
+			if(_array_size_expression != NULL) { array_size = _array_size_expression->evaluate(); }
+			else { array_size = -1; }
+		}
+
+		// Print MIPS
+		virtual void compile_declaration(std::ostream& dst, Context& context, type declaration_type) const override 
+		{
+			// Get necessary information
+			variable array_variable = context.new_variable(variable_name, INT, ARRAY);
+			
+			int frame_pointer_1 = array_variable.get_variable_address();
+			int array_frame_pointer = 0;
+
+			for(int i = 0; i < array_size; i++)
+			{
+				array_frame_pointer =  frame_pointer_1 - (i*8);
+				// Print MIPS
+				context.output_store_operation(dst, INT, "0", "fp", array_frame_pointer);
+			}	
+		}	
+};
+
+/* ------------------------------------					 Initialisation Declarator Class			------------------------------------ */
 
 class Initialisation_Variable_Declarator : public Declarator 
 {

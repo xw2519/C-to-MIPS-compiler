@@ -17,6 +17,9 @@ class Expression : public Node
 	public:
 		// Primitive functions
 		virtual void load_variable_address(std::ostream &dst, Context& context) const {};
+
+		// Evaluate the expression
+		virtual int evaluate() const { return 0; };
 };
 
 /* ------------------------------------						     Unary Expression						------------------------------------ */
@@ -113,14 +116,14 @@ class Direct_Assignment : public Assignment_Expression
 			context.output_store_operation(dst, operator_type, temp_register_1, destination_register, 0);
 
 			// Output Direct Assignment operation
-			dst << "\t" << "move" << "\t" << "\t" << "$" << destination_register << ",$" << temp_register_1 << std::endl;
+			dst << "\t" << "move" << "\t" << "$" << destination_register << ",$" << temp_register_1 << std::endl;
 
 			// Store results
 			context.store_register(dst, destination_register, frame_pointer_1);
 		}
 };
 
-/* ------------------------------------						   Operator Expression						------------------------------------ */
+/* ------------------------------------						    Operator Expression						------------------------------------ */
 
 class Operator : public Expression
 {
@@ -173,8 +176,10 @@ class Add_Expression : public Operator
 
 		virtual void execute(std::ostream &dst, Context& context, type type, std::string destination_register, std::string temprorary_register) const override
 		{
-			dst << "\t" << "addu" << "\t" << "\t" << "$" << destination_register << ",$" << destination_register << ",$" << temprorary_register << std::endl;
+			dst << "\t" << "addu" << "\t" << "$" << destination_register << ",$" << destination_register << ",$" << temprorary_register << std::endl;
 		}
+
+		virtual int evaluate() const override { return left->evaluate() + right->evaluate(); };
 };
 
 class Sub_Expression : public Operator
@@ -186,6 +191,8 @@ class Sub_Expression : public Operator
 		{
 			dst << "\t" << "subu" << "\t" << "\t" << "$" << destination_register << ",$" << destination_register << ",$" << temprorary_register << std::endl;
 		}	
+
+		virtual int evaluate() const override { return left->evaluate() - right->evaluate(); };
 };
 
 class Multiply_Expression : public Operator
@@ -201,6 +208,7 @@ class Multiply_Expression : public Operator
 			dst << "\t" << "mflo" << "\t" << "\t"  << "$" << destination_register << std::endl;
 		}	
 
+		virtual int evaluate() const override { return left->evaluate() * right->evaluate(); };
 };
 
 class Divide_Expression : public Operator
@@ -216,6 +224,8 @@ class Divide_Expression : public Operator
 			dst << "\t" << "mfhi" << "\t" << "\t" << "$" << destination_register << std::endl;
 			dst << "\t" << "mflo" << "\t" << "\t" << "$" << destination_register << std::endl;
 		}	
+
+		virtual int evaluate() const override { return left->evaluate() / right->evaluate(); };
 };
 
 /* ------------------------------------					    Relational Operator Expressions				------------------------------------ */
@@ -229,7 +239,7 @@ class Less_Than_Expression : public Operator
 		{
 			// https://www.cs.tufts.edu/comp/140/lectures/Day_3/mips_summary.pdf
 
-			dst << "\t" << "slt " << "\t" << "\t" << "$" << destination_register << ",$" << destination_register << ",$" << temprorary_register << std::endl;
+			dst << "\t" << "slt " << "\t" << "$" << destination_register << ",$" << destination_register << ",$" << temprorary_register << std::endl;
 		}	
 };
 
@@ -242,7 +252,7 @@ class More_Than_Expression : public Operator
 		{
 			// https://www.cs.tufts.edu/comp/140/lectures/Day_3/mips_summary.pdf
 
-			dst << "\t" << "slt " << "\t" << "\t" << "$" << destination_register << ",$" << temprorary_register << ",$" << destination_register << std::endl;
+			dst << "\t" << "slt " << "\t" << "$" << destination_register << ",$" << temprorary_register << ",$" << destination_register << std::endl;
 		}
 };
 
@@ -255,7 +265,7 @@ class Less_Than_Equal_Expression : public Operator
 		{
 			// https://www.cs.tufts.edu/comp/140/lectures/Day_3/mips_summary.pdf
 
-			dst << "\t" << "slt "  << "\t" << "\t" << "$" << destination_register << ",$" << temprorary_register << ",$" << destination_register << std::endl;
+			dst << "\t" << "slt "  << "\t" << "$" << destination_register << ",$" << temprorary_register << ",$" << destination_register << std::endl;
 			dst << "\t" << "xori " << "\t" << "\t" << "$" << destination_register << ",$" << destination_register << "," << 0x1 << std::endl;
 			dst << "\t" << "andi " << "\t" << "\t" << "$" << destination_register << ",$" << destination_register << "," << 0x00ff << std::endl;
 		}	
@@ -270,7 +280,7 @@ class More_Than_Equal_Expression : public Operator
 		{
 			// https://www.cs.tufts.edu/comp/140/lectures/Day_3/mips_summary.pdf
 
-			dst << "\t" << "slt "  << "\t" << "\t" << "$" << destination_register << ",$" << temprorary_register << ",$" << destination_register << std::endl;
+			dst << "\t" << "slt "  << "\t" << "$" << destination_register << ",$" << temprorary_register << ",$" << destination_register << std::endl;
 			dst << "\t" << "xori " << "\t" << "\t" << "$" << destination_register << ",$" << destination_register << "," << 0x1 << std::endl;
 		}
 };
@@ -361,7 +371,7 @@ class Logical_AND_Expression : public Operator
 			left->compile(dst, context);
 			context.load_register(dst, destination_name, destination_address);
 
-			dst << "\t" << "beq " << "\t" << "\t" << "$" << destination_register << ",$" << 0 << "," << return_label << std::endl;
+			dst << "\t" << "beq " << "\t" << "$" << destination_register << ",$" << 0 << "," << return_label << std::endl;
 			
 			context.allocate_stack();
 			int frame_pointer_temp_reg = context.get_frame_pointer();
@@ -372,8 +382,8 @@ class Logical_AND_Expression : public Operator
 			context.load_register(dst, temp_register_1, frame_pointer_temp_reg);
 			context.deallocate_stack();
 
-			dst << "\t" << "move " << "\t" << "\t" << "$" << destination_register << ",$" << 0 << std::endl;
-			dst << "\t" << "beq " << "\t" << "\t" << "$" << temp_register_1 << ",$" << 0 << "," << return_label << std::endl;
+			dst << "\t" << "move " << "\t" << "$" << destination_register << ",$" << 0 << std::endl;
+			dst << "\t" << "beq " << "\t" << "$" << temp_register_1 << ",$" << 0 << "," << return_label << std::endl;
 
 			dst << "\t" << "addiu " << "\t" << "\t" << "$" << destination_register << ",$" << 0 << "," << 1 << std::endl;
 

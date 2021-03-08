@@ -101,7 +101,7 @@ class type_definition
 		type variable_type = NONE;
 
 		// Array trackers (default set to 0)
-		int array_access_tracker = 0;
+		int array_pointer_tracker = 0;
 		int array_size_tracker = 0;
 
 	public:
@@ -109,6 +109,15 @@ class type_definition
 
 		// Variable type oeprators
 		type get_variable_type() { return variable_type; }
+
+		// Array trackers
+		int get_array_pointer() { return array_pointer_tracker; }
+		int get_array_size() { return array_size_tracker; }
+		
+		void increase_array_pointer() { array_pointer_tracker += 1;}
+
+		void decrease_array_pointer() { array_pointer_tracker -= 1;}
+
 };
 
 
@@ -227,12 +236,12 @@ class Context
 
 		/* ------------------------------------						  	  Variable Functions					------------------------------------ */
 		
-		variable new_variable(std::string variable_name, type variable_type, declaration_type variable_declaration_type)
+		variable new_variable(std::string variable_name, type variable_type, declaration_type variable_declaration_type, int variable_size = 1)
 		{
 			// Set of multiples of 8
 			if(scope_tracker == LOCAL)
 			{
-				frame_pointer -= (8);
+				frame_pointer -= variable_size*(8);
 			}
 
 			(*context_tracker)[variable_name] = new variable(frame_pointer, scope_tracker, variable_declaration_type, variable_type);

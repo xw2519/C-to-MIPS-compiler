@@ -16,7 +16,7 @@ NC='\033[0m' # No Color
 
 
 #!/bin/bash
-INPUT_DIR="compiler_tests/control_flow"
+INPUT_DIR="compiler_tests/local_var"
 OUTPUT_DIR="temp"
 
 echo "=================================================================================="
@@ -32,7 +32,6 @@ echo "==========================================================================
 
 make all
 mkdir -p ${OUTPUT_DIR}
-
 
 echo "=================================================================================="
 echo "                               Running test-bench                                 "

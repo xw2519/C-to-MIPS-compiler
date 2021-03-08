@@ -6,7 +6,7 @@
 
 /* -------------------------------- 			      Base class		 			-------------------------------- */
 
-class Primitive : public Expression {};
+class Primitive : public Expression{};
 
 /* -------------------------------- 				Derivative class		 		-------------------------------- */
 
@@ -28,6 +28,8 @@ class Constant : public Primitive
 
 			context.store_register(dst, destination_register, frame_pointer);	
 		}
+
+		virtual int evaluate() const override { return value; };
 };
 
 class Identifier : public Primitive // Local variables with constant
