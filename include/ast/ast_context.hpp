@@ -73,7 +73,7 @@ class variable
 {
 	private: 
 		int variable_address;
-		context_scope variable_scope;
+		context_scope variable_scope = GLOBAL;
 		declaration_type variable_declaration;
 		type variable_type;
 
@@ -85,6 +85,7 @@ class variable
 		int get_variable_address() { return variable_address; }
 		context_scope get_variable_scope() { return variable_scope; }
 		type get_variable_type() { return variable_type; }
+		declaration_type get_declaration_type() { return variable_declaration; }
 };
 
 
@@ -140,7 +141,7 @@ class Context
 		int register_counter = 0;
 		
 		// Jump definitions 
-		int label_counter;
+		int label_counter = 0;
 		std::string main_function_return_label; 
 
 	public:

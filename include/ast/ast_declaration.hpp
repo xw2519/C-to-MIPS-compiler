@@ -90,6 +90,7 @@ class Variable_Declarator : public Declarator
 };
 
 // https://stackoverflow.com/questions/54721000/c-array-indexing-in-mips-assembly
+// https://cgi.cse.unsw.edu.au/~cs1521/20T2/lec/mips_data/notes
 
 class Array_Declarator : public Declarator 
 {
@@ -107,20 +108,67 @@ class Array_Declarator : public Declarator
 		}
 
 		// Print MIPS
+		virtual void compile(std::ostream &dst, Context& context) const override
+		{
+			int array_frame_pointer = 0;
+
+			std::cerr << context.get_context_scope() << std::endl;
+
+			if(context.get_context_scope() == LOCAL)
+			{
+				dst << "\t" << "# Store array content locally" << std::endl; 
+
+				for(int i = 0; i < array_size; i++)
+				{				
+					array_frame_pointer =  array_size + (i*8);
+
+					// Print MIPS
+					context.output_store_operation(dst, INT, "0", "fp", array_frame_pointer);
+				}
+			}
+			else
+			{
+				dst << "\t" << "# Store array content globally" << std::endl; 
+
+				dst << "\t" << ".globl" << "\t" << variable_name << std::endl;
+				dst << "\t" << ".data"  << std::endl;
+
+				dst <<  variable_name 	<< ":" << std::endl;
+
+				for(int i = 0; i < array_size; i++)
+				{				
+					dst << "\t" << ".space " << array_size*8 << std::endl;
+				}
+			}
+
+			
+		}
+
 		virtual void compile_declaration(std::ostream& dst, Context& context, type declaration_type) const override 
 		{
 			// Get necessary information
-			variable array_variable = context.new_variable(variable_name, INT, ARRAY);
+			variable array_variable = context.new_variable(variable_name, INT, ARRAY, array_size);
 			
-			int frame_pointer_1 = array_variable.get_variable_address();
 			int array_frame_pointer = 0;
 
-			for(int i = 0; i < array_size; i++)
+			if(context.get_context_scope() == LOCAL)
 			{
-				array_frame_pointer =  frame_pointer_1 - (i*8);
-				// Print MIPS
-				context.output_store_operation(dst, INT, "0", "fp", array_frame_pointer);
-			}	
+				dst << "\t" << "# Store array content" << std::endl; 
+
+				for(int i = 0; i < array_size; i++)
+				{
+					array_frame_pointer =  array_variable.get_variable_address() + (i*8);
+
+					// Print MIPS	
+					context.output_store_operation(dst, INT, "0", "fp", array_frame_pointer);
+				}
+			}
+			else
+			{
+				dst << "\t" << "# Store array content globally" << std::endl; 
+		
+				dst << "\t" << ".comm " << variable_name << " " << array_size*8 << std::endl;
+			}
 		}	
 };
 

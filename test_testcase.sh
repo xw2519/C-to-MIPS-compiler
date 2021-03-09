@@ -22,7 +22,7 @@ echo "==========================================================================
 
 COMPILER=bin/c_compiler
 
-input_dir="compiler_tests/control_flow/if_else_true"
+input_dir="compiler_tests/array/index_constant"
 output_dir="temp/"
 rm -r ${output_dir}
 mkdir -p ${output_dir}

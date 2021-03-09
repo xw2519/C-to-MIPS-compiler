@@ -76,7 +76,6 @@ void yyerror(const char *);
 // Logical expressions
 %type <expression_node> logical_AND_expression logical_OR_expression
 
-
 %type <expression_node> bw_shift_expression compare_expression equal_expression
 %type <expression_node> logical_expression ternary_expression 
 %type <expression_node> assignment_expression expression 
@@ -150,9 +149,10 @@ primary_expression				: 	T_CONSTANT															{ $$ = new Constant($1); }
 prefix_expression				: 	postfix_expression
 
 postfix_expression				:	primary_expression												
-								|	primary_expression INC_OP											{ $$ = new Post_Increment_Expression($1); }
-								|	primary_expression T_LBRACKET T_RBRACKET							{ $$ = new Function_Call_Expression($1) ; }
-								|	primary_expression T_LBRACKET argument_list T_RBRACKET				{ $$ = new Function_Call_Expression($1, $3); }
+								|	postfix_expression INC_OP											{ $$ = new Post_Increment_Expression($1); }
+								|	postfix_expression T_LBRACKET T_RBRACKET							{ $$ = new Function_Call_Expression($1) ; }
+								|	postfix_expression T_LBRACKET argument_list T_RBRACKET				{ $$ = new Function_Call_Expression($1, $3); }
+								|	postfix_expression T_SQUARE_LBRACKET expression T_SQUARE_RBRACKET	{ $$ = new Array_Access_Expression($1, $3); }
 
 
 /* ------------------------------------						   Arthimetic Expression						------------------------------------ */

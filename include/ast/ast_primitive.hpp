@@ -43,21 +43,32 @@ class Identifier : public Primitive // Local variables with constant
 		virtual void compile(std::ostream &dst, Context& context) const override
 		{	
 			int destination_address = context.get_frame_pointer();
+
+			dst << std::endl;
 			dst << "\t" << "# Access variable" << std::endl;
-			variable compile_variable = context.get_variable(variable_name);
+			
 			std::string destination_register = "v0";
 			//dst << "1" << destination_address << std::endl;
 
 			load_variable_address(dst, context);
 
-			context.load_register(dst, destination_register, destination_address);
-			context.output_load_operation(dst, INT, destination_register, destination_register, 0);
-			context.store_register(dst, destination_register, destination_address);
+			variable compile_variable = context.get_variable(variable_name);
+
+			// Array already dealt with address 
+			if(compile_variable.get_declaration_type() != ARRAY)
+			{
+				// dst << "Trigger" << std::endl;
+				context.load_register(dst, destination_register, destination_address);
+				context.output_load_operation(dst, INT, destination_register, destination_register, 0);
+				context.store_register(dst, destination_register, destination_address);
+			}
 		}
 
 		virtual void load_variable_address(std::ostream &dst, Context& context) const override
 		{
+			dst << std::endl;
 			dst << "\t" << "# Load variable" << std::endl;
+			
 			int destination_address = context.get_frame_pointer();
 			std::string destination_register = "v0";
 			variable compile_variable = context.get_variable(variable_name);

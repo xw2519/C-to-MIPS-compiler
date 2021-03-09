@@ -51,7 +51,6 @@ class Post_Increment_Expression : public Unary_Expression
 		}
 };
 
-
 class Function_Call_Expression : public Unary_Expression
 {
 	private:
@@ -59,13 +58,66 @@ class Function_Call_Expression : public Unary_Expression
 
 	public:
 
-		Function_Call_Expression (Expression *_expression, std::vector<Expression*>* _argument_list = NULL)
-		: Unary_Expression (_expression), argument_list (_argument_list) {}
+		Function_Call_Expression(Expression *_expression, std::vector<Expression*>* _argument_list = NULL)
+		: Unary_Expression(_expression), argument_list(_argument_list) {}
 
 		virtual void compile(std::ostream &dst, Context& context) const override
 		{
 			dst << "Triggered 3" << std::endl;
 		}
+
+};
+
+// https://stackoverflow.com/questions/54721000/c-array-indexing-in-mips-assembly
+
+class Array_Access_Expression : public Unary_Expression
+{
+	private:
+		Expression* array_expression;
+
+	public:
+		Array_Access_Expression(Expression* _expression, Expression* _array_expression)
+		: Unary_Expression(_expression), array_expression(_array_expression) {}
+
+		virtual void compile(std::ostream &dst, Context& context) const override
+		{
+			type array_type = INT;
+			// Add new temprorary register
+			int array_frame_pointer = context.get_frame_pointer();
+			std::string array_register = "v0";
+
+			// Handle the expression
+			load_variable_address(dst, context);
+
+			dst << std::endl;
+			dst << "\t" << "# Compile Array Access" << std::endl; 
+			context.load_register(dst, array_register, array_frame_pointer);
+			context.output_load_operation(dst, array_type, array_register, array_register, 0);
+			context.store_register(dst, array_register, array_frame_pointer);
+		}
+
+		virtual void load_variable_address(std::ostream &dst, Context& context) const 
+		{
+			// Handle expression
+			int array_frame_pointer = context.get_frame_pointer();
+			std::string array_register = "v0";
+			expression->compile(dst, context);
+
+			// Handle array expression (Temporary register needed)
+			context.allocate_stack();
+			int temp_array_stack_pointer = context.get_frame_pointer();
+			std::string temp_array_register = "t0";
+
+			array_expression->compile(dst, context);
+
+			context.deallocate_stack();
+
+			context.load_register(dst, array_register, array_frame_pointer);
+			context.load_register(dst, temp_array_register, temp_array_stack_pointer);
+
+			dst << "\t" << "sll" << "\t" << "\t" << "$" << temp_array_register << ",$" << temp_array_register << "," << 1 << std::endl;
+			dst << "\t" << "addu" << "\t" << "$" << array_register << ",$" << array_register << ",$" << temp_array_register << std::endl;
+		};
 
 };
 
@@ -100,6 +152,9 @@ class Direct_Assignment : public Assignment_Expression
 
 			std::string destination_register = "v0";
 			left_value->load_variable_address(dst, context);		
+
+			dst << std::endl;
+			dst << "\t" << "# Compile Direct Assignment Expression" << std::endl; 
 
 			// Create temprorary register to handle expression
 			context.allocate_stack();
@@ -148,7 +203,6 @@ class Operator : public Expression
 			left->compile(dst, context);
 
 			context.allocate_stack(); // Add new temprorary register
-
 			int frame_pointer_2 = context.get_frame_pointer();
 			std::string temp_register = "t0";
 			right->compile(dst, context);
