@@ -152,7 +152,7 @@ postfix_expression				:	primary_expression
 								|	postfix_expression T_INCREMENT											
 									{ $$ = new Post_Increment_Expression($1, new Direct_Assignment($1, new Add_Expression($1, new Constant(1)))); }
 								|	postfix_expression T_DECREMENT		
-									{ $$ = new Post_Decrement_Expression($1, new Direct_Assignment($1, new Increment_Decrement_Expression($1, new Constant(1)))); }
+									{ $$ = new Post_Decrement_Expression($1, new Direct_Assignment($1, new Decrement_Expression($1, new Constant(1)))); }
 								|	postfix_expression T_LBRACKET T_RBRACKET							{ $$ = new Function_Call_Expression($1) ; }
 								|	postfix_expression T_LBRACKET argument_list T_RBRACKET				{ $$ = new Function_Call_Expression($1, $3); }
 								|	postfix_expression T_SQUARE_LBRACKET expression T_SQUARE_RBRACKET	{ $$ = new Array_Access_Expression($1, $3); }

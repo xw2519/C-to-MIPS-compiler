@@ -6,11 +6,6 @@
 #include <map>
 #include <memory>
 
-class Expression;
-
-typedef const Expression *Expression_Ptr;
-
-
 /* ------------------------------------						   Expression Base Class					------------------------------------ */
 class Expression : public Node 
 {
@@ -21,6 +16,8 @@ class Expression : public Node
 		// Evaluate the expression
 		virtual int evaluate() const { return 0; };
 };
+
+typedef const Expression *Expression_Ptr;
 
 /* ------------------------------------						     Unary Expression						------------------------------------ */
 
@@ -63,7 +60,7 @@ class Post_Decrement_Expression : public Unary_Expression
 	private:
 		Expression* decrement_expression;
 	public:
-		Decrement_Expression (Expression* _expression, Expression* _decrement_expression) 
+		Post_Decrement_Expression (Expression* _expression, Expression* _decrement_expression) 
 		: Unary_Expression(_expression), decrement_expression(_decrement_expression) {}
 
 		virtual void compile(std::ostream &dst, Context& context) const override
@@ -308,8 +305,6 @@ class Add_Expression : public Operator
 		virtual int evaluate() const override { return left->evaluate() + right->evaluate(); };
 };
 
-
-
 class Sub_Expression : public Operator
 {
 	public:
@@ -355,7 +350,6 @@ class Divide_Expression : public Operator
 
 		virtual int evaluate() const override { return left->evaluate() / right->evaluate(); };
 };
-
 
 /* ------------------------------------					    Relational Operator Expressions				------------------------------------ */
 
