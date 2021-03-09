@@ -16,7 +16,7 @@ NC='\033[0m' # No Color
 
 
 #!/bin/bash
-INPUT_DIR="compiler_tests/array"
+INPUT_DIR="compiler_tests/integer"
 OUTPUT_DIR="temp"
 
 echo "=================================================================================="
@@ -61,7 +61,6 @@ for i in ${INPUT_DIR}/*_driver.c ; do
 
     # Run the actual executable
     qemu-mips ${OUTPUT_DIR}/${TEST}_qemu
-
 
     # https://stackoverflow.com/questions/5947742/how-to-change-the-output-color-of-echo-in-linux
     # https://stackoverflow.com/questions/26130909/bash-output-column-formatting

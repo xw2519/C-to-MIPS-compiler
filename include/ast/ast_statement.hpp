@@ -74,8 +74,8 @@ class Condition_If_Statement : public Statement
 		{
 			// Allocate temporary registers
 			context.allocate_stack();
-			std::string temp_register_1 = "v0";
-			int frame_pointer_1 = context.get_frame_pointer();
+			std::string temp_register_1 = "$2";
+			int frame_pointer_1 = context.get_stack_pointer();
 
 			// Execute the conditional statement
 			condition_expression->compile(dst, context);
@@ -110,8 +110,8 @@ class Condition_If_Else_Statement : public Statement
 		{
 			// Allocate temporary registers
 			context.allocate_stack();
-			std::string temp_register_1 = "v0";
-			int frame_pointer_1 = context.get_frame_pointer();
+			std::string temp_register_1 = "$2";
+			int frame_pointer_1 = context.get_stack_pointer();
 
 			// Execute the conditional statement
 			condition_expression->compile(dst, context);
@@ -162,8 +162,8 @@ class While_Statement : public Statement
 
 			// Allocate temporary registers
 			context.allocate_stack();
-			std::string temp_register_1 = "v0";
-			int frame_pointer_1 = context.get_frame_pointer();
+			std::string temp_register_1 = "$2";
+			int frame_pointer_1 = context.get_stack_pointer();
 			context.load_register(dst, temp_register_1, frame_pointer_1);
 
 			// Execute the conditional statement
@@ -206,7 +206,7 @@ class For_Statement : public Statement
 			if(initialisation_expression != NULL)
 			{
 				context.allocate_stack();
-				int stack_pointer_1 = context.get_frame_pointer();
+				int stack_pointer_1 = context.get_stack_pointer();
 
 				initialisation_expression->compile(dst, context);
 
@@ -219,8 +219,8 @@ class For_Statement : public Statement
 
 			// Allocate temporary registers
 			context.allocate_stack();
-			std::string temp_condition_reg = "t0";
-			int stack_pointer_2 = context.get_frame_pointer();
+			std::string temp_condition_reg = "$8";
+			int stack_pointer_2 = context.get_stack_pointer();
 
 			if(condition_expression != NULL)
 			{
@@ -239,7 +239,7 @@ class For_Statement : public Statement
 			if(update_expression != NULL)
 			{
 				context.allocate_stack();
-				std::string temp_update_reg = "t0";
+				std::string temp_update_reg = "$8";
 
 				update_expression->compile(dst, context);
 				
@@ -271,7 +271,7 @@ class Jump_Statement : public Statement
 			{
 				// Allocate 
 				context.allocate_stack();
-				int destination_address = context.get_frame_pointer();
+				int destination_address = context.get_stack_pointer();
 
 				// Compile expression
 				expression->compile(dst, context);
@@ -280,10 +280,10 @@ class Jump_Statement : public Statement
 				context.deallocate_stack();
 
 				// Move to return register
-				std::string destination_register = "v0";
+				std::string destination_register = "$2";
 				context.load_register(dst, destination_register, destination_address);
 				
-				// dst << "\t" << "move" << "\t" << "$v0" << ",$" << destination_register << std::endl;
+				// dst << "\t" << "move" << "\t" << "$$2" << ",$" << destination_register << std::endl;
 
 				// Branch 
 				dst << "\t" << "b " << "\t"  << "\t" << context.get_function_return_label() << std::endl;

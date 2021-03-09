@@ -64,7 +64,7 @@ class Variable_Declarator : public Declarator
 			int frame_pointer_1 = compile_variable.get_variable_address();
 
 			// Print MIPS
-			context.output_store_operation(dst, variable_type, "0", "fp", frame_pointer_1);
+			context.output_store_operation(dst, variable_type, "$0", "$30", frame_pointer_1);
 		}
 
 		virtual void compile_declaration_initialisation(std::ostream &dst, Context& context, type declarator_type, Expression* expressions) const override 
@@ -75,8 +75,8 @@ class Variable_Declarator : public Declarator
 			{
 				// Allocate temporary registers
 				context.allocate_stack();
-				int frame_pointer_1 = context.get_frame_pointer();
-				std::string temp_register_1 = "t0";
+				int frame_pointer_1 = context.get_stack_pointer();
+				std::string temp_register_1 = "$8";
 				
 				expressions->compile(dst, context);
 
@@ -84,7 +84,7 @@ class Variable_Declarator : public Declarator
 				context.deallocate_stack();
 
 				context.load_register(dst, temp_register_1, frame_pointer_1);
-				context.output_store_operation(dst, declarator_type, temp_register_1, "fp", declared_variable.get_variable_address());
+				context.output_store_operation(dst, declarator_type, temp_register_1, "$30", declared_variable.get_variable_address());
 			}
 		}
 };
@@ -123,7 +123,7 @@ class Array_Declarator : public Declarator
 					array_frame_pointer =  array_size + (i*8);
 
 					// Print MIPS
-					context.output_store_operation(dst, INT, "0", "fp", array_frame_pointer);
+					context.output_store_operation(dst, INT, "$0", "$30", array_frame_pointer);
 				}
 			}
 			else
@@ -160,7 +160,7 @@ class Array_Declarator : public Declarator
 					array_frame_pointer =  array_variable.get_variable_address() + (i*8);
 
 					// Print MIPS	
-					context.output_store_operation(dst, INT, "0", "fp", array_frame_pointer);
+					context.output_store_operation(dst, INT, "$0", "$30", array_frame_pointer);
 				}
 			}
 			else
@@ -291,21 +291,21 @@ class Function_Definition : public External_Declaration // Very basic
 			dst << "# ------------ Allocate stack frame ------------ #" << std::endl; // Allocate basic stack size before adjustment
 			dst << std::endl;
 
-			dst << "\t" << "sw"    << "\t" << "\t" << "$31,"	   << "-8"  << "($sp)" << std::endl;
-			dst << "\t" << "sw"    << "\t" << "\t" << "$fp,"	   << "-16" << "($sp)" << std::endl;
-			dst << "\t" << "addiu" << "\t" << "$sp,$sp,"   << "-16" << std::endl; 
-			dst << "\t" << "move"  << "\t" << "$fp,$sp"    << std::endl;
+			dst << "\t" << "sw"    << "\t" << "\t" << "$31,"	   << "-8"  << "($29)" << std::endl;
+			dst << "\t" << "sw"    << "\t" << "\t" << "$30,"	   << "-16" << "($29)" << std::endl;
+			dst << "\t" << "addiu" << "\t" << "$29,$29,"   		   << "-16" << std::endl; 
+			dst << "\t" << "move"  << "\t" << "$30,$29"    		   << std::endl;
 
 			dst << std::endl;
 			dst << "# ------------ Program Assembly ------------ #" << std::endl;
 			dst << std::endl;
 
-			// Function parameters
+			// Function arguments
 			if(parameter_list != NULL) // Handles 4 argument for now
 			{
 				int argument_frame_pointer = 8; // Set to 8 to prevent stack frame clash
 
-				std::string argument_registers[4]  = {"a0", "a1", "a2", "a3"};
+				std::string argument_registers[4]  = {"$4", "$5", "$6", "$7"};
 
 				for(int i = 0; i < parameter_list->size(); i++)
 				{
@@ -335,10 +335,10 @@ class Function_Definition : public External_Declaration // Very basic
 			dst << "# ------------ Deallocate stack frame ------------ #" << std::endl;
 			dst << std::endl;
 
-			dst << "\t" << "move"  << "\t" << "$sp, $fp"  << std::endl; 
-			dst << "\t" << "addiu" << "\t" << "$sp, $sp," << "16" << std::endl; 
-			dst << "\t" << "lw"    << "\t" << "\t" << "$fp," << "-16" << "($sp)" << std::endl;
-			dst << "\t" << "lw"    << "\t" << "\t" << "$ra," << "-8" << "($sp)" << std::endl;
+			dst << "\t" << "move"  << "\t" << "$29, $30"  << std::endl; 
+			dst << "\t" << "addiu" << "\t" << "$29, $29," << "16" << std::endl; 
+			dst << "\t" << "lw"    << "\t" << "\t" << "$30," << "-16" << "($29)" << std::endl;
+			dst << "\t" << "lw"    << "\t" << "\t" << "$31," << "-8" << "($29)" << std::endl;
 			dst << "\t" << "j" 	   << "\t" << "\t" << "$31"  << std::endl;
 
 			dst << std::endl;

@@ -20,13 +20,13 @@ class Constant : public Primitive
 
 		virtual void compile(std::ostream &dst, Context& context) const override
 		{
-			int frame_pointer = context.get_frame_pointer();
-			std::string destination_register = "v0";
+			int stack_pointer = context.get_stack_pointer();
+			std::string destination_register = "$2";
 
 
-			dst << "\t" << "li" << "\t" << "\t" << "$" << "v0" << ", " << value << std::endl;
+			dst << "\t" << "li" << "\t" << "\t" << "$2" << ", " << value << std::endl;
 
-			context.store_register(dst, destination_register, frame_pointer);	
+			context.store_register(dst, destination_register, stack_pointer);	
 		}
 
 		virtual int evaluate() const override { return value; };
@@ -42,12 +42,12 @@ class Identifier : public Primitive // Local variables with constant
 
 		virtual void compile(std::ostream &dst, Context& context) const override
 		{	
-			int destination_address = context.get_frame_pointer();
+			int destination_address = context.get_stack_pointer();
 
 			dst << std::endl;
 			dst << "\t" << "# Access variable" << std::endl;
 			
-			std::string destination_register = "v0";
+			std::string destination_register = "$2";
 			//dst << "1" << destination_address << std::endl;
 
 			load_variable_address(dst, context);
@@ -68,15 +68,15 @@ class Identifier : public Primitive // Local variables with constant
 		{
 			dst << std::endl;
 			dst << "\t" << "# Load variable" << std::endl;
-			
-			int destination_address = context.get_frame_pointer();
-			std::string destination_register = "v0";
+
+			int destination_address = context.get_stack_pointer();
+			std::string destination_register = "$2";
 			variable compile_variable = context.get_variable(variable_name);
 
 			// std::cerr << variable_name << std::endl;
 			// std::cerr << compile_variable.get_variable_address() << std::endl;
 		
-			dst << "\t" << "addiu" << "\t" << "$" << destination_register << ",$fp," << compile_variable.get_variable_address() << std::endl;
+			dst << "\t" << "addiu" << "\t" << destination_register << ",$30," << compile_variable.get_variable_address() << std::endl;
 
 			context.store_register(dst, destination_register, destination_address);
 

@@ -82,10 +82,10 @@ class variable
 		: variable_address(_variable_address), variable_scope(_variable_scope), variable_declaration(_variable_declaration), variable_type(_variable_type) {}
 
 		// Get attributes
-		int get_variable_address() { return variable_address; }
-		context_scope get_variable_scope() { return variable_scope; }
-		type get_variable_type() { return variable_type; }
-		declaration_type get_declaration_type() { return variable_declaration; }
+		int get_variable_address() { return variable_address; }  					// return address of member, relative to beginning of struct
+		context_scope get_variable_scope() { return variable_scope; }				// return scope of member, relative to beginning of struct
+		type get_variable_type() { return variable_type; }							
+		declaration_type get_declaration_type() { return variable_declaration; }	
 };
 
 
@@ -137,7 +137,7 @@ class Context
 		std::stack <int> context_scope_frame_pointer;
 
 		// Trackers and counters
-		int frame_pointer = 0;
+		int stack_pointer = 0;
 		int register_counter = 0;
 		
 		// Jump definitions 
@@ -173,12 +173,12 @@ class Context
 		{
 			context_scope_stack_tracker.push(context_tracker);
 			context_tracker = new type_mapping(*context_tracker);
-			context_scope_frame_pointer.push(frame_pointer);
+			context_scope_frame_pointer.push(stack_pointer);
 		}
 
 		void shrink_context_scope()
 		{
-			frame_pointer = context_scope_frame_pointer.top();
+			stack_pointer = context_scope_frame_pointer.top();
 
 			delete context_tracker;
 			context_tracker = context_scope_stack_tracker.top();
@@ -193,9 +193,9 @@ class Context
 		{
 			// Update trackers
 			register_counter++;
-			frame_pointer -= 8;
+			stack_pointer -= 8;
 
-			// std::cerr << "FP update" << frame_pointer << std::endl;
+			// std::cerr << "FP update" << stack_pointer << std::endl;
 		}
 
 		void deallocate_stack()
@@ -203,49 +203,49 @@ class Context
 			// Only deallocate if there are registers already allocated
 			if (register_counter != 0)
 			{
-				frame_pointer += 8;
+				stack_pointer += 8;
 				register_counter--;
 			}
 		}
 
-		int get_frame_pointer() { return frame_pointer; }
+		int get_stack_pointer() { return stack_pointer; }
 
 
 		/* ------------------------------------						    Register Functions						------------------------------------ */
 
 		void load_register(std::ostream& dst, std::string register_name, int memory_location)
 		{
-			dst << "\t" << "lw" << "\t" << "\t" << "$" << register_name << "," << memory_location << "($fp)" << std::endl;
+			dst << "\t" << "lw" << "\t" << "\t" << register_name << "," << memory_location << "($30)" << std::endl;
 		}
 
 		void store_register(std::ostream& dst, std::string register_name, int memory_location)
 		{
-			dst << "\t" << "sw" << "\t" << "\t" << "$" << register_name << "," << memory_location << "($fp)" << std::endl;
+			dst << "\t" << "sw" << "\t" << "\t" << register_name << "," << memory_location << "($30)" << std::endl;
 		}
 
 		void output_load_operation(std::ostream& dst, type load_type, std::string register_1, std::string register_2, int frame_offset)
 		{
-			dst << "\t" << "lw" << "\t" << "\t" << "$" << register_1 << "," << frame_offset << "($" << register_2 << ")" << std::endl;
+			dst << "\t" << "lw" << "\t" << "\t" << register_1 << "," << frame_offset << "(" << register_2 << ")" << std::endl;
 		}
 
 		void output_store_operation(std::ostream& dst, type load_type, std::string register_1, std::string register_2, int frame_offset)
 		{
-			dst << "\t" << "sw" << "\t" << "\t" << "$" << register_1 << "," << frame_offset << "($" << register_2 << ")" << std::endl;
+			dst << "\t" << "sw" << "\t" << "\t" << register_1 << "," << frame_offset << "(" << register_2 << ")" << std::endl;
 		}
 
 		// Float operations not done yet
 
-		/* ------------------------------------						  	  Variable Functions					------------------------------------ */
+		/* ------------------------------------						  	Variable Functions						------------------------------------ */
 		
 		variable new_variable(std::string variable_name, type variable_type, declaration_type variable_declaration_type, int variable_size = 1)
 		{
 			// Set of multiples of 8
 			if(scope_tracker == LOCAL)
 			{
-				frame_pointer -= variable_size*(8);
+				stack_pointer -= variable_size*(8);
 			}
 
-			(*context_tracker)[variable_name] = new variable(frame_pointer, scope_tracker, variable_declaration_type, variable_type);
+			(*context_tracker)[variable_name] = new variable(stack_pointer, scope_tracker, variable_declaration_type, variable_type);
 
 			return *((*context_tracker)[variable_name]);
 		}
@@ -259,7 +259,7 @@ class Context
 			}
 		}
 
-		/* ------------------------------------						  	  Argument Functions					------------------------------------ */
+		/* ------------------------------------						  	Argument Functions						------------------------------------ */
 
 		void make_new_argument(std::string argument_name, type argument_type, declaration_type argument_declaration, int argument_address)
 		{ 
@@ -283,7 +283,6 @@ class Node
 };
 
 typedef const Node* Node_Ptr;
-
 
 
 /* ------------------------------------				  Functions for code generation				  ------------------------------------ */
