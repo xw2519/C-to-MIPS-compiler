@@ -87,7 +87,7 @@ class Condition_If_Statement : public Statement
 			std::string if_return_label = context.make_label("IF_RETURN");
 			context.load_register(dst, temp_register_1, frame_pointer_1);
 
-			dst << "\t" << "beq " << "\t" << "$0" << ",$" << temp_register_1 << "," << if_return_label << std::endl;
+			dst << "\t" << "beq " << "\t" << "$0" << "," << temp_register_1 << "," << if_return_label << std::endl;
 
 			true_statement->compile(dst, context);
 
@@ -124,7 +124,7 @@ class Condition_If_Else_Statement : public Statement
 			std::string if_return_label = context.make_label("IF_RETURN");
 			std::string else_return_label = context.make_label("ELSE_RETURN");
 
-			dst << "\t" << "beq " << "\t" << "$0" << ",$" << temp_register_1 << "," << if_return_label << std::endl;
+			dst << "\t" << "beq " << "\t" << "$0" << "," << temp_register_1 << "," << if_return_label << std::endl;
 
 			true_statement->compile(dst, context);
 
@@ -172,7 +172,7 @@ class While_Statement : public Statement
 			// Deallocate
 			context.deallocate_stack();
 			
-			dst << "\t" << "beq " << "\t" << "$0" << ",$" << temp_register_1 << "," << FINISH_label << std::endl;
+			dst << "\t" << "beq " << "\t" << "$0" << "," << temp_register_1 << "," << FINISH_label << std::endl;
 
 			true_statement->compile(dst, context);
 
@@ -232,7 +232,7 @@ class For_Statement : public Statement
 			// Deallocate
 			context.deallocate_stack();
 
-			dst << "\t" << "beq " << "\t" << "$0" << ",$" << temp_condition_reg << "," << FINISH_label << std::endl;
+			dst << "\t" << "beq " << "\t" << "$0" << "," << temp_condition_reg << "," << FINISH_label << std::endl;
 
 			true_statement->compile(dst, context);
 

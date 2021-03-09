@@ -42,13 +42,85 @@ class Unary_Expression : public Expression
 
 class Post_Increment_Expression : public Unary_Expression
 {
+	private:
+		Expression* increment_expression;
 	public:
-		Post_Increment_Expression (Expression* _expression) : Unary_Expression(_expression) {}
+		Post_Increment_Expression (Expression* _expression, Expression* _increment_expression) 
+		: Unary_Expression(_expression), increment_expression(_increment_expression) {}
 
 		virtual void compile(std::ostream &dst, Context& context) const override
 		{
-			dst << "Triggered 2" << std::endl;
+			expression->compile(dst, context);
+
+			context.allocate_stack();
+			increment_expression->compile(dst, context);
+			context.deallocate_stack();
 		}
+};
+
+class Post_Decrement_Expression : public Unary_Expression
+{
+	private:
+		Expression* decrement_expression;
+	public:
+		Decrement_Expression (Expression* _expression, Expression* _decrement_expression) 
+		: Unary_Expression(_expression), decrement_expression(_decrement_expression) {}
+
+		virtual void compile(std::ostream &dst, Context& context) const override
+		{
+			expression->compile(dst, context);
+
+			context.allocate_stack();
+			decrement_expression->compile(dst, context);
+			context.deallocate_stack();
+		}
+};
+
+class Decrement_Expression : public Expression
+{
+	protected:
+		Expression* left=NULL;
+		Expression* right=NULL;
+
+	public:
+		Decrement_Expression (Expression* _left, Expression* _right) : left (_left), right (_right) {}
+
+		virtual void execute(std::ostream &dst, Context& context, type type, std::string destination_register, std::string temprorary_register) const {}
+
+		virtual void compile(std::ostream &dst, Context& context) const override
+		{
+			// Only supports INT for now
+			type operator_type = INT;
+
+			// Select registers and allocate frame pointers
+			int frame_pointer_1 = context.get_stack_pointer(); // Find current frame pointer 
+
+			std::string temp_register = "$2";
+			left->compile(dst, context);
+
+			context.allocate_stack(); // Add new temprorary register
+			int frame_pointer_2 = context.get_stack_pointer();
+			std::string destination_register = "$8";
+			right->compile(dst, context);
+
+			context.deallocate_stack(); // Reduce frame pointer as temproray register done
+
+			// Load registers 
+			context.load_register(dst, temp_register, frame_pointer_1);
+			context.load_register(dst, destination_register, frame_pointer_2);
+
+			// Execute
+			decrement(dst, context, operator_type, temp_register, destination_register);
+
+			// Store result
+			context.store_register(dst, temp_register, frame_pointer_1);
+		}
+
+		void decrement(std::ostream &dst, Context& context, type type, std::string destination_register, std::string temprorary_register) const
+		{
+			dst << "\t" << "subu" << "\t" << destination_register << "," << destination_register << "," << temprorary_register << std::endl;
+		}	
+
 };
 
 class Function_Call_Expression : public Unary_Expression
@@ -178,13 +250,13 @@ class Direct_Assignment : public Assignment_Expression
 		}
 };
 
-/* ------------------------------------						    Operator Expression						------------------------------------ */
+/* ------------------------------------						   Operator Expression						------------------------------------ */
 
 class Operator : public Expression
 {
 	protected:
-		Expression* left;
-		Expression* right;
+		Expression* left=NULL;
+		Expression* right=NULL;
 
 	public:
 		Operator (Expression* _left, Expression* _right) : left (_left), right (_right) {}
@@ -221,7 +293,7 @@ class Operator : public Expression
 		}
 };
 
-/* ------------------------------------						   Arithmetic Expression					------------------------------------ */
+/* ------------------------------------						  Arithmetic Expression						------------------------------------ */
 
 class Add_Expression : public Operator
 {
@@ -236,6 +308,8 @@ class Add_Expression : public Operator
 		virtual int evaluate() const override { return left->evaluate() + right->evaluate(); };
 };
 
+
+
 class Sub_Expression : public Operator
 {
 	public:
@@ -243,7 +317,7 @@ class Sub_Expression : public Operator
 
 		virtual void execute(std::ostream &dst, Context& context, type type, std::string destination_register, std::string temprorary_register) const override
 		{
-			dst << "\t" << "subu" << "\t" << "\t" << destination_register << "," << destination_register << "," << temprorary_register << std::endl;
+			dst << "\t" << "subu" << "\t" << destination_register << "," << destination_register << "," << temprorary_register << std::endl;
 		}	
 
 		virtual int evaluate() const override { return left->evaluate() - right->evaluate(); };
@@ -281,6 +355,7 @@ class Divide_Expression : public Operator
 
 		virtual int evaluate() const override { return left->evaluate() / right->evaluate(); };
 };
+
 
 /* ------------------------------------					    Relational Operator Expressions				------------------------------------ */
 

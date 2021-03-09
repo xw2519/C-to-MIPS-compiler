@@ -69,6 +69,7 @@ IS			(u|U|l|L)*
   /* Assignment */
 [=]                                 { return (T_ASSIGN); }
 [+][+]				                      { return (T_INCREMENT); }
+[-][-]				                      { return (T_DECREMENT); }
 
   /* Bitwise */
 [&]                                 { return (T_BITWISE_AND); }
