@@ -16,7 +16,7 @@ NC='\033[0m' # No Color
 
 
 #!/bin/bash
-INPUT_DIR="compiler_tests/functions"
+INPUT_DIR="compiler_tests/misc"
 OUTPUT_DIR="temp"
 
 echo "=================================================================================="

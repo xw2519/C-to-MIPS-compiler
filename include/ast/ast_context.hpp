@@ -3,11 +3,11 @@
 
 #include <map>
 #include <vector>
-#include <stack>
 #include <string>
 #include <iostream>
 #include <cmath>
 #include <regex>
+#include <stack>
 
 #include <memory>
 
@@ -133,8 +133,8 @@ class Context
 		type_mapping* context_tracker = new type_mapping();
 
 		// Context scope
-		std::stack <type_mapping*> context_scope_stack_tracker;
-		std::stack <int> context_scope_frame_pointer;
+		std::stack<type_mapping*> context_scope_stack_tracker;
+		std::stack<int> context_scope_frame_pointer;
 
 		// Trackers and counters
 		int stack_pointer = 0;
@@ -144,7 +144,25 @@ class Context
 		int label_counter = 0;
 		std::string main_function_return_label; 
 
+		// Break and Continue 
+		std::stack<std::string> break_stack;
+		std::stack<std::string> continue_stack;
+
 	public:
+		/* ------------------------------------					   Break and Continue Functions					------------------------------------ */
+
+		void add_break_label(std::string break_label) { break_stack.push(break_label); }
+
+		void add_continue_label(std::string continue_label) { continue_stack.push(continue_label); }
+
+		std::string get_break_label() { return break_stack.top(); }
+
+		std::string get_continue_label() { return continue_stack.top(); }
+
+		void remove_break_label() { break_stack.pop(); }
+
+		void remove_continue_label() { continue_stack.pop(); }
+
 		/* ------------------------------------						    Return Functions						------------------------------------ */
 		
 		std::string get_function_return_label() { return main_function_return_label; }
@@ -270,7 +288,6 @@ class Context
 
 
 /* ------------------------------------ 			      			   Node class		 			 			------------------------------------ */
-
 class Node
 {
 	public:

@@ -292,4 +292,34 @@ class Jump_Statement : public Statement
 
 };
 
+// http://web.engr.oregonstate.edu/~walkiner/cs271-wi13/slides/07-MoreAssemblyProgramming.pdf
+
+class Break_Statement : public Statement
+{
+	private:
+
+	public:
+		Break_Statement() {}
+
+		virtual void compile(std::ostream& dst, Context& context) const override
+		{
+			// Branch 
+			dst << "\t" << "b " << "\t"  << "\t" << context.get_break_label() << std::endl;
+		}
+};
+
+class Continue_Statement : public Statement
+{
+	private:
+
+	public:
+		Continue_Statement() {}
+
+		virtual void compile(std::ostream& dst, Context& context) const override
+		{
+			// Branch 
+			dst << "\t" << "b " << "\t"  << "\t" << context.get_continue_label() << std::endl;
+		}
+};
+
 #endif

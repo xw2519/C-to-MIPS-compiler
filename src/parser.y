@@ -345,6 +345,12 @@ compound_statement  			: 	T_CURLY_LBRACKET T_CURLY_RBRACKET
 jump_statement					: 	T_RETURN T_SEMICOLON												
 									{ $$ = new Jump_Statement(); }
 
+								|	T_BREAK T_SEMICOLON
+									{ $$ = new Break_Statement(); }
+
+								|	T_CONTINUE T_SEMICOLON
+									{ $$ = new Continue_Statement(); }
+
 								| 	T_RETURN expression T_SEMICOLON										
 									{ $$ = new Jump_Statement($2); }
 
