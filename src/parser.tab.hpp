@@ -125,7 +125,9 @@ union YYSTYPE
 	std::vector<Declaration*>* 	declaration_list_vector;
 	std::vector<Declarator*>* 	declarator_list_vector;
 
-#line 129 "src/parser.tab.hpp"
+	std::vector<Expression*>* 	initialisation_list;
+
+#line 131 "src/parser.tab.hpp"
 
 };
 typedef union YYSTYPE YYSTYPE;

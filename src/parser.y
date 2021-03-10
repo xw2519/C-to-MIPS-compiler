@@ -31,6 +31,8 @@ void yyerror(const char *);
 	std::vector<Statement*>* 	statement_list_vector;
 	std::vector<Declaration*>* 	declaration_list_vector;
 	std::vector<Declarator*>* 	declarator_list_vector;
+
+	std::vector<Expression*>* 	initialisation_list;
 }
 
 /* ------------------------------------					Tokens					------------------------------------ */
@@ -127,15 +129,32 @@ parameter_list					:	parameter_declaration				     							{ $$ = new std::vector
 								|	parameter_list T_COMMA parameter_declaration 						{ $1->push_back($3); $$ = $1; }
 								|											 							{ $$ = NULL; }
 
-declarator						: 	T_IDENTIFIER 														{ $$ = new Variable_Declarator(*$1); }
-								| 	T_IDENTIFIER T_SQUARE_LBRACKET T_SQUARE_RBRACKET					{ $$ = new Array_Declarator(*$1, NULL); }
-								| 	T_IDENTIFIER T_SQUARE_LBRACKET expression T_SQUARE_RBRACKET			{ $$ = new Array_Declarator(*$1, $3); }
+declarator						: 	T_IDENTIFIER 														
+									{ $$ = new Variable_Declarator(*$1); }
 
-initialisation_declarator		: 	declarator 															{ $$ = $1; }
-								| 	declarator T_ASSIGN assignment_expression 							{ $$ = new Initialisation_Variable_Declarator($1, $3); }
+								| 	T_IDENTIFIER T_SQUARE_LBRACKET T_SQUARE_RBRACKET					
+									{ $$ = new Array_Declarator(*$1, NULL); }
 
-initialisation_declarator_list	: 	initialisation_declarator 											{ $$ = new std::vector<Declarator*>(1, $1);	}
-								|	initialisation_declarator_list T_COMMA initialisation_declarator	{ $1->push_back($3); $$ = $1; }
+								| 	T_IDENTIFIER T_SQUARE_LBRACKET expression T_SQUARE_RBRACKET			
+									{ $$ = new Array_Declarator(*$1, $3); }
+
+initialisation_declarator		: 	declarator 															
+									{ $$ = $1; }
+
+								| 	declarator T_ASSIGN assignment_expression 							
+									{ $$ = new Initialisation_Variable_Declarator($1, $3); }
+
+								| 	declarator T_ASSIGN T_CURLY_LBRACKET initialisation_list T_CURLY_RBRACKET 							
+									{ $$ = new Initialisation_Array_Declarator($1, $4); }
+
+								| 	declarator T_ASSIGN T_CURLY_LBRACKET T_CURLY_RBRACKET				
+									{ $$ = new Initialisation_Array_Declarator($1, new std::vector<Expression*>); }
+
+initialisation_declarator_list	: 	initialisation_declarator 											
+									{ $$ = new std::vector<Declarator*>(1, $1);	}
+
+								|	initialisation_declarator_list T_COMMA initialisation_declarator	
+									{ $1->push_back($3); $$ = $1; }
 
 /* ------------------------------------							 Expression Base								------------------------------------ */
 

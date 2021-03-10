@@ -148,23 +148,6 @@ class Array_Access_Expression : public Unary_Expression
 		Array_Access_Expression(Expression* _expression, Expression* _array_expression)
 		: Unary_Expression(_expression), array_expression(_array_expression) {}
 
-		virtual void compile(std::ostream &dst, Context& context) const override
-		{
-			type array_type = INT;
-			// Add new temprorary register
-			int array_frame_pointer = context.get_stack_pointer();
-			std::string array_register = "$2";
-
-			// Handle the expression
-			load_variable_address(dst, context);
-
-			dst << std::endl;
-			dst << "\t" << "# Compile Array Access" << std::endl; 
-			context.load_register(dst, array_register, array_frame_pointer);
-			context.output_load_operation(dst, array_type, array_register, array_register, 0);
-			context.store_register(dst, array_register, array_frame_pointer);
-		}
-
 		virtual void load_variable_address(std::ostream &dst, Context& context) const 
 		{
 			// Handle expression
@@ -184,10 +167,28 @@ class Array_Access_Expression : public Unary_Expression
 			context.load_register(dst, array_register, array_frame_pointer);
 			context.load_register(dst, temp_array_register, temp_array_stack_pointer);
 
-			dst << "\t" << "sll" << "\t" << "\t" << temp_array_register << "," << temp_array_register << "," << 1 << std::endl;
+			dst << "\t" << "sll" << "\t" << "\t" << temp_array_register << "," << temp_array_register << "," << 8 << std::endl;
 			dst << "\t" << "addu" << "\t" << array_register << "," << array_register << "," << temp_array_register << std::endl;
+
+			context.store_register(dst, array_register, array_frame_pointer);
 		};
 
+		virtual void compile(std::ostream &dst, Context& context) const override
+		{
+			type array_type = INT;
+			// Add new temprorary register
+			int array_frame_pointer = context.get_stack_pointer();
+			std::string array_register = "$2";
+
+			// Handle the expression
+			load_variable_address(dst, context);
+
+			dst << std::endl;
+			dst << "\t" << "# Compile Array Access" << std::endl; 
+			context.load_register(dst, array_register, array_frame_pointer);
+			context.output_load_operation(dst, array_type, array_register, array_register, 0);
+			context.store_register(dst, array_register, array_frame_pointer);
+		}
 };
 
 /* ------------------------------------						  Assignment Expressions					------------------------------------ */
@@ -351,7 +352,7 @@ class Divide_Expression : public Operator
 		virtual int evaluate() const override { return left->evaluate() / right->evaluate(); };
 };
 
-/* ------------------------------------					    Relational Operator Expressions				------------------------------------ */
+/* ------------------------------------					  Relational Operator Expressions				------------------------------------ */
 
 class Less_Than_Expression : public Operator
 {
@@ -434,7 +435,7 @@ class Not_Equal_Expression : public Operator
 		}	
 };
 
-/* ------------------------------------					     Bitwise Operator Expressions				------------------------------------ */
+/* ------------------------------------					    Bitwise Operator Expressions				------------------------------------ */
 
 class Bitwise_AND_Expression : public Operator
 {
@@ -475,7 +476,7 @@ class Bitwise_XOR_Expression : public Operator
 		}	
 };
 
-/* ------------------------------------					     Logical Operator Expressions				------------------------------------ */
+/* ------------------------------------					    Logical Operator Expressions				------------------------------------ */
 
 class Logical_AND_Expression : public Operator
 {

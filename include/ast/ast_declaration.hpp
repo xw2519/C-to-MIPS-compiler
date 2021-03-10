@@ -37,10 +37,12 @@ class External_Declaration : public Node {};
 class Declarator : public External_Declaration 
 {
 	public:
-		virtual std::string get_variable_name() { }
+		virtual std::string get_variable_name() {}
+		virtual int get_variable_size() {}
 
 		virtual void compile_declaration(std::ostream &dst, Context& context, type declarator_type) const {}
 		virtual void compile_declaration_initialisation(std::ostream &dst, Context& context, type declarator_type, Expression* expressions) const {}
+		virtual void compile_declaration_array_initialisation(std::ostream &dst, Context& context, type declarator_type, std::vector<Expression*>* expression_vector) const {}
 };
 
 class Variable_Declarator : public Declarator
@@ -51,8 +53,9 @@ class Variable_Declarator : public Declarator
 	public:
 		Variable_Declarator(std::string _variable_name) : variable_name(_variable_name) {}
 
-		// Parameter functions
+		// Get functions
 		virtual std::string get_variable_name() { return variable_name; }
+		virtual int get_variable_size() { return 8; }
 
 		// Print MIPS
 		virtual void compile_declaration(std::ostream& dst, Context& context, type declaration_type) const override 
@@ -107,12 +110,14 @@ class Array_Declarator : public Declarator
 			else { array_size = -1; }
 		}
 
+		// Get functions
+		virtual std::string get_variable_name() { return variable_name; }
+		virtual int get_variable_size() { return array_size; }
+
 		// Print MIPS
 		virtual void compile(std::ostream &dst, Context& context) const override
 		{
 			int array_frame_pointer = 0;
-
-			std::cerr << context.get_context_scope() << std::endl;
 
 			if(context.get_context_scope() == LOCAL)
 			{
@@ -170,6 +175,44 @@ class Array_Declarator : public Declarator
 				dst << "\t" << ".comm " << variable_name << " " << array_size*8 << std::endl;
 			}
 		}	
+
+		virtual void compile_declaration_array_initialisation(std::ostream &dst, Context& context, type declarator_type, std::vector<Expression*>* expression_vector) const 
+		{
+			// Get array parameters
+			int initialisation_vector_size = expression_vector->size();
+
+			variable array_variable = context.new_variable(variable_name, INT, ARRAY, initialisation_vector_size);
+
+			for(int i = 0; i < array_size; i++)
+			{
+				// Handle initialisations 
+				if(i < initialisation_vector_size)
+				{
+					// Find offset relative to the array
+					int array_offset = array_variable.get_variable_address() + (i*8);
+
+					// Allocate storage
+					context.allocate_stack();
+					int stack_pointer = context.get_stack_pointer();
+					std::string init_register = "$8";
+
+					(*expression_vector)[i]->compile(dst, context);
+
+					context.deallocate_stack();
+
+					// Output assembly instructions for loading and storage
+					context.load_register(dst, init_register, stack_pointer);
+					context.output_store_operation(dst, INT, init_register, "$30", array_offset);
+				}
+				else
+				{
+					// Find offset relative to the array
+					int array_offset = array_variable.get_variable_address() + (i*8);
+
+					context.output_store_operation(dst, INT, "$0", "$30", array_offset);
+				}
+			}
+		}
 };
 
 /* ------------------------------------					 Initialisation Declarator Class			------------------------------------ */
@@ -190,6 +233,51 @@ class Initialisation_Variable_Declarator : public Declarator
 			initialisation_declarator->compile_declaration_initialisation(dst, context, declaration_type, initialisation_expressions);
 		}
 };
+
+class Initialisation_Array_Declarator : public Declarator 
+{
+	// Expressions like "int a = 4 + 7 + b"
+	private: 
+		Declarator* initialisation_declarator;
+		std::vector<Expression*>* initialisation_vector;
+
+	public: 
+		Initialisation_Array_Declarator(Declarator* _initialisation_declarator, std::vector<Expression*>* _initialisation_vector)
+		: initialisation_declarator(_initialisation_declarator), initialisation_vector(_initialisation_vector) {}
+
+		virtual void compile(std::ostream &dst, Context& context) const override
+		{
+			std::string initialisation_variable_name = initialisation_declarator->get_variable_name();
+			int initialisation_array_size = initialisation_declarator->get_variable_size();
+
+			variable array_variable = context.get_variable(initialisation_variable_name);
+
+			for(int i = 0; i < initialisation_array_size; i++)
+			{				
+				// Find offset relative to the array
+				int array_offset = array_variable.get_variable_address() + (i*8);
+
+				// Allocate storage
+				context.allocate_stack();
+				int stack_pointer = context.get_stack_pointer();
+				std::string init_register = "$8";
+
+				(*initialisation_vector)[i]->compile(dst, context);
+
+				context.deallocate_stack();
+
+				// Output assembly instructions for loading and storage
+				context.load_register(dst, init_register, stack_pointer);
+				context.output_store_operation(dst, INT, init_register, "$30", array_offset);
+			}
+		}
+
+		virtual void compile_declaration(std::ostream &dst, Context& context, type declaration_type) const override
+		{
+			initialisation_declarator->compile_declaration_array_initialisation(dst, context, declaration_type, initialisation_vector);
+		}
+};
+
 
 /* ------------------------------------						    Declaration Class					------------------------------------ */
 
