@@ -7,11 +7,11 @@ int g(int t)
         case 0:
             x=1;
             break;
-        case 2:
-            x=2;
         case 1:
             x=x+1;
             break;
+        case 2:
+            x=2;
         default:
             x=t+1;
     }

@@ -355,6 +355,7 @@ class Function_Definition : public External_Declaration // Very basic
 			/* -------------------------------- 		  Function preparation 			-------------------------------- */
 
 			context.expand_context_scope();
+
 			context.set_LOCAL();
 
 			// Handle function return 

@@ -304,7 +304,7 @@ class Break_Statement : public Statement
 		virtual void compile(std::ostream& dst, Context& context) const override
 		{
 			// Branch 
-			dst << "\t" << "b " << "\t"  << "\t" << context.get_break_label() << std::endl;
+			dst << "\t" << "b " << "\t"  << "\t" << context.get_break_label().top() << std::endl;
 		}
 };
 
@@ -318,7 +318,7 @@ class Continue_Statement : public Statement
 		virtual void compile(std::ostream& dst, Context& context) const override
 		{
 			// Branch 
-			dst << "\t" << "b " << "\t"  << "\t" << context.get_continue_label() << std::endl;
+			dst << "\t" << "b " << "\t"  << "\t" << context.get_continue_label().top() << std::endl;
 		}
 };
 
@@ -335,11 +335,7 @@ class Switch_Statement : public Statement
 		: expression(_expression), switch_statements(_switch_statements) {}
 
 		virtual void compile(std::ostream& dst, Context& context) const override
-		{
-			std::stringstream ss; //temporarily store in ss;
-			switch_statements->compile(ss, context);
-
-
+		{			
 			dst << std::endl;
 			dst << "# ------------ Switch statement ------------ #" << std::endl;
 
@@ -348,6 +344,9 @@ class Switch_Statement : public Statement
 			std::string FINISH_label = context.make_label("FINISH_SWITCH");
 
 			context.add_break_label(FINISH_label);
+
+			std::stringstream ss; //temporarily store in ss;
+			switch_statements->compile(ss, context);
 
 			// Handle switch expression
 			context.allocate_stack();
@@ -374,13 +373,14 @@ class Switch_Statement : public Statement
 				dst << "\t" << "beq" << "\t" << switch_register << "," << case_register << "," << case_label << std::endl;
 
 				context.remove_case_statement();
+				context.remove_label_statement();
 			}
 
 			// Handle default statement
-			if(context.get_default_label().find("DEFAULT") != std::string::npos)
+			if(context.get_case_label_size() != 0)
 			{
 				dst << "\t" << "b " << "\t"  << "\t" << context.get_case_label() << std::endl;
-				context.remove_default_statement();
+				context.remove_label_statement();
 			}
 
 			dst << "\t" << "b " << "\t"  << "\t" << FINISH_label << std::endl;
@@ -440,8 +440,8 @@ class Default_Statement : public Statement
 			// Generate case label
 			std::string default_label = context.make_label("DEFAULT");
 
-			// Store case label and statements
-			context.add_default_statements(default_statements, default_label);
+			// Store case label for reference
+			context.add_case_label(default_label);
 
 			// Label declaration
 			dst << default_label << ":" << std::endl;

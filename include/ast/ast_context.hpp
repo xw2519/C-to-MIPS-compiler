@@ -155,67 +155,53 @@ class Context
 		std::stack<std::string> continue_stack;
 
 		// Switch case structure
-		std::deque<Expression*> case_statements_tracker;
-		std::deque<std::string> case_label_tracker;
-
-		std::deque<Statement*> default_statements_tracker;
-		std::deque<std::string> default_label_tracker;
+		std::deque<Expression*> switch_statements_tracker;
+		std::deque<std::string> switch_label_tracker;
 
 	public:
 		/* ------------------------------------					   		 Switch Functions						------------------------------------ */
 
 		void add_case_statements(Expression* case_statement, std::string case_label) 
 		{ 
-			case_statements_tracker.push_back(case_statement);
-			case_label_tracker.push_back(case_label);
+			switch_statements_tracker.push_back(case_statement);
+			switch_label_tracker.push_back(case_label);
+		}
+		
+		void add_case_label(std::string case_label) 
+		{ 
+			switch_label_tracker.push_back(case_label);
 		}
 
 		Expression* get_case_statement()
 		{
-			return case_statements_tracker.front();
+			return switch_statements_tracker.front();
 		}
 
 		std::string get_case_label()
 		{
-			return case_label_tracker.front();
+			return switch_label_tracker.front();
 		}
 
 		int get_case_statement_size()
 		{
-			assert(case_label_tracker.size() == case_statements_tracker.size());
-			return case_statements_tracker.size();
+			return switch_statements_tracker.size();
+		}
+
+		int get_case_label_size()
+		{
+			return switch_label_tracker.size();
 		}
 
 		void remove_case_statement() 
 		{
 			// Remove the first element of the vector
-			case_statements_tracker.pop_front();
-			case_label_tracker.pop_front();
+			switch_statements_tracker.pop_front();
 		}
 
-		/* ------------------------------------					   		 Default Functions						------------------------------------ */
-
-		void add_default_statements(Statement* default_statement, std::string default_label) 
-		{ 
-			default_statements_tracker.push_back(default_statement);
-			default_label_tracker.push_back(default_label);
-		}
-
-		Statement* get_default_statement() { return default_statements_tracker.front(); }
-
-		std::string get_default_label() { return default_label_tracker.front(); }
-
-		int get_default_statement_size()
-		{
-			assert(default_label_tracker.size() == default_statements_tracker.size());
-			return default_statements_tracker.size();
-		}
-
-		void remove_default_statement() 
+		void remove_label_statement() 
 		{
 			// Remove the first element of the vector
-			default_statements_tracker.pop_front();
-			default_label_tracker.pop_front();
+			switch_label_tracker.pop_front();
 		}
 
 		/* ------------------------------------					   Break and Continue Functions					------------------------------------ */
@@ -224,9 +210,9 @@ class Context
 
 		void add_continue_label(std::string continue_label) { continue_stack.push(continue_label); }
 
-		std::string get_break_label() { return break_stack.top(); }
+		std::stack<std::string> get_break_label() { return break_stack; }
 
-		std::string get_continue_label() { return continue_stack.top(); }
+		std::stack<std::string> get_continue_label() { return continue_stack; }
 
 		void remove_break_label() { break_stack.pop(); }
 
@@ -258,16 +244,18 @@ class Context
 
 		void expand_context_scope()
 		{
+			context_scope_frame_pointer.push(stack_pointer);
+
 			context_scope_stack_tracker.push(context_tracker);
 			context_tracker = new type_mapping(*context_tracker);
-			context_scope_frame_pointer.push(stack_pointer);
 		}
 
 		void shrink_context_scope()
 		{
-			stack_pointer = context_scope_frame_pointer.top();
-
+			// Remove old context tracker
 			delete context_tracker;
+
+			stack_pointer = context_scope_frame_pointer.top();
 			context_tracker = context_scope_stack_tracker.top();
 
 			context_scope_frame_pointer.pop();
