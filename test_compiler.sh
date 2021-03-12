@@ -50,8 +50,12 @@ for i in ${INPUT_DIR}/*_driver.c ; do
     TEST=$(basename $i _driver.c)
     TEST_FILE=${INPUT_DIR}/${TEST}.c
 
+    # ${COMPILER} < ${TEST_FILE} > ${OUTPUT_DIR}/${TEST}.s
+
     # Compile test function with compiler under test 
-    ${COMPILER} < ${TEST_FILE} > ${OUTPUT_DIR}/${TEST}.s
+    ${COMPILER} -S ${TEST_FILE} -o ${OUTPUT_DIR}/${TEST}.s
+
+    
 
     # Compile driver with normal GCC
     mips-linux-gnu-gcc -mfp32 -o ${OUTPUT_DIR}/${TEST}.o -c ${OUTPUT_DIR}/${TEST}.s

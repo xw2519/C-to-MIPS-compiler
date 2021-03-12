@@ -6,15 +6,17 @@ Contents and terms are derived from the ANSI C programming language (ANSI/ISO 98
 
 %define parse.error verbose 
 
-%code requires{
-#include "ast.hpp"
-#include <cassert>
-#include <vector>
+%code requires
+{
+	#include <cassert>
+	#include <vector>
 
-extern const Node *root; 
+	#include "ast.hpp"
 
-int yylex(void);
-void yyerror(const char *);
+	extern const Node *root; 
+
+	int yylex(void);
+	void yyerror(const char *);
 }
 
 %union
@@ -50,7 +52,7 @@ void yyerror(const char *);
 // Types Operators
 %token T_INT T_VOID
 // Structures Operators
-%token T_IF T_ELSE T_SWITCH T_WHILE T_FOR T_CONTINUE T_BREAK T_RETURN
+%token T_IF T_ELSE T_SWITCH T_WHILE T_FOR T_CONTINUE T_BREAK T_RETURN T_DEFAULT T_CASE
 // Rules
 %token T_IDENTIFIER T_CONSTANT 
 // Bitwise
@@ -70,13 +72,15 @@ void yyerror(const char *);
 %type <declaration_node> declaration parameter_declaration 
 %type <declaration_list_vector> declaration_list parameter_list
 
-%type <expression_node> primary_expression prefix_expression postfix_expression 
+%type <expression_node> primary_expression unary_expression postfix_expression 
 // Arthmetic expressions
 %type <expression_node> multiply_expression add_expression 
 // Bitwse expressions
 %type <expression_node> bitwise_AND_expression bitwise_XOR_expression bitwise_OR_expression
 // Logical expressions
 %type <expression_node> logical_AND_expression logical_OR_expression
+// Pointer expressions
+%type <expression_node> cast_expression
 
 %type <expression_node> bw_shift_expression compare_expression equal_expression
 %type <expression_node> logical_expression ternary_expression 
@@ -87,7 +91,7 @@ void yyerror(const char *);
 %type <argument_list_vector> argument_list
 
 %type <statement_node> statement 
-%type <statement_node> jump_statement compound_statement expression_statement condition_statement iteration_statement
+%type <statement_node> jump_statement compound_statement expression_statement condition_statement iteration_statement labeled_statement
 
 %type <statement_list_vector> statement_list
 
@@ -141,6 +145,9 @@ declaration_list				: 	declaration
 
 parameter_declaration			:	T_TYPE declarator 													
 									{ $$ = new Declaration(*$1, new std::vector<Declarator*>(1, $2)); }	
+								
+								|	T_TYPE
+									{ std::cerr<<"hi"<<std::endl;}
 
 parameter_list					:	parameter_declaration				     							
 									{ $$ = new std::vector<Declaration*>(1, $1); }
@@ -193,7 +200,18 @@ primary_expression				: 	T_CONSTANT
 								| 	T_LBRACKET expression T_RBRACKET									
 									{ $$ = $2; }		
 
-prefix_expression				: 	postfix_expression
+unary_expression				: 	postfix_expression
+
+								|	T_BITWISE_AND cast_expression
+									{ $$ = new Reference_Expression($2); }
+								
+								|	T_MULTIPLY cast_expression
+									{  $$ = new Dereference_Expression($2); }
+
+cast_expression					: 	unary_expression 
+
+								| 	T_LBRACKET T_TYPE T_RBRACKET cast_expression
+									{ $$ = new Cast_Expression(*$2, $4); }
 
 postfix_expression				:	primary_expression	
 
@@ -227,7 +245,7 @@ add_expression					: 	multiply_expression
 multiply_expression				:	postfix_expression				 									
 									{ $$ = $1; }
 
-								| 	multiply_expression T_MULTIPLY postfix_expression 					
+								| 	multiply_expression T_MULTIPLY cast_expression 					
 									{ $$ = new Multiply_Expression($1, $3); }
 
 								| 	multiply_expression T_DIVIDE postfix_expression 					
@@ -298,7 +316,7 @@ ternary_expression 				: 	logical_OR_expression
 
 assignment_expression			: 	ternary_expression 
 
-								|	prefix_expression T_ASSIGN assignment_expression 					
+								|	unary_expression T_ASSIGN assignment_expression 					
 									{ $$ = new Direct_Assignment($1, $3); }	
 
 argument_list					: 	expression 		
@@ -322,6 +340,9 @@ statement 						: 	jump_statement
 									{ $$ = $1; }
 
 								|	iteration_statement													
+									{ $$ = $1; }
+
+								|	labeled_statement
 									{ $$ = $1; }
 
 statement_list 					: 	statement 															
@@ -366,19 +387,29 @@ condition_statement 			:	T_IF T_LBRACKET expression T_RBRACKET statement
 								|	T_IF T_LBRACKET expression T_RBRACKET statement T_ELSE statement	
 									{ $$ = new Condition_If_Else_Statement($3,$5,$7); }
 
+								|	T_SWITCH T_LBRACKET expression T_RBRACKET statement	
+									{ $$ = new Switch_Statement($3,$5); }
+
 iteration_statement				:	T_WHILE T_LBRACKET expression T_RBRACKET statement 												
 									{ $$ = new While_Statement($3,$5); }
 
 								|	T_FOR T_LBRACKET expression T_SEMICOLON expression T_SEMICOLON expression T_RBRACKET statement	
 									{ $$ = new For_Statement($3,$5,$7,$9); }
 
+labeled_statement				:	T_CASE expression T_COLON statement
+									{ $$ = new Case_Statement($2, $4); }
+
+								| 	T_DEFAULT T_COLON statement
+									{ $$ = new Default_Statement($3); } 
+	
+
 /* ------------------------------------								  Others								----------------------------------- */
 
 T_TYPE							:	T_INT 		
-									{ $$ = new std::string("int"); }
+									{ $$ = new std::string("INT"); }
 
 								|	T_VOID		
-									{ $$ = new std::string("void"); } 			
+									{ $$ = new std::string("VOID"); } 			
 
 %%
 

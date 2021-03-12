@@ -27,11 +27,33 @@ class Unary_Expression : public Expression
 		Expression* expression;
 
 	public:
-		Unary_Expression (Expression* _expression) : expression(_expression) {}
+		Unary_Expression(Expression* _expression) : expression(_expression) {}
 
 		virtual void compile(std::ostream &dst, Context& context) const override
 		{
 			dst << "Triggered 1" << std::endl;
+		}
+};
+
+/* ------------------------------------						      Cast Expression						------------------------------------ */
+
+class Cast_Expression : public Unary_Expression
+{
+	private:
+		std::string casting_type;
+	
+	public:
+		Cast_Expression(std::string _casting_type, Expression* _expression) 
+		: casting_type( _casting_type), Unary_Expression(_expression) {}
+
+		virtual void compile(std::ostream &dst, Context& context) const override
+		{
+			std::string cast_register = "$2";
+			int cast_address = context.get_stack_pointer();
+
+			expression->compile(dst, context);
+
+			context.store_register(dst, cast_register, cast_address);
 		}
 };
 
@@ -188,6 +210,39 @@ class Array_Access_Expression : public Unary_Expression
 			context.load_register(dst, array_register, array_frame_pointer);
 			context.output_load_operation(dst, array_type, array_register, array_register, 0);
 			context.store_register(dst, array_register, array_frame_pointer);
+		}
+};
+
+/* ------------------------------------					    	Pointer Expressions						------------------------------------ */
+
+class Reference_Expression : public Unary_Expression
+{
+	public:
+		Reference_Expression(Expression* _expression) : Unary_Expression(_expression) {} 
+
+		virtual void compile(std::ostream &dst, Context& context) const override
+		{
+			expression->load_variable_address(dst, context);
+		}
+};
+
+// https://courses.cs.washington.edu/courses/cse378/09wi/lectures/lec03.pdf
+
+class Dereference_Expression : public Unary_Expression
+{
+	public:
+		Dereference_Expression(Expression* _expression) : Unary_Expression(_expression) {} 
+
+		virtual void compile(std::ostream &dst, Context& context) const override
+		{
+			std::string pointer_register = "$2";
+			int pointer_address = context.get_stack_pointer();
+
+			expression->compile(dst, context);
+
+			context.load_register(dst, pointer_register, pointer_address);
+			context.output_load_operation(dst, INT, pointer_register, pointer_register, 0);
+			context.store_register(dst, pointer_register, pointer_address);
 		}
 };
 
@@ -557,7 +612,5 @@ class Logical_OR_Expression : public Operator
 			context.store_register(dst, destination_name, destination_address);
 		}
 };
-
-
 
 #endif

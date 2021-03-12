@@ -44,18 +44,19 @@
 extern int yydebug;
 #endif
 /* "%code requires" blocks.  */
-#line 9 "src/parser.y"
+#line 10 "src/parser.y"
 
-#include "ast.hpp"
-#include <cassert>
-#include <vector>
+	#include <cassert>
+	#include <vector>
 
-extern const Node *root; 
+	#include "ast.hpp"
 
-int yylex(void);
-void yyerror(const char *);
+	extern const Node *root; 
 
-#line 59 "src/parser.tab.hpp"
+	int yylex(void);
+	void yyerror(const char *);
+
+#line 60 "src/parser.tab.hpp"
 
 /* Token type.  */
 #ifndef YYTOKENTYPE
@@ -97,12 +98,14 @@ void yyerror(const char *);
     T_CONTINUE = 290,
     T_BREAK = 291,
     T_RETURN = 292,
-    T_IDENTIFIER = 293,
-    T_CONSTANT = 294,
-    T_BITWISE_AND = 295,
-    T_BITWISE_OR = 296,
-    T_BITWISE_XOR = 297,
-    T_LITERAL = 298
+    T_DEFAULT = 293,
+    T_CASE = 294,
+    T_IDENTIFIER = 295,
+    T_CONSTANT = 296,
+    T_BITWISE_AND = 297,
+    T_BITWISE_OR = 298,
+    T_BITWISE_XOR = 299,
+    T_LITERAL = 300
   };
 #endif
 
@@ -110,7 +113,7 @@ void yyerror(const char *);
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 21 "src/parser.y"
+#line 23 "src/parser.y"
 
 	const Node 		*node;
 	Declarator 		*declarator_node;
@@ -127,7 +130,7 @@ union YYSTYPE
 
 	std::vector<Expression*>* 	initialisation_list;
 
-#line 131 "src/parser.tab.hpp"
+#line 134 "src/parser.tab.hpp"
 
 };
 typedef union YYSTYPE YYSTYPE;

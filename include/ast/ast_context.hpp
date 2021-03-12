@@ -8,6 +8,8 @@
 #include <cmath>
 #include <regex>
 #include <stack>
+#include <cassert>
+#include <deque>
 
 #include <memory>
 
@@ -39,13 +41,19 @@ $24	- $25				Temporary registers
 
 */
 
-/* ------------------------------------ 			  			     Custom definitions			 				------------------------------------ */
+/* ------------------------------------ 			  			   Forward declarations			 				------------------------------------ */
+
+class Expression;
+class Statement;
+
+/* ------------------------------------ 			  			    Custom definitions			 				------------------------------------ */
 
 enum declaration_type
 {
 	NORMAL,
 	FUNCTION,
 	ARRAY,
+	POINTER,
 	STRUCT
 };
 
@@ -88,7 +96,6 @@ class variable
 		declaration_type get_declaration_type() { return variable_declaration; }	
 };
 
-
 /* ------------------------------------ 			      			    Type class		 						------------------------------------ */
 // Handles the properties of the variable types including:
 // 	- The type of variable e.g. int, void
@@ -121,7 +128,6 @@ class type_definition
 
 };
 
-
 /* ------------------------------------								 Context Functions							------------------------------------ */
 
 static context_scope scope_tracker;
@@ -148,7 +154,70 @@ class Context
 		std::stack<std::string> break_stack;
 		std::stack<std::string> continue_stack;
 
+		// Switch case structure
+		std::deque<Expression*> case_statements_tracker;
+		std::deque<std::string> case_label_tracker;
+
+		std::deque<Statement*> default_statements_tracker;
+		std::deque<std::string> default_label_tracker;
+
 	public:
+		/* ------------------------------------					   		 Switch Functions						------------------------------------ */
+
+		void add_case_statements(Expression* case_statement, std::string case_label) 
+		{ 
+			case_statements_tracker.push_back(case_statement);
+			case_label_tracker.push_back(case_label);
+		}
+
+		Expression* get_case_statement()
+		{
+			return case_statements_tracker.front();
+		}
+
+		std::string get_case_label()
+		{
+			return case_label_tracker.front();
+		}
+
+		int get_case_statement_size()
+		{
+			assert(case_label_tracker.size() == case_statements_tracker.size());
+			return case_statements_tracker.size();
+		}
+
+		void remove_case_statement() 
+		{
+			// Remove the first element of the vector
+			case_statements_tracker.pop_front();
+			case_label_tracker.pop_front();
+		}
+
+		/* ------------------------------------					   		 Default Functions						------------------------------------ */
+
+		void add_default_statements(Statement* default_statement, std::string default_label) 
+		{ 
+			default_statements_tracker.push_back(default_statement);
+			default_label_tracker.push_back(default_label);
+		}
+
+		Statement* get_default_statement() { return default_statements_tracker.front(); }
+
+		std::string get_default_label() { return default_label_tracker.front(); }
+
+		int get_default_statement_size()
+		{
+			assert(default_label_tracker.size() == default_statements_tracker.size());
+			return default_statements_tracker.size();
+		}
+
+		void remove_default_statement() 
+		{
+			// Remove the first element of the vector
+			default_statements_tracker.pop_front();
+			default_label_tracker.pop_front();
+		}
+
 		/* ------------------------------------					   Break and Continue Functions					------------------------------------ */
 
 		void add_break_label(std::string break_label) { break_stack.push(break_label); }
@@ -285,7 +354,6 @@ class Context
 		}
 
 };
-
 
 /* ------------------------------------ 			      			   Node class		 			 			------------------------------------ */
 class Node

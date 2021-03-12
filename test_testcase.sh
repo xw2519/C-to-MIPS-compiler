@@ -22,13 +22,13 @@ echo "==========================================================================
 
 COMPILER=bin/c_compiler
 
-input_dir="compiler_tests/array/index_constant"
+input_dir="compiler_tests/misc/switch1"
 output_dir="temp/"
 rm -r ${output_dir}
 mkdir -p ${output_dir}
 
 # Compile test function with compiler under test 
-$COMPILER < ${input_dir}.c > ${output_dir}assembly.s 
+${COMPILER} -S ${TEST_FILE} -o ${OUTPUT_DIR}/${TEST}.s
 
 # Compile driver with normal GCC
 mips-linux-gnu-gcc -mfp32 -o ${output_dir}object_file.o -c ${output_dir}assembly.s

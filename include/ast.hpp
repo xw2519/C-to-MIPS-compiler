@@ -11,6 +11,7 @@
 /* ----------------------          Include all libraries            ---------------------- */
 #include "stdio.h"
 #include <iostream>
+#include <fstream> 
 #include <string>
 #include <cstdlib>
 #include <typeinfo>

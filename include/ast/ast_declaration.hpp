@@ -278,7 +278,6 @@ class Initialisation_Array_Declarator : public Declarator
 		}
 };
 
-
 /* ------------------------------------						    Declaration Class					------------------------------------ */
 
 class Declaration : public External_Declaration

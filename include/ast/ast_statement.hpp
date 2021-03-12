@@ -322,4 +322,133 @@ class Continue_Statement : public Statement
 		}
 };
 
+/* ------------------------------------						    Switch Class					------------------------------------ */
+
+class Switch_Statement : public Statement
+{
+	private:
+		Expression* expression;
+		Statement* switch_statements;
+
+	public:
+		Switch_Statement (Expression* _expression = NULL, Statement* _switch_statements = NULL)
+		: expression(_expression), switch_statements(_switch_statements) {}
+
+		virtual void compile(std::ostream& dst, Context& context) const override
+		{
+			std::stringstream ss; //temporarily store in ss;
+			switch_statements->compile(ss, context);
+
+
+			dst << std::endl;
+			dst << "# ------------ Switch statement ------------ #" << std::endl;
+
+			// Set loop boundaries
+			std::string START_label = context.make_label("START_SWITCH");
+			std::string FINISH_label = context.make_label("FINISH_SWITCH");
+
+			context.add_break_label(FINISH_label);
+
+			// Handle switch expression
+			context.allocate_stack();
+			std::string switch_register = "$2";
+			int switch_stack_pointer = context.get_stack_pointer();
+			expression->compile(dst, context);
+
+			// Handle the case statements
+			context.allocate_stack();
+			std::string case_register = "$8";
+			int case_stack_pointer = context.get_stack_pointer();
+
+			// std::cerr << context.get_case_statement_size() << std::endl;
+			
+			while(context.get_case_statement_size() != 0)
+			{
+				Expression* case_statement = context.get_case_statement();
+				case_statement->compile(dst, context);
+				std::string case_label = context.get_case_label();
+
+				context.load_register(dst, switch_register, switch_stack_pointer);
+				context.load_register(dst, case_register, case_stack_pointer);
+
+				dst << "\t" << "beq" << "\t" << switch_register << "," << case_register << "," << case_label << std::endl;
+
+				context.remove_case_statement();
+			}
+
+			// Handle default statement
+			if(context.get_default_label().find("DEFAULT") != std::string::npos)
+			{
+				dst << "\t" << "b " << "\t"  << "\t" << context.get_case_label() << std::endl;
+				context.remove_default_statement();
+			}
+
+			dst << "\t" << "b " << "\t"  << "\t" << FINISH_label << std::endl;
+
+			dst << ss.str() << std::endl;
+
+			dst << FINISH_label << ":" << std::endl;
+
+			context.deallocate_stack();
+			context.deallocate_stack();
+
+			context.remove_break_label();
+			
+		}
+};
+
+class Case_Statement : public Statement
+{
+	private:
+		Expression* expression;
+		Statement* switch_statements;
+
+	public:
+		Case_Statement( Expression* _expression, Statement* _switch_statements)
+		: expression(_expression), switch_statements(_switch_statements) {}
+
+		virtual void compile(std::ostream &dst, Context& context) const override
+		{
+			dst << "# ------------ Case statement ------------ #" << std::endl;
+
+			// Generate case label
+			std::string case_label = context.make_label("CASE");
+
+			// Store case label and statements
+			context.add_case_statements(expression, case_label);
+
+			// Label declaration
+			dst << case_label << ":" << std::endl;
+
+			// Compile statements
+			switch_statements->compile(dst, context);
+		}
+};
+
+class Default_Statement : public Statement
+{
+	private:
+		Statement* default_statements;
+
+	public:
+		Default_Statement(Statement* _default_statements)
+		: default_statements(_default_statements) {}
+
+		virtual void compile(std::ostream &dst, Context& context) const override
+		{
+			dst << "# ------------ Default statement ------------ #" << std::endl;
+			// Generate case label
+			std::string default_label = context.make_label("DEFAULT");
+
+			// Store case label and statements
+			context.add_default_statements(default_statements, default_label);
+
+			// Label declaration
+			dst << default_label << ":" << std::endl;
+
+			// Compile statements
+			default_statements->compile(dst, context);
+		}
+};
+
 #endif

@@ -35,6 +35,8 @@ IS			(u|U|l|L)*
 "break"					                    { return (T_BREAK); }
 "continue"				                  { return (T_CONTINUE); }
 "return"			  	                  { return (T_RETURN); }
+"default"                           { return (T_DEFAULT); }
+"case"                              { return (T_CASE); }
 
 
   /* Characters */
