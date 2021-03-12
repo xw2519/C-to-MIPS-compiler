@@ -301,6 +301,8 @@ class Declaration : public External_Declaration
 			else if(TYPE == "void") { return VOID; } 
 		}
 
+		type get_type() { return TYPE; }
+
 		virtual void compile(std::ostream &dst, Context& context) const override
 		{
 			if (declaration_list != NULL)

@@ -90,22 +90,24 @@ extern int yydebug;
     T_NOT_EQUAL = 282,
     T_INT = 283,
     T_VOID = 284,
-    T_IF = 285,
-    T_ELSE = 286,
-    T_SWITCH = 287,
-    T_WHILE = 288,
-    T_FOR = 289,
-    T_CONTINUE = 290,
-    T_BREAK = 291,
-    T_RETURN = 292,
-    T_DEFAULT = 293,
-    T_CASE = 294,
-    T_IDENTIFIER = 295,
-    T_CONSTANT = 296,
-    T_BITWISE_AND = 297,
-    T_BITWISE_OR = 298,
-    T_BITWISE_XOR = 299,
-    T_LITERAL = 300
+    T_CHAR = 285,
+    T_SIZEOF = 286,
+    T_IF = 287,
+    T_ELSE = 288,
+    T_SWITCH = 289,
+    T_WHILE = 290,
+    T_FOR = 291,
+    T_CONTINUE = 292,
+    T_BREAK = 293,
+    T_RETURN = 294,
+    T_DEFAULT = 295,
+    T_CASE = 296,
+    T_IDENTIFIER = 297,
+    T_CONSTANT = 298,
+    T_BITWISE_AND = 299,
+    T_BITWISE_OR = 300,
+    T_BITWISE_XOR = 301,
+    T_LITERAL = 302
   };
 #endif
 
@@ -130,7 +132,7 @@ union YYSTYPE
 
 	std::vector<Expression*>* 	initialisation_list;
 
-#line 134 "src/parser.tab.hpp"
+#line 136 "src/parser.tab.hpp"
 
 };
 typedef union YYSTYPE YYSTYPE;

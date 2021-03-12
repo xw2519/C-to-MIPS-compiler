@@ -50,7 +50,9 @@ Contents and terms are derived from the ANSI C programming language (ANSI/ISO 98
 // Comparison Operators
 %token T_GREATER T_GREATER_EQUAL T_LESS T_LESS_EQUAL T_EQUAL T_NOT_EQUAL
 // Types Operators
-%token T_INT T_VOID
+%token T_INT T_VOID T_CHAR
+// Sizeof
+%token T_SIZEOF
 // Structures Operators
 %token T_IF T_ELSE T_SWITCH T_WHILE T_FOR T_CONTINUE T_BREAK T_RETURN T_DEFAULT T_CASE
 // Rules
@@ -96,7 +98,7 @@ Contents and terms are derived from the ANSI C programming language (ANSI/ISO 98
 %type <statement_list_vector> statement_list
 
 %type <string> 	T_IDENTIFIER T_INT T_RETURN T_LITERAL
-%type <string> 	T_TYPE 
+%type <string> 	TYPE 
 
 %type <int_num> T_CONSTANT
 
@@ -122,7 +124,7 @@ global_declaration				:	function_definition
 								|	declaration 														
 									{ $$ = $1; }
 
-function_definition				:	T_TYPE T_IDENTIFIER T_LBRACKET parameter_list T_RBRACKET compound_statement 
+function_definition				:	TYPE T_IDENTIFIER T_LBRACKET parameter_list T_RBRACKET compound_statement 
 									{ $$ = new Function_Definition(*$1, *$2, $4, $6); }
 
 initialisation_list 			:   assignment_expression 												
@@ -131,10 +133,10 @@ initialisation_list 			:   assignment_expression
 								|	initialisation_list T_COMMA assignment_expression 					
 									{ $1->push_back($3); $$=$1; }
 
-declaration 					:	T_TYPE T_SEMICOLON													
+declaration 					:	TYPE T_SEMICOLON													
 									{ $$ = new Declaration(*$1); }
 
-								| 	T_TYPE initialisation_declarator_list T_SEMICOLON 					
+								| 	TYPE initialisation_declarator_list T_SEMICOLON 					
 									{ $$ = new Declaration(*$1, $2); }
 
 declaration_list				: 	declaration 														
@@ -143,11 +145,11 @@ declaration_list				: 	declaration
 								| 	declaration_list declaration  										
 									{ $1->push_back($2); $$ = $1; }
 
-parameter_declaration			:	T_TYPE declarator 													
+parameter_declaration			:	TYPE declarator 													
 									{ $$ = new Declaration(*$1, new std::vector<Declarator*>(1, $2)); }	
 								
-								|	T_TYPE
-									{ std::cerr<<"hi"<<std::endl;}
+								|	TYPE
+									{}
 
 parameter_list					:	parameter_declaration				     							
 									{ $$ = new std::vector<Declaration*>(1, $1); }
@@ -186,8 +188,8 @@ initialisation_declarator_list	: 	initialisation_declarator
 
 /* ------------------------------------							 Expression Base								------------------------------------ */
 
-expression 						:	assignment_expression											
-
+expression 						:	assignment_expression
+									
 primary_expression				: 	T_CONSTANT															
 									{ $$ = new Constant($1); }
 
@@ -199,6 +201,12 @@ primary_expression				: 	T_CONSTANT
 
 								| 	T_LBRACKET expression T_RBRACKET									
 									{ $$ = $2; }		
+								
+								|	T_SIZEOF T_LBRACKET TYPE T_RBRACKET
+									{ $$ = new Sizeof_Type_Expression(*$3); }	
+								
+								|	T_SIZEOF T_LBRACKET T_IDENTIFIER T_RBRACKET
+									{ $$ = new Sizeof_Variable_Expression(*$3); }
 
 unary_expression				: 	postfix_expression
 
@@ -206,11 +214,11 @@ unary_expression				: 	postfix_expression
 									{ $$ = new Reference_Expression($2); }
 								
 								|	T_MULTIPLY cast_expression
-									{  $$ = new Dereference_Expression($2); }
+									{ $$ = new Dereference_Expression($2); }
 
 cast_expression					: 	unary_expression 
 
-								| 	T_LBRACKET T_TYPE T_RBRACKET cast_expression
+								| 	T_LBRACKET TYPE T_RBRACKET cast_expression
 									{ $$ = new Cast_Expression(*$2, $4); }
 
 postfix_expression				:	primary_expression	
@@ -233,15 +241,6 @@ postfix_expression				:	primary_expression
 
 /* ------------------------------------						   Arthimetic Expression						------------------------------------ */
 
-add_expression					: 	multiply_expression					  								
-									{ $$ = $1; }
-
-								| 	add_expression T_PLUS multiply_expression							
-									{ $$ = new Add_Expression($1, $3); }
-
-								| 	add_expression T_MINUS multiply_expression  						
-									{ $$ = new Sub_Expression($1, $3); }
-
 multiply_expression				:	postfix_expression				 									
 									{ $$ = $1; }
 
@@ -251,6 +250,14 @@ multiply_expression				:	postfix_expression
 								| 	multiply_expression T_DIVIDE postfix_expression 					
 									{ $$ = new Divide_Expression($1, $3); }
 
+add_expression					: 	multiply_expression					  								
+									{ $$ = $1; }
+
+								| 	add_expression T_PLUS multiply_expression							
+									{ $$ = new Add_Expression($1, $3); }
+
+								| 	add_expression T_MINUS multiply_expression  						
+									{ $$ = new Sub_Expression($1, $3); }
 
 /* ------------------------------------					      Bitwise Shift Expression						------------------------------------ */
 
@@ -405,11 +412,14 @@ labeled_statement				:	T_CASE expression T_COLON statement
 
 /* ------------------------------------								  Others								----------------------------------- */
 
-T_TYPE							:	T_INT 		
+TYPE							:	T_INT 		
 									{ $$ = new std::string("INT"); }
 
 								|	T_VOID		
-									{ $$ = new std::string("VOID"); } 			
+									{ $$ = new std::string("VOID"); } 	
+
+								|	T_CHAR		
+									{ $$ = new std::string("CHAR"); } 			
 
 %%
 

@@ -4,7 +4,8 @@
 #include <string>
 #include <iostream>
 #include <map>
-#include <memory>
+
+#include "ast_declaration.hpp"
 
 /* ------------------------------------						   Expression Base Class					------------------------------------ */
 class Expression : public Node 
@@ -32,6 +33,76 @@ class Unary_Expression : public Expression
 		virtual void compile(std::ostream &dst, Context& context) const override
 		{
 			dst << "Triggered 1" << std::endl;
+		}
+};
+
+/* ------------------------------------					    	 Sizeof Expressions						------------------------------------ */
+
+class Sizeof_Type_Expression : public Expression
+{
+	private:
+		std::string sizeof_type;
+		
+	public:
+		Sizeof_Type_Expression(std::string _sizeof_type) 
+		: sizeof_type(_sizeof_type) {}
+
+		virtual void compile(std::ostream &dst, Context& context) const override
+		{
+			int stack_pointer = context.get_stack_pointer();
+			std::string destination_register = "$2";
+
+			// Select the size of the specified type
+			if(sizeof_type == "INT" || sizeof_type == "FLOAT")
+			{
+				dst << "\t" << "li" << "\t" << "\t" << "$2" << ", " << 4 << std::endl;
+			}
+			else if(sizeof_type == "VOID")
+			{
+				dst << "\t" << "li" << "\t" << "\t" << "$2" << ", " << 1 << std::endl;
+			}
+			else if(sizeof_type == "CHAR")
+			{
+				dst << "\t" << "li" << "\t" << "\t" << "$2" << ", " << 1 << std::endl;
+			}
+
+			context.store_register(dst, destination_register, stack_pointer);	
+		}
+};
+
+class Sizeof_Variable_Expression : public Expression
+{
+	private:
+		std::string variable_name;
+
+	public:
+		Sizeof_Variable_Expression(std::string _variable_name) 
+		: variable_name(_variable_name) {}
+
+		virtual void compile(std::ostream &dst, Context& context) const override
+		{
+			// Find the type of the variable
+			type variable_type = context.get_variable(variable_name).get_variable_type();
+
+			// Output size of specified type
+			int stack_pointer = context.get_stack_pointer();
+			std::string destination_register = "$2";
+
+			// Select the size of the specified type
+			if(variable_type == INT || variable_type == FLOAT)
+			{
+				dst << "\t" << "li" << "\t" << "\t" << "$2" << ", " << 4 << std::endl;
+			}
+			else if(variable_type == VOID)
+			{
+				dst << "\t" << "li" << "\t" << "\t" << "$2" << ", " << 1 << std::endl;
+			}
+			else if(variable_type == CHAR)
+			{
+				dst << "\t" << "li" << "\t" << "\t" << "$2" << ", " << 1 << std::endl;
+			}
+
+			context.store_register(dst, destination_register, stack_pointer);	
 		}
 };
 
@@ -412,7 +483,7 @@ class Divide_Expression : public Operator
 class Less_Than_Expression : public Operator
 {
 	public:
-		Less_Than_Expression (Expression* _left, Expression* _right) : Operator (_left, _right) {}
+		Less_Than_Expression(Expression* _left, Expression* _right) : Operator(_left, _right) {}
 	
 		virtual void execute(std::ostream &dst, Context& context, type type, std::string destination_register, std::string temprorary_register) const override
 		{
@@ -425,7 +496,7 @@ class Less_Than_Expression : public Operator
 class More_Than_Expression : public Operator
 {
 	public:
-		More_Than_Expression (Expression* _left, Expression* _right) : Operator (_left, _right) {}
+		More_Than_Expression(Expression* _left, Expression* _right) : Operator(_left, _right) {}
 
 		virtual void execute(std::ostream &dst, Context& context, type type, std::string destination_register, std::string temprorary_register) const override
 		{
@@ -438,7 +509,7 @@ class More_Than_Expression : public Operator
 class Less_Than_Equal_Expression : public Operator
 {
 	public:
-		Less_Than_Equal_Expression (Expression* _left, Expression* _right) : Operator (_left, _right) {}
+		Less_Than_Equal_Expression(Expression* _left, Expression* _right) : Operator(_left, _right) {}
 
 		virtual void execute(std::ostream &dst, Context& context, type type, std::string destination_register, std::string temprorary_register) const override
 		{
@@ -453,7 +524,7 @@ class Less_Than_Equal_Expression : public Operator
 class More_Than_Equal_Expression : public Operator
 {
 	public:
-		More_Than_Equal_Expression (Expression* _left, Expression* _right) : Operator (_left,_right) {}
+		More_Than_Equal_Expression(Expression* _left, Expression* _right) : Operator(_left, _right) {}
 
 		virtual void execute(std::ostream &dst, Context& context, type type, std::string destination_register, std::string temprorary_register) const override
 		{
@@ -467,7 +538,7 @@ class More_Than_Equal_Expression : public Operator
 class Equal_Expression : public Operator
 {
 	public:
-		Equal_Expression (Expression* _left, Expression* _right) : Operator (_left,_right) {}
+		Equal_Expression(Expression* _left, Expression* _right) : Operator(_left, _right) {}
 
 		virtual void execute(std::ostream &dst, Context& context, type type, std::string destination_register, std::string temprorary_register) const override
 		{
@@ -480,7 +551,7 @@ class Equal_Expression : public Operator
 class Not_Equal_Expression : public Operator
 {
 	public:
-		Not_Equal_Expression (Expression* _left, Expression* _right) : Operator (_left,_right) {}
+		Not_Equal_Expression (Expression* _left, Expression* _right) : Operator (_left, _right) {}
 
 		virtual void execute(std::ostream &dst, Context& context, type type, std::string destination_register, std::string temprorary_register) const override
 		{
@@ -536,7 +607,7 @@ class Bitwise_XOR_Expression : public Operator
 class Logical_AND_Expression : public Operator
 {
 	public:
-		Logical_AND_Expression (Expression* _left, Expression* _right) : Operator (_left, _right) {}
+		Logical_AND_Expression(Expression* _left, Expression* _right) : Operator(_left, _right) {}
 
 		virtual void execute(std::ostream &dst, Context& context, type type, std::string destination_register, std::string temprorary_register) const override
 		{
@@ -574,7 +645,7 @@ class Logical_AND_Expression : public Operator
 class Logical_OR_Expression : public Operator
 {
 	public:
-		Logical_OR_Expression (Expression* _left, Expression* _right) : Operator (_left, _right) {}
+		Logical_OR_Expression(Expression* _left, Expression* _right) : Operator(_left, _right) {}
 
 		virtual void execute(std::ostream &dst, Context& context, type type, std::string destination_register, std::string temprorary_register) const override
 		{
@@ -612,5 +683,7 @@ class Logical_OR_Expression : public Operator
 			context.store_register(dst, destination_name, destination_address);
 		}
 };
+
+
 
 #endif
