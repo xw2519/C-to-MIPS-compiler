@@ -64,6 +64,8 @@ class Identifier : public Primitive // Local variables with constant
 			}
 		}
 
+		std::string get_variable_name() { return variable_name; };
+
 		virtual void load_variable_address(std::ostream &dst, Context& context) const override
 		{
 			dst << std::endl;
@@ -85,16 +87,32 @@ class Identifier : public Primitive // Local variables with constant
 		
 };
 
-class StringLiteral : public Primitive
+// https://stackoverflow.com/questions/42183471/declaring-a-pointer-in-mips
+
+class Pointer_literal : public Primitive
 {
 	private:
-		std::string str;
+		std::string pointer_name;
 	public:
-		StringLiteral (std::string _str) : str (_str) {}
+		Pointer_literal(std::string _pointer_name) : pointer_name(_pointer_name) {}
 
 		virtual void compile(std::ostream &dst, Context& context) const override
 		{
-			dst << str;
+			// Get storage parameters
+			std::string pointer_register = "$2";
+			int pointer_address = context.get_stack_pointer();
+			
+			// Generate pointer jump label
+			std::string pointer_label = context.make_label("POINTER");
+
+			// Add into tracker
+			context.add_label_variable(pointer_label, pointer_name);
+			context.add_label_declaration(pointer_name, "asciiz");
+
+			dst << "\t" << "la" << "\t" << "\t" << pointer_register << "," << pointer_label << std::endl;
+
+			// Store pointer
+			context.store_register(dst, pointer_register, pointer_address);
 		}
 };
 

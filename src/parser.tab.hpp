@@ -124,6 +124,7 @@ union YYSTYPE
 	Expression 		*expression_node;
 	std::string 	*string;
 	int 			int_num;
+	type_definition *type_node;
 
 	std::vector<Expression*>* 	argument_list_vector;
 	std::vector<Statement*>* 	statement_list_vector;
@@ -132,7 +133,7 @@ union YYSTYPE
 
 	std::vector<Expression*>* 	initialisation_list;
 
-#line 136 "src/parser.tab.hpp"
+#line 137 "src/parser.tab.hpp"
 
 };
 typedef union YYSTYPE YYSTYPE;

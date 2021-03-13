@@ -28,6 +28,7 @@ Contents and terms are derived from the ANSI C programming language (ANSI/ISO 98
 	Expression 		*expression_node;
 	std::string 	*string;
 	int 			int_num;
+	type_definition *type_node;
 
 	std::vector<Expression*>* 	argument_list_vector;
 	std::vector<Statement*>* 	statement_list_vector;
@@ -98,7 +99,7 @@ Contents and terms are derived from the ANSI C programming language (ANSI/ISO 98
 %type <statement_list_vector> statement_list
 
 %type <string> 	T_IDENTIFIER T_INT T_RETURN T_LITERAL
-%type <string> 	TYPE 
+%type <type_node> TYPE 
 
 %type <int_num> T_CONSTANT
 
@@ -122,7 +123,7 @@ global_declaration				:	function_definition
 									{ $$ = $1; }
 
 								|	declaration 														
-									{ $$ = $1; }
+									{ std::cerr<<"hi"<<std::endl; $$ = $1; }
 
 function_definition				:	TYPE T_IDENTIFIER T_LBRACKET parameter_list T_RBRACKET compound_statement 
 									{ $$ = new Function_Definition(*$1, *$2, $4, $6); }
@@ -137,7 +138,7 @@ declaration 					:	TYPE T_SEMICOLON
 									{ $$ = new Declaration(*$1); }
 
 								| 	TYPE initialisation_declarator_list T_SEMICOLON 					
-									{ $$ = new Declaration(*$1, $2); }
+									{ std::cerr<<"hi2"<<std::endl; $$ = new Declaration(*$1, $2); }
 
 declaration_list				: 	declaration 														
 									{ $$ = new std::vector<Declaration*>(1, $1); } 
@@ -168,6 +169,9 @@ declarator						: 	T_IDENTIFIER
 								| 	T_IDENTIFIER T_SQUARE_LBRACKET expression T_SQUARE_RBRACKET			
 									{ $$ = new Array_Declarator(*$1, $3); }
 
+								|	T_IDENTIFIER T_LBRACKET parameter_list T_RBRACKET
+									{ $$ = new Function_Prototype_Declaration(*$1, $3); }
+
 initialisation_declarator		: 	declarator 															
 									{ $$ = $1; }
 
@@ -197,7 +201,7 @@ primary_expression				: 	T_CONSTANT
 									{ $$ = new Identifier(*$1);	}	
 
 								| 	T_LITERAL			 												
-									{ $$ = new StringLiteral(*$1); }	
+									{ $$ = new Pointer_literal(*$1); }	
 
 								| 	T_LBRACKET expression T_RBRACKET									
 									{ $$ = $2; }		
@@ -413,13 +417,19 @@ labeled_statement				:	T_CASE expression T_COLON statement
 /* ------------------------------------								  Others								----------------------------------- */
 
 TYPE							:	T_INT 		
-									{ $$ = new std::string("INT"); }
+									{ $$ = new type_definition(INT); }
 
 								|	T_VOID		
-									{ $$ = new std::string("VOID"); } 	
+									{ $$ = new type_definition(VOID); } 	
 
 								|	T_CHAR		
-									{ $$ = new std::string("CHAR"); } 			
+									{ $$ = new type_definition(CHAR); } 		
+
+								| 	TYPE T_MULTIPLY 
+									{ 									
+									  $$ = $1; 
+									  $1->increase_pointer_tracker(); 
+									}	
 
 %%
 

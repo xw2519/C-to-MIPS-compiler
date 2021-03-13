@@ -112,7 +112,7 @@ class type_definition
 		type variable_type = NONE;
 
 		// Array trackers (default set to 0)
-		int array_pointer_tracker = 0;
+		int pointer_tracker = 0;
 		int array_size_tracker = 0;
 
 	public:
@@ -121,13 +121,14 @@ class type_definition
 		// Variable type oeprators
 		type get_variable_type() { return variable_type; }
 
-		// Array trackers
-		int get_array_pointer() { return array_pointer_tracker; }
+		// Array
 		int get_array_size() { return array_size_tracker; }
-		
-		void increase_array_pointer() { array_pointer_tracker += 1;}
+		void decrease_array_pointer() { pointer_tracker -= 1;}
 
-		void decrease_array_pointer() { array_pointer_tracker -= 1;}
+		// Pointer 
+		int get_pointer_tracker() { return pointer_tracker; }
+		void increase_pointer_tracker() { pointer_tracker += 1;}
+		
 
 };
 
@@ -161,7 +162,34 @@ class Context
 		std::deque<Expression*> switch_statements_tracker;
 		std::deque<std::string> switch_label_tracker;
 
+		// Labelled variables and pointers
+		std::map<std::string, std::string> label_variables;
+		std::map<std::string, std::string> label_declarations;
+
 	public:
+		/* ------------------------------------ 			      	  Function call Functions					------------------------------------ */
+
+		bool check_function_declared(std::string function_name)
+		{
+			if((*context_tracker).count(function_name)) { return true; }
+			else { return false; }
+		}
+
+		/* ------------------------------------				 Labelled variables and pointers Functions			------------------------------------ */
+		
+		void add_label_variable(std::string label, std::string variable)
+		{
+			label_variables[variable] = label;
+		};
+
+		void add_label_declaration(std::string variable, std::string declaration)
+		{
+			label_declarations[variable] = declaration;
+		};
+
+
+
+
 		/* ------------------------------------					   		 Switch Functions						------------------------------------ */
 
 		void add_case_statements(Expression* case_statement, std::string case_label) 
@@ -287,7 +315,6 @@ class Context
 		}
 
 		int get_stack_pointer() { return stack_pointer; }
-
 
 		/* ------------------------------------						    Register Functions						------------------------------------ */
 

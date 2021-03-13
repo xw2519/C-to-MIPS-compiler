@@ -12,6 +12,8 @@ class Expression : public Node
 {
 	public:
 		// Primitive functions
+		virtual std::string get_variable_name() const {};
+
 		virtual void load_variable_address(std::ostream &dst, Context& context) const {};
 
 		// Evaluate the expression
@@ -41,11 +43,11 @@ class Unary_Expression : public Expression
 class Sizeof_Type_Expression : public Expression
 {
 	private:
-		std::string sizeof_type;
+		type sizeof_type;
 		
 	public:
-		Sizeof_Type_Expression(std::string _sizeof_type) 
-		: sizeof_type(_sizeof_type) {}
+		Sizeof_Type_Expression(type_definition _sizeof_type) 
+		: sizeof_type(_sizeof_type.get_variable_type()) {}
 
 		virtual void compile(std::ostream &dst, Context& context) const override
 		{
@@ -53,15 +55,15 @@ class Sizeof_Type_Expression : public Expression
 			std::string destination_register = "$2";
 
 			// Select the size of the specified type
-			if(sizeof_type == "INT" || sizeof_type == "FLOAT")
+			if(sizeof_type == INT || sizeof_type == FLOAT)
 			{
 				dst << "\t" << "li" << "\t" << "\t" << "$2" << ", " << 4 << std::endl;
 			}
-			else if(sizeof_type == "VOID")
+			else if(sizeof_type == VOID)
 			{
 				dst << "\t" << "li" << "\t" << "\t" << "$2" << ", " << 1 << std::endl;
 			}
-			else if(sizeof_type == "CHAR")
+			else if(sizeof_type == CHAR)
 			{
 				dst << "\t" << "li" << "\t" << "\t" << "$2" << ", " << 1 << std::endl;
 			}
@@ -111,11 +113,11 @@ class Sizeof_Variable_Expression : public Expression
 class Cast_Expression : public Unary_Expression
 {
 	private:
-		std::string casting_type;
+		type casting_type;
 	
 	public:
-		Cast_Expression(std::string _casting_type, Expression* _expression) 
-		: casting_type( _casting_type), Unary_Expression(_expression) {}
+		Cast_Expression(type_definition _casting_type, Expression* _expression) 
+		: casting_type( _casting_type.get_variable_type()), Unary_Expression(_expression) {}
 
 		virtual void compile(std::ostream &dst, Context& context) const override
 		{
@@ -225,7 +227,71 @@ class Function_Call_Expression : public Unary_Expression
 
 		virtual void compile(std::ostream &dst, Context& context) const override
 		{
-			dst << "Triggered 3" << std::endl;
+			// Get function parameters
+			type function_type;
+			std::string variable_ID = expression->get_variable_name();
+
+			int function_register_address = context.get_stack_pointer();
+			std::string function_register = "$2";
+
+			// Check for prototypes
+			if (context.check_function_declared(variable_ID))
+			{
+				/* code */
+			}
+			else
+			{
+				// Declare the function 
+				context.set_GLOBAL();
+				context.new_variable(variable_ID, INT, FUNCTION);
+				context.set_LOCAL();
+			}
+			
+			// Handle four function argument
+			for(int i = 0; i < 4; i++)
+			{
+				context.allocate_stack();
+			}
+
+			int function_stack_pointer = context.get_stack_pointer();
+			int argument_stack_pointer = 0;
+			std::string argument_registers[4]  = {"$4", "$5", "$6", "$7"};
+
+			for(int i = 0; i < 4; i++)
+			{
+				argument_stack_pointer += 8;
+
+				dst << "\t" << "lw" << "\t" << "\t" << argument_registers[i] << "," << function_stack_pointer + argument_stack_pointer << "($30)" <<  std::endl; 
+			}
+
+			// Store arguments
+			argument_stack_pointer = 0;
+			for (int i = 0; i < argument_list->size(); i++)
+			{
+				argument_stack_pointer += 8;
+
+				// Temprorary registers
+				context.allocate_stack();
+				std::string temp_register = "$8";
+				int temp_register_address = context.get_stack_pointer();
+
+				(*argument_list)[i]->compile(dst, context);
+
+				context.deallocate_stack();
+
+				context.load_register(dst, temp_register, temp_register_address);
+				dst << "\t" << "sw" << "\t" << "\t" << temp_register << "," << function_stack_pointer + argument_stack_pointer << "($30)" <<  std::endl; 
+			}
+
+			// Go back to original function
+			dst << "\t" << "addiu" << "\t" << "$29, $29," << context.get_stack_pointer() << std::endl; 
+			dst << "\t" << "la"    << "\t" << "\t" << "$2," << variable_ID << std::endl;
+			dst << "\t" << "jalr"  << "\t" << "$2" << std::endl;
+			dst << "\t" << "addiu" << "\t" << "$29, $29," << -context.get_stack_pointer() << std::endl; 
+
+			for(int i = 0; i < 4; i++) { context.deallocate_stack(); }
+
+			context.store_register(dst, function_register, function_register_address);
 		}
 
 };
@@ -294,6 +360,10 @@ class Reference_Expression : public Unary_Expression
 		virtual void compile(std::ostream &dst, Context& context) const override
 		{
 			expression->load_variable_address(dst, context);
+		}
+
+		virtual void declare_pointer(std::ostream &dst, Context& context) const
+		{
 		}
 };
 

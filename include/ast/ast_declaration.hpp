@@ -287,18 +287,12 @@ class Declaration : public External_Declaration
 		std::vector<Declarator*>* declaration_list;
 
 	public:
-		Declaration(std::string _TYPE, std::vector<Declarator*>* _declaration_list = NULL) 
-		: TYPE(convert_type(_TYPE)), declaration_list(_declaration_list) {}
+		Declaration(type_definition _TYPE, std::vector<Declarator*>* _declaration_list = NULL) 
+		: TYPE(_TYPE.get_variable_type()), declaration_list(_declaration_list) {}
 
 		virtual std::string get_parameter()
 		{
 			return (*declaration_list)[0]->get_variable_name();
-		}
-
-		type convert_type(std::string TYPE)
-		{
-			if(TYPE == "int") { return INT; }
-			else if(TYPE == "void") { return VOID; } 
 		}
 
 		type get_type() { return TYPE; }
@@ -343,14 +337,14 @@ pointer at the beginning of execution is taken as zero.
 class Function_Definition : public External_Declaration // Very basic
 {
 	private:
-		std::string TYPE;
+		type TYPE;
 		std::string ID;
 		std::vector<Declaration*>*	parameter_list;
 		Statement* statements;
 
 	public:
-		Function_Definition (std::string _TYPE, std::string _ID, std::vector<Declaration*>* _parameter_list, Statement *_statements) 
-		: TYPE(_TYPE), ID(_ID), parameter_list(_parameter_list), statements(_statements) {}
+		Function_Definition (type_definition _TYPE, std::string _ID, std::vector<Declaration*>* _parameter_list, Statement *_statements) 
+		: TYPE(_TYPE.get_variable_type()), ID(_ID), parameter_list(_parameter_list), statements(_statements) {}
 
 		virtual void compile(std::ostream& dst, Context& context) const override
 		{
@@ -393,19 +387,32 @@ class Function_Definition : public External_Declaration // Very basic
 			dst << std::endl;
 
 			// Function arguments
-			if(parameter_list != NULL) // Handles 4 argument for now
+			if(parameter_list != NULL)
 			{
-				int argument_frame_pointer = 8; // Set to 8 to prevent stack frame clash
+				int argument_stack_pointer = 8; // Set to 8 to prevent stack frame clash
 
 				std::string argument_registers[4]  = {"$4", "$5", "$6", "$7"};
 
+				// Check if parameters can fit into four argument register
+				// https://stackoverflow.com/questions/2298838/mips-function-call-with-more-than-four-arguments
+
 				for(int i = 0; i < parameter_list->size(); i++)
 				{
-					argument_frame_pointer += 8;
+					argument_stack_pointer += 8;
 
-					context.store_register(dst, argument_registers[i], argument_frame_pointer);
-					context.make_new_argument((*parameter_list)[i]->get_parameter(), INT, NORMAL, argument_frame_pointer);
+					// Check if argument stack is full or not based on argument_stack_pointer
+					if(i < 4) 
+					{
+						context.output_store_operation(dst, INT, argument_registers[i], "$30", argument_stack_pointer);
+					}
+					else // Store parameters on stack 
+					{
+						context.output_store_operation(dst, INT, "$2", "$30", argument_stack_pointer);
+					}
+
+					context.make_new_argument((*parameter_list)[i]->get_parameter(), INT, NORMAL, argument_stack_pointer);
 				}
+
 			}
 			
 			// Function body
@@ -440,6 +447,22 @@ class Function_Definition : public External_Declaration // Very basic
 
 			context.shrink_context_scope();
 			context.set_GLOBAL();
+		}
+};
+
+class Function_Prototype_Declaration : public Declarator
+{
+	private:
+		std::string function_name;
+		std::vector<Declaration*>* parameter_list;
+	
+	public:
+		Function_Prototype_Declaration(std::string _function_name, std::vector<Declaration*>* _parameter_list)
+		: function_name(_function_name), parameter_list(_parameter_list) {}
+
+		virtual void compile(std::ostream &dst, Context& context) const override
+		{
+			context.new_variable(function_name, INT, FUNCTION);
 		}
 };
 

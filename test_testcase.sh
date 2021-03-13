@@ -22,7 +22,7 @@ echo "==========================================================================
 
 COMPILER=bin/c_compiler
 
-input_dir="compiler_tests/types/sizeof_char_type"
+input_dir="compiler_tests/pointer/addressof"
 output_dir="temp/"
 rm -r ${output_dir}
 mkdir -p ${output_dir}
