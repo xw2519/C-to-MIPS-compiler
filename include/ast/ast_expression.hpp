@@ -12,7 +12,7 @@ class Expression : public Node
 {
 	public:
 		// Primitive functions
-		virtual std::string get_variable_name() const {};
+		virtual std::string get_variable_name() const { std::cout << "ERROR : Not and Identifier" << std::endl; };
 
 		virtual void load_variable_address(std::ostream &dst, Context& context) const {};
 
@@ -227,6 +227,7 @@ class Function_Call_Expression : public Unary_Expression
 
 		virtual void compile(std::ostream &dst, Context& context) const override
 		{
+			
 			// Get function parameters
 			type function_type;
 			std::string variable_ID = expression->get_variable_name();
@@ -237,6 +238,7 @@ class Function_Call_Expression : public Unary_Expression
 			// Check for prototypes
 			if (context.check_function_declared(variable_ID))
 			{
+				
 				/* code */
 			}
 			else
@@ -247,41 +249,45 @@ class Function_Call_Expression : public Unary_Expression
 				context.set_LOCAL();
 			}
 			
-			// Handle four function argument
-			for(int i = 0; i < 4; i++)
+			if(argument_list != NULL)
 			{
-				context.allocate_stack();
+				// Handle four function argument
+				for(int i = 0; i < argument_list->size(); i++)
+				{
+					context.allocate_stack();
+				}
+				
+				int function_stack_pointer = context.get_stack_pointer();
+				int argument_stack_pointer = 0;
+				std::string argument_registers[4]  = {"$4", "$5", "$6", "$7"};
+			
+				for(int i = 0; i < 4; i++)
+				{
+					argument_stack_pointer += 8;
+
+					dst << "\t" << "lw" << "\t" << "\t" << argument_registers[i] << "," << function_stack_pointer + argument_stack_pointer << "($30)" <<  std::endl; 
+				}
+
+				// Store arguments
+				argument_stack_pointer = 0;
+				for (int i = 0; i < argument_list->size(); i++)
+				{
+					argument_stack_pointer += 8;
+
+					// Temprorary registers
+					context.allocate_stack();
+					std::string temp_register = "$8";
+					int temp_register_address = context.get_stack_pointer();
+
+					(*argument_list)[i]->compile(dst, context);
+
+					context.deallocate_stack();
+
+					context.load_register(dst, temp_register, temp_register_address);
+					dst << "\t" << "sw" << "\t" << "\t" << temp_register << "," << function_stack_pointer + argument_stack_pointer << "($30)" <<  std::endl; 
+				}
 			}
-
-			int function_stack_pointer = context.get_stack_pointer();
-			int argument_stack_pointer = 0;
-			std::string argument_registers[4]  = {"$4", "$5", "$6", "$7"};
-
-			for(int i = 0; i < 4; i++)
-			{
-				argument_stack_pointer += 8;
-
-				dst << "\t" << "lw" << "\t" << "\t" << argument_registers[i] << "," << function_stack_pointer + argument_stack_pointer << "($30)" <<  std::endl; 
-			}
-
-			// Store arguments
-			argument_stack_pointer = 0;
-			for (int i = 0; i < argument_list->size(); i++)
-			{
-				argument_stack_pointer += 8;
-
-				// Temprorary registers
-				context.allocate_stack();
-				std::string temp_register = "$8";
-				int temp_register_address = context.get_stack_pointer();
-
-				(*argument_list)[i]->compile(dst, context);
-
-				context.deallocate_stack();
-
-				context.load_register(dst, temp_register, temp_register_address);
-				dst << "\t" << "sw" << "\t" << "\t" << temp_register << "," << function_stack_pointer + argument_stack_pointer << "($30)" <<  std::endl; 
-			}
+			
 
 			// Go back to original function
 			dst << "\t" << "addiu" << "\t" << "$29, $29," << context.get_stack_pointer() << std::endl; 

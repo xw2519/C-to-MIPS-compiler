@@ -123,7 +123,7 @@ global_declaration				:	function_definition
 									{ $$ = $1; }
 
 								|	declaration 														
-									{ std::cerr<<"hi"<<std::endl; $$ = $1; }
+									{ $$ = $1; }
 
 function_definition				:	TYPE T_IDENTIFIER T_LBRACKET parameter_list T_RBRACKET compound_statement 
 									{ $$ = new Function_Definition(*$1, *$2, $4, $6); }
@@ -138,7 +138,7 @@ declaration 					:	TYPE T_SEMICOLON
 									{ $$ = new Declaration(*$1); }
 
 								| 	TYPE initialisation_declarator_list T_SEMICOLON 					
-									{ std::cerr<<"hi2"<<std::endl; $$ = new Declaration(*$1, $2); }
+									{ $$ = new Declaration(*$1, $2); }
 
 declaration_list				: 	declaration 														
 									{ $$ = new std::vector<Declaration*>(1, $1); } 

@@ -22,7 +22,7 @@ echo "==========================================================================
 
 COMPILER=bin/c_compiler
 
-input_dir="compiler_tests/pointer/addressof"
+input_dir="compiler_tests/default/test_CALL"
 output_dir="temp/"
 rm -r ${output_dir}
 mkdir -p ${output_dir}

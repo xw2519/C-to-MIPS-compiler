@@ -64,7 +64,7 @@ class Identifier : public Primitive // Local variables with constant
 			}
 		}
 
-		std::string get_variable_name() { return variable_name; };
+		virtual std::string get_variable_name() const override { return variable_name; }; 
 
 		virtual void load_variable_address(std::ostream &dst, Context& context) const override
 		{
