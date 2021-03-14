@@ -299,7 +299,7 @@ class Context
 		{
 			// Update trackers
 			register_counter++;
-			stack_pointer -= 8;
+			stack_pointer -= 4;
 
 			// std::cerr << "FP update" << stack_pointer << std::endl;
 		}
@@ -309,7 +309,7 @@ class Context
 			// Only deallocate if there are registers already allocated
 			if (register_counter != 0)
 			{
-				stack_pointer += 8;
+				stack_pointer += 4;
 				register_counter--;
 			}
 		}
@@ -344,10 +344,10 @@ class Context
 		
 		variable new_variable(std::string variable_name, type variable_type, declaration_type variable_declaration_type, int variable_size = 1)
 		{
-			// Set of multiples of 8
+			// Set of multiples of 4
 			if(scope_tracker == LOCAL)
 			{
-				stack_pointer -= variable_size*(8);
+				stack_pointer -= variable_size*(4);
 			}
 
 			(*context_tracker)[variable_name] = new variable(stack_pointer, scope_tracker, variable_declaration_type, variable_type);

@@ -264,7 +264,7 @@ class Function_Call_Expression : public Unary_Expression
 				int argument_stack_pointer = 0;
 				for (int i = 0; i < argument_size; i++)
 				{
-					argument_stack_pointer += 8;
+					argument_stack_pointer += 4;
 
 					// Temprorary registers
 					context.allocate_stack();
@@ -283,7 +283,7 @@ class Function_Call_Expression : public Unary_Expression
 				int temp_register = 0;
 				for(int i = 0; i < argument_size; i++)
 				{
-					argument_load_pointer += 8;
+					argument_load_pointer += 4;
 
 					if(i < 4)
 					{
@@ -342,7 +342,7 @@ class Array_Access_Expression : public Unary_Expression
 			context.load_register(dst, array_register, array_frame_pointer);
 			context.load_register(dst, temp_array_register, temp_array_stack_pointer);
 
-			dst << "\t" << "sll" << "\t" << "\t" << temp_array_register << "," << temp_array_register << "," << 8 << std::endl;
+			dst << "\t" << "sll" << "\t" << "\t" << temp_array_register << "," << temp_array_register << "," << 4 << std::endl;
 			dst << "\t" << "addu" << "\t" << array_register << "," << array_register << "," << temp_array_register << std::endl;
 
 			context.store_register(dst, array_register, array_frame_pointer);

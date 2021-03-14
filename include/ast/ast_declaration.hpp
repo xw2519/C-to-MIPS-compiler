@@ -55,7 +55,7 @@ class Variable_Declarator : public Declarator
 
 		// Get functions
 		virtual std::string get_variable_name() { return variable_name; }
-		virtual int get_variable_size() { return 8; }
+		virtual int get_variable_size() { return 4; }
 
 		// Print MIPS
 		virtual void compile_declaration(std::ostream& dst, Context& context, type declaration_type) const override 
@@ -125,7 +125,7 @@ class Array_Declarator : public Declarator
 
 				for(int i = 0; i < array_size; i++)
 				{				
-					array_frame_pointer =  array_size + (i*8);
+					array_frame_pointer =  array_size + (i*4);
 
 					// Print MIPS
 					context.output_store_operation(dst, INT, "$0", "$30", array_frame_pointer);
@@ -142,7 +142,7 @@ class Array_Declarator : public Declarator
 
 				for(int i = 0; i < array_size; i++)
 				{				
-					dst << "\t" << ".space " << array_size*8 << std::endl;
+					dst << "\t" << ".space " << array_size*4 << std::endl;
 				}
 			}
 
@@ -162,7 +162,7 @@ class Array_Declarator : public Declarator
 
 				for(int i = 0; i < array_size; i++)
 				{
-					array_frame_pointer =  array_variable.get_variable_address() + (i*8);
+					array_frame_pointer =  array_variable.get_variable_address() + (i*4);
 
 					// Print MIPS	
 					context.output_store_operation(dst, INT, "$0", "$30", array_frame_pointer);
@@ -172,7 +172,7 @@ class Array_Declarator : public Declarator
 			{
 				dst << "\t" << "# Store array content globally" << std::endl; 
 		
-				dst << "\t" << ".comm " << variable_name << " " << array_size*8 << std::endl;
+				dst << "\t" << ".comm " << variable_name << " " << array_size*4 << std::endl;
 			}
 		}	
 
@@ -189,7 +189,7 @@ class Array_Declarator : public Declarator
 				if(i < initialisation_vector_size)
 				{
 					// Find offset relative to the array
-					int array_offset = array_variable.get_variable_address() + (i*8);
+					int array_offset = array_variable.get_variable_address() + (i*4);
 
 					// Allocate storage
 					context.allocate_stack();
@@ -207,7 +207,7 @@ class Array_Declarator : public Declarator
 				else
 				{
 					// Find offset relative to the array
-					int array_offset = array_variable.get_variable_address() + (i*8);
+					int array_offset = array_variable.get_variable_address() + (i*4);
 
 					context.output_store_operation(dst, INT, "$0", "$30", array_offset);
 				}
@@ -255,7 +255,7 @@ class Initialisation_Array_Declarator : public Declarator
 			for(int i = 0; i < initialisation_array_size; i++)
 			{				
 				// Find offset relative to the array
-				int array_offset = array_variable.get_variable_address() + (i*8);
+				int array_offset = array_variable.get_variable_address() + (i*4);
 
 				// Allocate storage
 				context.allocate_stack();
@@ -377,9 +377,9 @@ class Function_Definition : public External_Declaration // Very basic
 			dst << "# ------------ Allocate stack frame ------------ #" << std::endl; // Allocate basic stack size before adjustment
 			dst << std::endl;
 
-			dst << "\t" << "sw"    << "\t" << "\t" << "$31,"	   << "-8"  << "($29)" << std::endl;
-			dst << "\t" << "sw"    << "\t" << "\t" << "$30,"	   << "-16" << "($29)" << std::endl;
-			dst << "\t" << "addiu" << "\t" << "$29,$29,"   		   << "-16" << std::endl; 
+			dst << "\t" << "sw"    << "\t" << "\t" << "$31,"	   << "-4"  << "($29)" << std::endl;
+			dst << "\t" << "sw"    << "\t" << "\t" << "$30,"	   << "-8" << "($29)" << std::endl;
+			dst << "\t" << "addiu" << "\t" << "$29,$29,"   		   << "-8" << std::endl; 
 			dst << "\t" << "move"  << "\t" << "$30,$29"    		   << std::endl;
 
 			dst << std::endl;
@@ -389,7 +389,7 @@ class Function_Definition : public External_Declaration // Very basic
 			// Function arguments
 			if(parameter_list != NULL)
 			{
-				int argument_stack_pointer = 8; // Set to 8 to prevent stack frame clash
+				int argument_stack_pointer = 4; // Set to 8 to prevent stack frame clash
 
 				std::string argument_registers[4]  = {"$4", "$5", "$6", "$7"};
 
@@ -399,7 +399,7 @@ class Function_Definition : public External_Declaration // Very basic
 				int temp_register = 4;
 				for(int i = 0; i < parameter_list->size(); i++)
 				{
-					argument_stack_pointer += 8;
+					argument_stack_pointer += 4;
 
 					// Check if argument stack is full or not based on argument_stack_pointer
 					if(i < 4) 
@@ -408,10 +408,7 @@ class Function_Definition : public External_Declaration // Very basic
 					}
 					else // Store parameters on stack 
 					{
-						
-						temp_register = 4 + i;
-						std::string temp_register_string = "$" + std::to_string(temp_register);
-						context.output_store_operation(dst, INT, temp_register_string, "$30", argument_stack_pointer);
+
 					}
 
 					context.make_new_argument((*parameter_list)[i]->get_parameter(), INT, NORMAL, argument_stack_pointer);
@@ -439,9 +436,9 @@ class Function_Definition : public External_Declaration // Very basic
 			dst << std::endl;
 
 			dst << "\t" << "move"  << "\t" << "$29, $30"  << std::endl; 
-			dst << "\t" << "addiu" << "\t" << "$29, $29," << "16" << std::endl; 
-			dst << "\t" << "lw"    << "\t" << "\t" << "$30," << "-16" << "($29)" << std::endl;
-			dst << "\t" << "lw"    << "\t" << "\t" << "$31," << "-8" << "($29)" << std::endl;
+			dst << "\t" << "addiu" << "\t" << "$29, $29," << "8" << std::endl; 
+			dst << "\t" << "lw"    << "\t" << "\t" << "$30," << "-8" << "($29)" << std::endl;
+			dst << "\t" << "lw"    << "\t" << "\t" << "$31," << "-4" << "($29)" << std::endl;
 			dst << "\t" << "j" 	   << "\t" << "\t" << "$31"  << std::endl;
 
 			dst << std::endl;
