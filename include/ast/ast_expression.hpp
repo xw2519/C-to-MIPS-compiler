@@ -293,7 +293,7 @@ class Function_Call_Expression : public Unary_Expression
 					{
 						temp_register = 4 + i;
 						std::string temp_register_string = "$" + std::to_string(temp_register);
-						dst << "\t" << "lw" << "\t" << "\t" << temp_register_string << "," << function_stack_pointer + argument_load_pointer << "($30)" <<  std::endl; 
+						dst << "\t" << "sw" << "\t" << "\t" << temp_register_string << "," << function_stack_pointer + argument_load_pointer - 4 << "($30)" <<  std::endl; 
 					}
 				}
 			}
