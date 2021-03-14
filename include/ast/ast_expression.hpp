@@ -231,6 +231,7 @@ class Function_Call_Expression : public Unary_Expression
 			// Get function parameters
 			type function_type;
 			std::string variable_ID = expression->get_variable_name();
+			int argument_size;
 
 			int function_register_address = context.get_stack_pointer();
 			std::string function_register = "$2";
@@ -238,8 +239,8 @@ class Function_Call_Expression : public Unary_Expression
 			// Check for prototypes
 			if (context.check_function_declared(variable_ID))
 			{
-				
 				/* code */
+
 			}
 			else
 			{
@@ -251,26 +252,17 @@ class Function_Call_Expression : public Unary_Expression
 			
 			if(argument_list != NULL)
 			{
+				argument_size = argument_list->size();
+
 				// Handle four function argument
-				for(int i = 0; i < argument_list->size(); i++)
-				{
-					context.allocate_stack();
-				}
+				for(int i = 0; i < argument_size; i++) { context.allocate_stack(); }
 				
 				int function_stack_pointer = context.get_stack_pointer();
-				int argument_stack_pointer = 0;
 				std::string argument_registers[4]  = {"$4", "$5", "$6", "$7"};
-			
-				for(int i = 0; i < 4; i++)
-				{
-					argument_stack_pointer += 8;
-
-					dst << "\t" << "lw" << "\t" << "\t" << argument_registers[i] << "," << function_stack_pointer + argument_stack_pointer << "($30)" <<  std::endl; 
-				}
 
 				// Store arguments
-				argument_stack_pointer = 0;
-				for (int i = 0; i < argument_list->size(); i++)
+				int argument_stack_pointer = 0;
+				for (int i = 0; i < argument_size; i++)
 				{
 					argument_stack_pointer += 8;
 
@@ -286,6 +278,24 @@ class Function_Call_Expression : public Unary_Expression
 					context.load_register(dst, temp_register, temp_register_address);
 					dst << "\t" << "sw" << "\t" << "\t" << temp_register << "," << function_stack_pointer + argument_stack_pointer << "($30)" <<  std::endl; 
 				}
+
+				int argument_load_pointer = 0;
+				int temp_register = 0;
+				for(int i = 0; i < argument_size; i++)
+				{
+					argument_load_pointer += 8;
+
+					if(i < 4)
+					{
+						dst << "\t" << "lw" << "\t" << "\t" << argument_registers[i] << "," << function_stack_pointer + argument_load_pointer << "($30)" <<  std::endl; 
+					}
+					else
+					{
+						temp_register = 4 + i;
+						std::string temp_register_string = "$" + std::to_string(temp_register);
+						dst << "\t" << "lw" << "\t" << "\t" << temp_register_string << "," << function_stack_pointer + argument_load_pointer << "($30)" <<  std::endl; 
+					}
+				}
 			}
 			
 
@@ -295,7 +305,7 @@ class Function_Call_Expression : public Unary_Expression
 			dst << "\t" << "jalr"  << "\t" << "$2" << std::endl;
 			dst << "\t" << "addiu" << "\t" << "$29, $29," << -context.get_stack_pointer() << std::endl; 
 
-			for(int i = 0; i < 4; i++) { context.deallocate_stack(); }
+			for(int i = 0; i < argument_size; i++) { context.deallocate_stack(); }
 
 			context.store_register(dst, function_register, function_register_address);
 		}
@@ -348,8 +358,8 @@ class Array_Access_Expression : public Unary_Expression
 			// Handle the expression
 			load_variable_address(dst, context);
 
-			dst << std::endl;
 			dst << "\t" << "# Compile Array Access" << std::endl; 
+
 			context.load_register(dst, array_register, array_frame_pointer);
 			context.output_load_operation(dst, array_type, array_register, array_register, 0);
 			context.store_register(dst, array_register, array_frame_pointer);
@@ -425,7 +435,6 @@ class Direct_Assignment : public Assignment_Expression
 			std::string destination_register = "$2";
 			left_value->load_variable_address(dst, context);		
 
-			dst << std::endl;
 			dst << "\t" << "# Compile Direct Assignment Expression" << std::endl; 
 
 			// Create temprorary register to handle expression

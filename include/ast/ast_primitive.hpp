@@ -44,11 +44,9 @@ class Identifier : public Primitive // Local variables with constant
 		{	
 			int destination_address = context.get_stack_pointer();
 
-			dst << std::endl;
 			dst << "\t" << "# Access variable" << std::endl;
 			
 			std::string destination_register = "$2";
-			//dst << "1" << destination_address << std::endl;
 
 			load_variable_address(dst, context);
 
@@ -68,7 +66,6 @@ class Identifier : public Primitive // Local variables with constant
 
 		virtual void load_variable_address(std::ostream &dst, Context& context) const override
 		{
-			dst << std::endl;
 			dst << "\t" << "# Load variable" << std::endl;
 
 			int destination_address = context.get_stack_pointer();

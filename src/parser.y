@@ -330,9 +330,10 @@ assignment_expression			: 	ternary_expression
 								|	unary_expression T_ASSIGN assignment_expression 					
 									{ $$ = new Direct_Assignment($1, $3); }	
 
-argument_list					: 	expression 		
+argument_list					: 	assignment_expression
+									{ $$ = new std::vector<Expression*>(1, $1); }
 
-								| 	argument_list T_COMMA expression 									
+								| 	argument_list T_COMMA assignment_expression 									
 									{ $1->push_back($3); $$ = $1; }
 
 

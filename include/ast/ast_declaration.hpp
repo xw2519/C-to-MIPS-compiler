@@ -396,6 +396,7 @@ class Function_Definition : public External_Declaration // Very basic
 				// Check if parameters can fit into four argument register
 				// https://stackoverflow.com/questions/2298838/mips-function-call-with-more-than-four-arguments
 
+				int temp_register = 4;
 				for(int i = 0; i < parameter_list->size(); i++)
 				{
 					argument_stack_pointer += 8;
@@ -407,7 +408,10 @@ class Function_Definition : public External_Declaration // Very basic
 					}
 					else // Store parameters on stack 
 					{
-						context.output_store_operation(dst, INT, "$2", "$30", argument_stack_pointer);
+						
+						temp_register = 4 + i;
+						std::string temp_register_string = "$" + std::to_string(temp_register);
+						context.output_store_operation(dst, INT, temp_register_string, "$30", argument_stack_pointer);
 					}
 
 					context.make_new_argument((*parameter_list)[i]->get_parameter(), INT, NORMAL, argument_stack_pointer);
@@ -445,6 +449,7 @@ class Function_Definition : public External_Declaration // Very basic
 			dst << std::endl;
 			dst << "\t" << ".end" << "\t" << ID << std::endl;
 
+			context.deallocate_stack();
 			context.shrink_context_scope();
 			context.set_GLOBAL();
 		}
