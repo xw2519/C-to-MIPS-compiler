@@ -468,5 +468,11 @@ class Function_Prototype_Declaration : public Declarator
 		}
 };
 
+/* ------------------------------------						    Enumeration Class					------------------------------------ */
+
+// https://stackoverflow.com/questions/8597426/enum-type-check-in-c-gcc
+// https://stackoverflow.com/questions/62437717/how-does-c-compiler-treat-enum
+
+
 
 #endif

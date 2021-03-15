@@ -342,7 +342,7 @@ class Array_Access_Expression : public Unary_Expression
 			context.load_register(dst, array_register, array_frame_pointer);
 			context.load_register(dst, temp_array_register, temp_array_stack_pointer);
 
-			dst << "\t" << "sll" << "\t" << "\t" << temp_array_register << "," << temp_array_register << "," << 4 << std::endl;
+			dst << "\t" << "sll" << "\t" << "\t" << temp_array_register << "," << temp_array_register << "," << 8 << std::endl;
 			dst << "\t" << "addu" << "\t" << array_register << "," << array_register << "," << temp_array_register << std::endl;
 
 			context.store_register(dst, array_register, array_frame_pointer);

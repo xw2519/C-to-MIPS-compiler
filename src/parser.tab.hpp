@@ -107,7 +107,8 @@ extern int yydebug;
     T_BITWISE_AND = 299,
     T_BITWISE_OR = 300,
     T_BITWISE_XOR = 301,
-    T_LITERAL = 302
+    T_ENUM = 302,
+    T_LITERAL = 303
   };
 #endif
 
@@ -133,7 +134,7 @@ union YYSTYPE
 
 	std::vector<Expression*>* 	initialisation_list;
 
-#line 137 "src/parser.tab.hpp"
+#line 138 "src/parser.tab.hpp"
 
 };
 typedef union YYSTYPE YYSTYPE;

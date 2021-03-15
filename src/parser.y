@@ -60,6 +60,8 @@ Contents and terms are derived from the ANSI C programming language (ANSI/ISO 98
 %token T_IDENTIFIER T_CONSTANT 
 // Bitwise
 %token T_BITWISE_AND T_BITWISE_OR T_BITWISE_XOR
+// Enumeration
+%token T_ENUM
 
 %token T_LITERAL
 
@@ -68,12 +70,17 @@ Contents and terms are derived from the ANSI C programming language (ANSI/ISO 98
 %type <node> program 
 %type <node> function_definition
 %type <node> global_declaration
+%type <node> enum_definition
+
 
 %type <declarator_node>	declarator initialisation_declarator
 %type <declarator_list_vector> initialisation_declarator_list
 
 %type <declaration_node> declaration parameter_declaration 
 %type <declaration_list_vector> declaration_list parameter_list
+
+%type <declaration_node> enumerator 
+%type <declaration_list_vector> enumerator_list
 
 %type <expression_node> primary_expression unary_expression postfix_expression 
 // Arthmetic expressions
@@ -188,6 +195,22 @@ initialisation_declarator_list	: 	initialisation_declarator
 									{ $$ = new std::vector<Declarator*>(1, $1);	}
 
 								|	initialisation_declarator_list T_COMMA initialisation_declarator	
+									{ $1->push_back($3); $$ = $1; }
+
+/* ------------------------------------							   Enumerator									------------------------------------ */
+
+enum_definition					: 	T_ENUM T_IDENTIFIER T_CURLY_LBRACKET enumerator_list T_CURLY_RBRACKET
+
+enumerator						: 	T_IDENTIFIER
+									{ $$ = new Variable_Declarator(*$1); }
+
+								| 	T_IDENTIFIER T_ASSIGN assignment_expression
+									{ $$ = new Initialisation_Variable_Declarator($1, $3); }
+
+enumerator_list					: 	enumerator
+									{ $$ = new std::vector<Declarator*>(1, $1); }
+
+								| 	enumerator_list T_COMMA enumerator
 									{ $1->push_back($3); $$ = $1; }
 
 /* ------------------------------------							 Expression Base								------------------------------------ */
@@ -431,6 +454,7 @@ TYPE							:	T_INT
 									  $$ = $1; 
 									  $1->increase_pointer_tracker(); 
 									}	
+								
 
 %%
 

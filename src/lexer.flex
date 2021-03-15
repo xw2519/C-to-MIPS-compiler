@@ -43,6 +43,9 @@ IS			(u|U|l|L)*
  /* --------------- 			  			  Sizeof Structure			 				  --------------- */
  "sizeof"                           { return (T_SIZEOF); }
 
+  /* --------------- 			  			Enumerator Structure			 				--------------- */
+"enum"                              { return (T_ENUM); }
+
  /* --------------- 			  			     Characters			 				      --------------- */
 [(]                                 { return (T_LBRACKET); }
 [)]                                 { return (T_RBRACKET); }
