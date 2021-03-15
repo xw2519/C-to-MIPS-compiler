@@ -44,7 +44,7 @@
 extern int yydebug;
 #endif
 /* "%code requires" blocks.  */
-#line 10 "src/parser.y"
+#line 12 "src/parser.y"
 
 	#include <cassert>
 	#include <vector>
@@ -91,24 +91,28 @@ extern int yydebug;
     T_INT = 283,
     T_VOID = 284,
     T_CHAR = 285,
-    T_SIZEOF = 286,
-    T_IF = 287,
-    T_ELSE = 288,
-    T_SWITCH = 289,
-    T_WHILE = 290,
-    T_FOR = 291,
-    T_CONTINUE = 292,
-    T_BREAK = 293,
-    T_RETURN = 294,
-    T_DEFAULT = 295,
-    T_CASE = 296,
-    T_IDENTIFIER = 297,
-    T_CONSTANT = 298,
-    T_BITWISE_AND = 299,
-    T_BITWISE_OR = 300,
-    T_BITWISE_XOR = 301,
-    T_ENUM = 302,
-    T_LITERAL = 303
+    T_DOUBLE = 286,
+    T_FLOAT = 287,
+    T_UNSIGNED = 288,
+    T_SIZEOF = 289,
+    T_IF = 290,
+    T_ELSE = 291,
+    T_SWITCH = 292,
+    T_WHILE = 293,
+    T_FOR = 294,
+    T_CONTINUE = 295,
+    T_BREAK = 296,
+    T_RETURN = 297,
+    T_DEFAULT = 298,
+    T_CASE = 299,
+    T_IDENTIFIER = 300,
+    T_CONSTANT = 301,
+    T_FLOAT_CONSTANT = 302,
+    T_BITWISE_AND = 303,
+    T_BITWISE_OR = 304,
+    T_BITWISE_XOR = 305,
+    T_ENUM = 306,
+    T_LITERAL = 307
   };
 #endif
 
@@ -116,7 +120,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 23 "src/parser.y"
+#line 25 "src/parser.y"
 
 	const Node 		*node;
 	Declarator 		*declarator_node;
@@ -134,7 +138,7 @@ union YYSTYPE
 
 	std::vector<Expression*>* 	initialisation_list;
 
-#line 138 "src/parser.tab.hpp"
+#line 142 "src/parser.tab.hpp"
 
 };
 typedef union YYSTYPE YYSTYPE;

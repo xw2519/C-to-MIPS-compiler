@@ -29,6 +29,34 @@ class Constant : public Primitive
 			context.store_register(dst, destination_register, stack_pointer);	
 		}
 
+		virtual type get_variable_type(Context& context) const { return INT; };
+
+		virtual int evaluate() const override { return value; };
+};
+
+class Float : public Primitive
+{
+	private:
+		float value;
+
+	public: 
+		Float (std::string _value) : value (stof(_value)) {}
+
+		virtual void compile(std::ostream &dst, Context& context) const override
+		{
+			// Generate float label
+			std::string float_label = context.make_label("FLOAT");
+
+			int stack_pointer = context.get_stack_pointer();
+			std::string temp_register = "$8";
+
+			dst << "\t" << "la" << "\t" << "\t" << temp_register << ", " << float_label << std::endl;
+			context.output_load_operation(dst, FLOAT, "$2", temp_register, 0);
+			context.store_register(dst, "$2", stack_pointer);	
+		}
+
+		virtual type get_variable_type(Context& context) const { return FLOAT; };
+
 		virtual int evaluate() const override { return value; };
 };
 
@@ -81,7 +109,7 @@ class Identifier : public Primitive // Local variables with constant
 
 		}
 
-		
+		virtual type get_variable_type(Context& context) const { return context.get_variable(variable_name).get_variable_type(); };
 };
 
 // https://stackoverflow.com/questions/42183471/declaring-a-pointer-in-mips

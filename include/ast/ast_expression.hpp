@@ -13,8 +13,8 @@ class Expression : public Node
 	public:
 		// Primitive functions
 		virtual std::string get_variable_name() const { std::cout << "ERROR : Not and Identifier" << std::endl; };
-
 		virtual void load_variable_address(std::ostream &dst, Context& context) const {};
+		virtual type get_variable_type(Context& context) const {};
 
 		// Evaluate the expression
 		virtual int evaluate() const { return 0; };
@@ -67,6 +67,18 @@ class Sizeof_Type_Expression : public Expression
 			{
 				dst << "\t" << "li" << "\t" << "\t" << "$2" << ", " << 1 << std::endl;
 			}
+			else if(sizeof_type == DOUBLE)
+			{
+				dst << "\t" << "li" << "\t" << "\t" << "$2" << ", " << 8 << std::endl;
+			}
+			else if(sizeof_type == FLOAT)
+			{
+				dst << "\t" << "li" << "\t" << "\t" << "$2" << ", " << 8 << std::endl;
+			}
+			else if(sizeof_type == UNSIGNED)
+			{
+				dst << "\t" << "li" << "\t" << "\t" << "$2" << ", " << 8 << std::endl;
+			}
 
 			context.store_register(dst, destination_register, stack_pointer);	
 		}
@@ -97,11 +109,23 @@ class Sizeof_Variable_Expression : public Expression
 			}
 			else if(variable_type == VOID)
 			{
-				dst << "\t" << "li" << "\t" << "\t" << "$2" << ", " << 1 << std::endl;
+				dst << "\t" << "li" << "\t" << "\t" << "$2" << ", " << 0 << std::endl;
 			}
 			else if(variable_type == CHAR)
 			{
 				dst << "\t" << "li" << "\t" << "\t" << "$2" << ", " << 1 << std::endl;
+			}
+			else if(variable_type == DOUBLE)
+			{
+				dst << "\t" << "li" << "\t" << "\t" << "$2" << ", " << 8 << std::endl;
+			}
+			else if(variable_type == FLOAT)
+			{
+				dst << "\t" << "li" << "\t" << "\t" << "$2" << ", " << 8 << std::endl;
+			}
+			else if(variable_type == UNSIGNED)
+			{
+				dst << "\t" << "li" << "\t" << "\t" << "$2" << ", " << 8 << std::endl;
 			}
 
 			context.store_register(dst, destination_register, stack_pointer);	
@@ -398,7 +422,6 @@ class Dereference_Expression : public Unary_Expression
 			expression->compile(dst, context);
 
 			context.load_register(dst, pointer_register, pointer_address);
-			context.output_load_operation(dst, INT, pointer_register, pointer_register, 0);
 			context.store_register(dst, pointer_register, pointer_address);
 		}
 };
@@ -460,6 +483,14 @@ class Direct_Assignment : public Assignment_Expression
 };
 
 /* ------------------------------------						   Operator Expression						------------------------------------ */
+// Arithmetic types
+//	- Int and Unsigned types are executed the same
+// 	- Float and Double are handled the same
+
+// https://www.doc.ic.ac.uk/lab/secondyear/spim/node20.html
+// https://chortle.ccsu.edu/AssemblyTutorial/Chapter-31/ass31_2.html
+// http://ww2.cs.fsu.edu/~dennis/teaching/2013_summer_cda3100/week5/week5-day2.pdf
+// https://people.cs.pitt.edu/~childers/CS0447/lectures/SlidesLab92Up.pdf
 
 class Operator : public Expression
 {
@@ -511,7 +542,35 @@ class Add_Expression : public Operator
 
 		virtual void execute(std::ostream &dst, Context& context, type type, std::string destination_register, std::string temprorary_register) const override
 		{
-			dst << "\t" << "addu" << "\t" << destination_register << "," << destination_register << "," << temprorary_register << std::endl;
+			// Check types
+			if (type == INT || type == UNSIGNED)
+			{
+				dst << "\t" << "addu" << "\t" << destination_register << "," << destination_register << "," << temprorary_register << std::endl;
+			}
+			else if (type == FLOAT || type == DOUBLE)
+			{
+				// Declare float registers
+				std::string temp_float_reg_1 = "$f0";
+				std::string temp_float_reg_2 = "$f1";
+
+				// Shift to float registers
+				context.shift_to_float_reg(dst, temp_float_reg_1, destination_register);
+				context.shift_to_float_reg(dst, temp_float_reg_2, temprorary_register);
+
+				// Add float
+				dst << "\t" << "add" << "\t" << temp_float_reg_1 << "," << temp_float_reg_1 << "," << temp_float_reg_2 << std::endl;
+
+				// Move result from float back to normal registers
+				context.shift_from_float_reg(dst, temp_float_reg_1, destination_register);
+			}
+			else
+			{
+				std::cerr<<'Unsupported data types'<<std::endl;
+				exit(1);
+			}
+			
+			
+			
 		}
 
 		virtual int evaluate() const override { return left->evaluate() + right->evaluate(); };

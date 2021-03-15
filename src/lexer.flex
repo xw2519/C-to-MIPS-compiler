@@ -1,5 +1,9 @@
   /*
-  Contents and terms are derived from the ANSI C grammer specification
+
+  Contents and terms are derived from the ANSI C grammer specification (ANSI/ISO 9899/1990) specification
+  
+  https://www.lysator.liu.se/c/ANSI-C-grammar-l.html
+  
   */
 
 %option noyywrap
@@ -23,6 +27,9 @@ IS			(u|U|l|L)*
 "int"				                        { return (T_INT); }
 "void"							                { return (T_VOID); }
 "char"                              { return (T_CHAR); }
+"double"                            { return (T_DOUBLE); }
+"float"                             { return (T_FLOAT); }
+"unsigned"                          { return (T_UNSIGNED); }
 
  /* --------------- 			  			Conditional Structure			 				--------------- */
 "if"					                      { return (T_IF); }
@@ -92,6 +99,11 @@ IS			(u|U|l|L)*
 [L]?["](\\.|[^\\"\n])*["]		        { yylval.string  = new std::string(yytext);	return (T_LITERAL); }
 [ \t\r\n]+		                      { ; }
 .                                   { fprintf(stderr, "Invalid token\n"); exit(1); }
+
+{D}+{E}{FS}?		                    { return(T_FLOAT_CONSTANT); }
+{D}*"."{D}+({E})?{FS}?	            { return(T_FLOAT_CONSTANT); }
+{D}+"."{D}*({E})?{FS}?	            { return(T_FLOAT_CONSTANT); }
+
 
 %%
 

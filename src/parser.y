@@ -1,6 +1,8 @@
 /*
 
-Contents and terms are derived from the ANSI C programming language (ANSI/ISO 9899/1990) specification
+Contents and terms are derived from the ANSI C grammer specification (ANSI/ISO 9899/1990) specification
+
+https://www.lysator.liu.se/c/ANSI-C-grammar-y.html#constant-expressions
 
 */
 
@@ -51,13 +53,13 @@ Contents and terms are derived from the ANSI C programming language (ANSI/ISO 98
 // Comparison Operators
 %token T_GREATER T_GREATER_EQUAL T_LESS T_LESS_EQUAL T_EQUAL T_NOT_EQUAL
 // Types Operators
-%token T_INT T_VOID T_CHAR
+%token T_INT T_VOID T_CHAR T_DOUBLE T_FLOAT T_UNSIGNED
 // Sizeof
 %token T_SIZEOF
 // Structures Operators
 %token T_IF T_ELSE T_SWITCH T_WHILE T_FOR T_CONTINUE T_BREAK T_RETURN T_DEFAULT T_CASE
 // Rules
-%token T_IDENTIFIER T_CONSTANT 
+%token T_IDENTIFIER T_CONSTANT T_FLOAT_CONSTANT
 // Bitwise
 %token T_BITWISE_AND T_BITWISE_OR T_BITWISE_XOR
 // Enumeration
@@ -105,7 +107,7 @@ Contents and terms are derived from the ANSI C programming language (ANSI/ISO 98
 
 %type <statement_list_vector> statement_list
 
-%type <string> 	T_IDENTIFIER T_INT T_RETURN T_LITERAL
+%type <string> 	T_IDENTIFIER T_INT T_RETURN T_LITERAL T_FLOAT_CONSTANT
 %type <type_node> TYPE 
 
 %type <int_num> T_CONSTANT
@@ -220,11 +222,14 @@ expression 						:	assignment_expression
 primary_expression				: 	T_CONSTANT															
 									{ $$ = new Constant($1); }
 
+								|	T_FLOAT_CONSTANT
+									{ $$ = new Float(*$1); }
+
 								| 	T_IDENTIFIER		 												
 									{ $$ = new Identifier(*$1);	}	
 
 								| 	T_LITERAL			 												
-									{ $$ = new Pointer_literal(*$1); }	
+									{ }	
 
 								| 	T_LBRACKET expression T_RBRACKET									
 									{ $$ = $2; }		
@@ -448,6 +453,15 @@ TYPE							:	T_INT
 
 								|	T_CHAR		
 									{ $$ = new type_definition(CHAR); } 		
+
+								|	T_DOUBLE		
+									{ $$ = new type_definition(DOUBLE); } 		
+
+								|	T_FLOAT		
+									{ $$ = new type_definition(FLOAT); } 	
+
+								|	T_UNSIGNED	
+									{ $$ = new type_definition(UNSIGNED); } 	
 
 								| 	TYPE T_MULTIPLY 
 									{ 									

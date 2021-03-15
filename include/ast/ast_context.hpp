@@ -70,6 +70,8 @@ enum type
 	FLOAT,
 	STRING,
 	CHAR,
+	DOUBLE,
+	UNSIGNED,
 	NONE
 };
 
@@ -123,13 +125,13 @@ class type_definition
 
 		// Array
 		int get_array_size() { return array_size_tracker; }
+		void increase_array_pointer() { pointer_tracker += 1;}
 		void decrease_array_pointer() { pointer_tracker -= 1;}
 
 		// Pointer 
 		int get_pointer_tracker() { return pointer_tracker; }
 		void increase_pointer_tracker() { pointer_tracker += 1;}
-		
-
+		void decrease_pointer_tracker() { pointer_tracker -= 1;}
 };
 
 /* ------------------------------------								 Context Functions							------------------------------------ */
@@ -371,6 +373,18 @@ class Context
 			(*context_tracker)[argument_name] = new variable(argument_address, LOCAL, argument_declaration, argument_type);
 		}
 
+		/* ------------------------------------						      Float Functions						------------------------------------ */
+
+		void shift_to_float_reg(std::ostream& dst, std::string int_register, std::string float_register)
+		{
+			dst << "\t" << "mtc1"  << "\t" << int_register << "," << float_register << std::endl;
+		}
+
+		void shift_from_float_reg(std::ostream& dst, std::string int_register, std::string float_register)
+		{
+			dst << "\t" << "mfc1"  << "\t" << int_register << "," << float_register << std::endl;
+		}
+
 };
 
 /* ------------------------------------ 			      			    Node class		 			 			------------------------------------ */
@@ -386,36 +400,5 @@ class Node
 };
 
 typedef const Node* Node_Ptr;
-
-
-/* ------------------------------------				  Functions for code generation				  ------------------------------------ */
-
-//std::string get_float_label(double value)                                   // get label of  ".word <float value> directive"
-//std::string get_string_label(std::String value)                             // get label of  ".ascii <string literal/000> directive"
-//std::string make_label()                                                    // generate unique label and return as string (Implemented)
-
-//std::string next_reg(std::string someReg)                                   // return name of next register
-//std::string alloc_reg(ExpressionEnum type, int amount=1)                    // return name of free register, mark it and following amount as occupied
-//void dealloc_reg(std::string someReg, int amount=1)                         // free register and following amount of registers
-
-//bool check_global(std::string identifier)                                   // return true if identifier is global
-
-//ExpressionEnum get_type(std::string identifier)                             // return type of identifier
-//ExpressionEnum get_type_pointed(std::string identifier)                     // return type pointed to by identifier
-//ExpressionEnum get_type_member(std::string identifier, std::string member)  // return type of member of struct
-
-//std::string id_to_addr(std::string identifier)                              // return address, relative to $fp, of identifier
-//std::string member_to_addr(std::string identifier, std::string member)      // return address of member, relative to beginning of struct
-
-//int size_of_pointed(std::string identifier)                                 // return size of value pointed to by identifier, in words
-//int size_of_member(std::string identifier, std::string member);             // return size of member, in words
-//int size_of(std::string identifier)                                         // return size of identifier in words
-//int size_of(Declaration* declr)                                             // return size of declaration
-
-
-
-
-
-
 
 #endif
