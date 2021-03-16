@@ -4,6 +4,8 @@
 
 #include <iomanip>
 
+/* ------------------------------------						   	 Base Class					------------------------------------ */
+
 class Expression_Statement : public Statement
 {
 	private:
@@ -58,6 +60,8 @@ class Compound_Statement : public Statement
 		}
 };
 
+/* ------------------------------------						   Conditional Class			------------------------------------ */
+
 // https://www.cs.umd.edu/~meesh/cmsc311/clin-cmsc311/Lectures/lecture15/C_code.pdf
 
 class Condition_If_Statement : public Statement
@@ -85,8 +89,8 @@ class Condition_If_Statement : public Statement
 
 			// Handle conditional jumps
 			std::string if_return_label = context.make_label("IF_RETURN");
-			context.load_register(dst, temp_register_1, frame_pointer_1);
 
+			// Compare and branch
 			dst << "\t" << "beq " << "\t" << "$0" << "," << temp_register_1 << "," << if_return_label << std::endl;
 
 			true_statement->compile(dst, context);
@@ -141,6 +145,8 @@ class Condition_If_Else_Statement : public Statement
 		}
 
 };
+
+/* ------------------------------------						   	  Loop Class				------------------------------------ */
 
 class While_Statement : public Statement
 {
@@ -279,17 +285,10 @@ class Jump_Statement : public Statement
 				// Deallocate
 				context.deallocate_stack();
 
-				// Move to return register
-				std::string destination_register = "$2";
-				context.load_register(dst, destination_register, destination_address);
-				
-				// dst << "\t" << "move" << "\t" << "$$2" << ",$" << destination_register << std::endl;
-
 				// Branch 
 				dst << "\t" << "b " << "\t"  << "\t" << context.get_function_return_label() << std::endl;
 			}
 		}
-
 };
 
 // http://web.engr.oregonstate.edu/~walkiner/cs271-wi13/slides/07-MoreAssemblyProgramming.pdf
@@ -322,7 +321,7 @@ class Continue_Statement : public Statement
 		}
 };
 
-/* ------------------------------------						    Switch Class					------------------------------------ */
+/* ------------------------------------						     Switch Class					------------------------------------ */
 
 class Switch_Statement : public Statement
 {
@@ -345,7 +344,8 @@ class Switch_Statement : public Statement
 
 			context.add_break_label(FINISH_label);
 
-			std::stringstream ss; //temporarily store in ss;
+			// Label declarations 
+			std::stringstream ss; 
 			switch_statements->compile(ss, context);
 
 			// Handle switch expression
@@ -358,8 +358,6 @@ class Switch_Statement : public Statement
 			context.allocate_stack();
 			std::string case_register = "$8";
 			int case_stack_pointer = context.get_stack_pointer();
-
-			// std::cerr << context.get_case_statement_size() << std::endl;
 			
 			while(context.get_case_statement_size() != 0)
 			{
@@ -385,15 +383,15 @@ class Switch_Statement : public Statement
 
 			dst << "\t" << "b " << "\t"  << "\t" << FINISH_label << std::endl;
 
+			// Print out label declarations
 			dst << ss.str() << std::endl;
 
 			dst << FINISH_label << ":" << std::endl;
 
+			// Clean up
 			context.deallocate_stack();
 			context.deallocate_stack();
-
 			context.remove_break_label();
-			
 		}
 };
 

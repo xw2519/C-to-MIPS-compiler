@@ -220,7 +220,7 @@ enumerator_list					: 	enumerator
 expression 						:	assignment_expression
 									
 primary_expression				: 	T_CONSTANT															
-									{ $$ = new Constant($1); }
+									{ $$ = new Integer($1); }
 
 								|	T_FLOAT_CONSTANT
 									{ $$ = new Float(*$1); }
@@ -256,10 +256,10 @@ cast_expression					: 	unary_expression
 postfix_expression				:	primary_expression	
 
 								|	postfix_expression T_INCREMENT											
-									{ $$ = new Post_Increment_Expression($1, new Direct_Assignment($1, new Add_Expression($1, new Constant(1)))); }
+									{ $$ = new Post_Increment_Expression($1, new Direct_Assignment($1, new Add_Expression($1, new Integer(1)))); }
 
 								|	postfix_expression T_DECREMENT		
-									{ $$ = new Post_Decrement_Expression($1, new Direct_Assignment($1, new Decrement_Expression($1, new Constant(1)))); }
+									{ $$ = new Post_Decrement_Expression($1, new Direct_Assignment($1, new Decrement_Expression($1, new Integer(1)))); }
 
 								|	postfix_expression T_LBRACKET T_RBRACKET							
 									{ $$ = new Function_Call_Expression($1) ; }

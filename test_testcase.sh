@@ -22,7 +22,7 @@ echo "==========================================================================
 
 COMPILER=bin/c_compiler
 
-input_dir="compiler_tests/float/add_double"
+input_dir="compiler_tests/integer/add_mul"
 output_dir="temp/"
 rm -r ${output_dir}
 mkdir -p ${output_dir}

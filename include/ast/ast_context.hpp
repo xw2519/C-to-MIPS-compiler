@@ -177,7 +177,7 @@ class Context
 			else { return false; }
 		}
 
-		/* ------------------------------------				 Labelled variables and pointers Functions			------------------------------------ */
+		/* ------------------------------------				 Labeled variables and pointers Functions			------------------------------------ */
 		
 		void add_label_variable(std::string label, std::string variable)
 		{
@@ -188,9 +188,6 @@ class Context
 		{
 			label_declarations[variable] = declaration;
 		};
-
-
-
 
 		/* ------------------------------------					   		 Switch Functions						------------------------------------ */
 
@@ -383,6 +380,16 @@ class Context
 		void shift_from_float_reg(std::ostream& dst, std::string int_register, std::string float_register)
 		{
 			dst << "\t" << "mfc1"  << "\t" << int_register << "," << float_register << std::endl;
+		}
+
+		void load_float_register(std::ostream& dst, std::string register_name, int memory_location)
+		{
+			dst << "\t" << "lwc1" << "\t" << register_name << "," << memory_location << "($30)" << std::endl;
+		}
+
+		void store_float_register(std::ostream& dst, std::string register_name, int memory_location)
+		{
+			dst << "\t" << "swc1" << "\t" << register_name << "," << memory_location << "($30)" << std::endl;
 		}
 
 };

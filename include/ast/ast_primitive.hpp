@@ -10,26 +10,25 @@ class Primitive : public Expression{};
 
 /* -------------------------------- 				Derivative class		 		-------------------------------- */
 
-class Constant : public Primitive
+class Integer : public Primitive
 {
 	private:
 		int value;
 
 	public:
-		Constant (int _value) : value (_value) {}
+		Integer (int _value) : value (_value) {}
 
 		virtual void compile(std::ostream &dst, Context& context) const override
 		{
 			int stack_pointer = context.get_stack_pointer();
 			std::string destination_register = "$2";
 
-
 			dst << "\t" << "li" << "\t" << "\t" << "$2" << ", " << value << std::endl;
 
 			context.store_register(dst, destination_register, stack_pointer);	
 		}
 
-		virtual type get_variable_type(Context& context) const { return INT; };
+		virtual type get_data_type(Context& context) const override { return type(INT); };
 
 		virtual int evaluate() const override { return value; };
 };
@@ -55,7 +54,7 @@ class Float : public Primitive
 			context.store_register(dst, "$2", stack_pointer);	
 		}
 
-		virtual type get_variable_type(Context& context) const { return FLOAT; };
+		virtual type get_data_type(Context& context) const override { return type(FLOAT); };
 
 		virtual int evaluate() const override { return value; };
 };
@@ -80,11 +79,8 @@ class Identifier : public Primitive // Local variables with constant
 
 			variable compile_variable = context.get_variable(variable_name);
 
-			// Array already dealt with address 
 			if(compile_variable.get_declaration_type() != ARRAY)
 			{
-				// dst << "Trigger" << std::endl;
-				context.load_register(dst, destination_register, destination_address);
 				context.output_load_operation(dst, INT, destination_register, destination_register, 0);
 				context.store_register(dst, destination_register, destination_address);
 			}
@@ -106,10 +102,9 @@ class Identifier : public Primitive // Local variables with constant
 			dst << "\t" << "addiu" << "\t" << destination_register << ",$30," << compile_variable.get_variable_address() << std::endl;
 
 			context.store_register(dst, destination_register, destination_address);
-
 		}
 
-		virtual type get_variable_type(Context& context) const { return context.get_variable(variable_name).get_variable_type(); };
+		virtual type get_data_type(Context& context) const { return context.get_variable(variable_name).get_variable_type(); };
 };
 
 // https://stackoverflow.com/questions/42183471/declaring-a-pointer-in-mips

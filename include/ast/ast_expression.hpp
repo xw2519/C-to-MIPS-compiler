@@ -14,7 +14,7 @@ class Expression : public Node
 		// Primitive functions
 		virtual std::string get_variable_name() const { std::cout << "ERROR : Not and Identifier" << std::endl; };
 		virtual void load_variable_address(std::ostream &dst, Context& context) const {};
-		virtual type get_variable_type(Context& context) const {};
+		virtual type get_data_type(Context& context) const { return type(FLOAT); };
 
 		// Evaluate the expression
 		virtual int evaluate() const { return 0; };
@@ -264,7 +264,6 @@ class Function_Call_Expression : public Unary_Expression
 			if (context.check_function_declared(variable_ID))
 			{
 				/* code */
-
 			}
 			else
 			{
@@ -386,6 +385,8 @@ class Array_Access_Expression : public Unary_Expression
 
 			context.load_register(dst, array_register, array_frame_pointer);
 			context.output_load_operation(dst, array_type, array_register, array_register, 0);
+
+			// Array expression
 			context.store_register(dst, array_register, array_frame_pointer);
 		}
 };
@@ -474,11 +475,8 @@ class Direct_Assignment : public Assignment_Expression
 			context.load_register(dst, temp_register_1, frame_pointer_2);
 			context.output_store_operation(dst, operator_type, temp_register_1, destination_register, 0);
 
-			// Output Direct Assignment operation
-			dst << "\t" << "move" << "\t" << destination_register << "," << temp_register_1 << std::endl;
-
 			// Store results
-			context.store_register(dst, destination_register, frame_pointer_1);
+			context.store_register(dst, temp_register_1, frame_pointer_1);
 		}
 };
 
@@ -501,12 +499,12 @@ class Operator : public Expression
 	public:
 		Operator (Expression* _left, Expression* _right) : left (_left), right (_right) {}
 
-		virtual void execute(std::ostream &dst, Context& context, type type, std::string destination_register, std::string temprorary_register) const {}
-
 		virtual void compile(std::ostream &dst, Context& context) const override
 		{
 			// Only supports INT for now
-			type operator_type = INT;
+			type operator_type = right->get_data_type(context);
+
+			// std::cerr<<right->get_data_type(context)<<std::endl;
 
 			// Select registers and allocate frame pointers
 			int frame_pointer_1 = context.get_stack_pointer(); // Find current frame pointer 
@@ -520,7 +518,7 @@ class Operator : public Expression
 			right->compile(dst, context);
 
 			context.deallocate_stack(); // Reduce frame pointer as temproray register done
-
+			
 			// Load registers 
 			context.load_register(dst, destination_register, frame_pointer_1);
 			context.load_register(dst, temp_register, frame_pointer_2);
@@ -530,10 +528,20 @@ class Operator : public Expression
 
 			// Store result
 			context.store_register(dst, destination_register, frame_pointer_1);
+
+			if (operator_type == FLOAT || operator_type == DOUBLE)
+			{
+				context.load_float_register(dst, "$f0", frame_pointer_1);
+			}
+			
 		}
+
+		virtual void execute(std::ostream &dst, Context& context, type type, std::string destination_register, std::string temprorary_register) const {}
 };
 
 /* ------------------------------------						  Arithmetic Expression						------------------------------------ */
+
+// https://people.cs.pitt.edu/~childers/CS0447/lectures/SlidesLab92Up.pdf
 
 class Add_Expression : public Operator
 {
@@ -554,23 +562,20 @@ class Add_Expression : public Operator
 				std::string temp_float_reg_2 = "$f1";
 
 				// Shift to float registers
-				context.shift_to_float_reg(dst, temp_float_reg_1, destination_register);
-				context.shift_to_float_reg(dst, temp_float_reg_2, temprorary_register);
+				context.shift_to_float_reg(dst, destination_register, temp_float_reg_1);
+				context.shift_to_float_reg(dst, temprorary_register, temp_float_reg_2);
 
 				// Add float
-				dst << "\t" << "add" << "\t" << temp_float_reg_1 << "," << temp_float_reg_1 << "," << temp_float_reg_2 << std::endl;
+				dst << "\t" << "add.s" << "\t" << temp_float_reg_1 << "," << temp_float_reg_1 << "," << temp_float_reg_2 << std::endl;
 
 				// Move result from float back to normal registers
-				context.shift_from_float_reg(dst, temp_float_reg_1, destination_register);
+				context.shift_from_float_reg(dst, destination_register, temp_float_reg_1);
 			}
 			else
 			{
 				std::cerr<<'Unsupported data types'<<std::endl;
 				exit(1);
 			}
-			
-			
-			
 		}
 
 		virtual int evaluate() const override { return left->evaluate() + right->evaluate(); };
@@ -583,7 +588,32 @@ class Sub_Expression : public Operator
 
 		virtual void execute(std::ostream &dst, Context& context, type type, std::string destination_register, std::string temprorary_register) const override
 		{
-			dst << "\t" << "subu" << "\t" << destination_register << "," << destination_register << "," << temprorary_register << std::endl;
+			// Check types
+			if (type == INT || type == UNSIGNED)
+			{
+				dst << "\t" << "subu" << "\t" << destination_register << "," << destination_register << "," << temprorary_register << std::endl;
+			}
+			else if (type == FLOAT || type == DOUBLE)
+			{
+				// Declare float registers
+				std::string temp_float_reg_1 = "$f0";
+				std::string temp_float_reg_2 = "$f1";
+
+				// Shift to float registers
+				context.shift_to_float_reg(dst, destination_register, temp_float_reg_1);
+				context.shift_to_float_reg(dst, temprorary_register, temp_float_reg_2);
+
+				// Add float
+				dst << "\t" << "sub.s" << "\t" << temp_float_reg_1 << "," << temp_float_reg_1 << "," << temp_float_reg_2 << std::endl;
+
+				// Move result from float back to normal registers
+				context.shift_from_float_reg(dst, destination_register, temp_float_reg_1);
+			}
+			else
+			{
+				std::cerr<<'Unsupported data types'<<std::endl;
+				exit(1);
+			}
 		}	
 
 		virtual int evaluate() const override { return left->evaluate() - right->evaluate(); };
@@ -594,12 +624,37 @@ class Multiply_Expression : public Operator
 	public:
 		Multiply_Expression (Expression* _left, Expression* _right) : Operator (_left,_right) {}
 
+		// https://stackoverflow.com/questions/16050338/mips-integer-multiplication-and-division
+
 		virtual void execute(std::ostream &dst, Context& context, type type, std::string destination_register, std::string temprorary_register) const override
 		{
-			// https://stackoverflow.com/questions/16050338/mips-integer-multiplication-and-division
+			// Check types
+			if (type == INT || type == UNSIGNED)
+			{
+				dst << "\t" << "multu" << "\t"  << destination_register << "," << temprorary_register << std::endl;
+				dst << "\t" << "mflo"  << "\t"  << destination_register << std::endl;
+			}
+			else if (type == FLOAT || type == DOUBLE)
+			{
+				// Declare float registers
+				std::string temp_float_reg_1 = "$f0";
+				std::string temp_float_reg_2 = "$f1";
 
-			dst << "\t" << "multu" << "\t"  << destination_register << "," << temprorary_register << std::endl;
-			dst << "\t" << "mflo"  << "\t"  << destination_register << std::endl;
+				// Shift to float registers
+				context.shift_to_float_reg(dst, destination_register, temp_float_reg_1);
+				context.shift_to_float_reg(dst, temprorary_register, temp_float_reg_2);
+
+				// Add float
+				dst << "\t" << "mul.s" << "\t" << temp_float_reg_1 << "," << temp_float_reg_1 << "," << temp_float_reg_2 << std::endl;
+
+				// Move result from float back to normal registers
+				context.shift_from_float_reg(dst, destination_register, temp_float_reg_1);
+			}
+			else
+			{
+				std::cerr<<'Unsupported data types'<<std::endl;
+				exit(1);
+			}
 		}	
 
 		virtual int evaluate() const override { return left->evaluate() * right->evaluate(); };
@@ -614,9 +669,34 @@ class Divide_Expression : public Operator
 		{
 			// https://stackoverflow.com/questions/16050338/mips-integer-multiplication-and-division
 
-			dst << "\t" << "divu" << "\t" << destination_register << "," << destination_register << "," << temprorary_register << std::endl;
-			dst << "\t" << "mfhi" << "\t" << destination_register << std::endl;
-			dst << "\t" << "mflo" << "\t" << destination_register << std::endl;
+			// Check types
+			if (type == INT || type == UNSIGNED)
+			{
+				dst << "\t" << "divu" << "\t" << destination_register << "," << destination_register << "," << temprorary_register << std::endl;
+				dst << "\t" << "mfhi" << "\t" << destination_register << std::endl;
+				dst << "\t" << "mflo" << "\t" << destination_register << std::endl;
+			}
+			else if (type == FLOAT || type == DOUBLE)
+			{
+				// Declare float registers
+				std::string temp_float_reg_1 = "$f0";
+				std::string temp_float_reg_2 = "$f1";
+
+				// Shift to float registers
+				context.shift_to_float_reg(dst, destination_register, temp_float_reg_1);
+				context.shift_to_float_reg(dst, temprorary_register, temp_float_reg_2);
+
+				// Add float
+				dst << "\t" << "div.s" << "\t" << temp_float_reg_1 << "," << temp_float_reg_1 << "," << temp_float_reg_2 << std::endl;
+
+				// Move result from float back to normal registers
+				context.shift_from_float_reg(dst, destination_register, temp_float_reg_1);
+			}
+			else
+			{
+				std::cerr<<'Unsupported data types'<<std::endl;
+				exit(1);
+			}
 		}	
 
 		virtual int evaluate() const override { return left->evaluate() / right->evaluate(); };
@@ -776,7 +856,6 @@ class Logical_AND_Expression : public Operator
 			context.load_register(dst, temp_register_1, frame_pointer_temp_reg);
 			context.deallocate_stack();
 
-			dst << "\t" << "move " << "\t" << destination_register << "," << "$0" << std::endl;
 			dst << "\t" << "beq " << "\t" << temp_register_1 << "," << "$0" << "," << return_label << std::endl;
 
 			dst << "\t" << "addiu " << "\t" << "\t" << destination_register << "," << "$0" << "," << 1 << std::endl;
@@ -814,7 +893,6 @@ class Logical_OR_Expression : public Operator
 			context.load_register(dst, temp_register_1, frame_pointer_temp_reg);
 			context.deallocate_stack();
 
-			dst << "\t" << "move " << "\t" << destination_register << "," << "$0" << std::endl;
 			dst << "\t" << "beq " << "\t" << temp_register_1 << "," << "$0" << "," << return_label_2 << std::endl;
 
 			dst << "\t" << "addiu " << "\t" << destination_register << "," << "$0" << "," << 1 << std::endl;

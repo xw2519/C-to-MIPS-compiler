@@ -61,7 +61,7 @@ class Variable_Declarator : public Declarator
 		virtual void compile_declaration(std::ostream& dst, Context& context, type declaration_type) const override 
 		{
 			// Get necessary information
-			variable compile_variable = context.new_variable(variable_name, INT, NORMAL);
+			variable compile_variable = context.new_variable(variable_name, declaration_type, NORMAL);
 
 			type variable_type = compile_variable.get_variable_type();
 			int frame_pointer_1 = compile_variable.get_variable_address();
@@ -181,7 +181,7 @@ class Array_Declarator : public Declarator
 			// Get array parameters
 			int initialisation_vector_size = expression_vector->size();
 
-			variable array_variable = context.new_variable(variable_name, INT, ARRAY, initialisation_vector_size);
+			variable array_variable = context.new_variable(variable_name, declarator_type, ARRAY, initialisation_vector_size);
 
 			for(int i = 0; i < array_size; i++)
 			{
@@ -389,9 +389,10 @@ class Function_Definition : public External_Declaration // Very basic
 			// Function arguments
 			if(parameter_list != NULL)
 			{
-				int argument_stack_pointer = 4; // Set to 8 to prevent stack frame clash
+				int argument_stack_pointer = 4; // Set to 4 to ANSI spec
 
-				std::string argument_registers[4]  = {"$4", "$5", "$6", "$7"};
+				std::string argument_integer_registers[4]  = {"$4", "$5", "$6", "$7"};
+				std::string argument_float_registers[4]  = {"$f12", "$f14"};
 
 				// Check if parameters can fit into four argument register
 				// https://stackoverflow.com/questions/2298838/mips-function-call-with-more-than-four-arguments
@@ -400,18 +401,25 @@ class Function_Definition : public External_Declaration // Very basic
 				for(int i = 0; i < parameter_list->size(); i++)
 				{
 					argument_stack_pointer += 4;
+					type argument_type = (*parameter_list)[i]->get_type();
 
-					// Check if argument stack is full or not based on argument_stack_pointer
-					if(i < 4) 
+					if ((argument_type == FLOAT || argument_type == DOUBLE) && (i < 2)) // Float can only store two arguments
 					{
-						context.output_store_operation(dst, INT, argument_registers[i], "$30", argument_stack_pointer);
+						context.store_float_register(dst, argument_float_registers[i], argument_stack_pointer);
 					}
-					else // Store parameters on stack 
+					else if (((argument_type == FLOAT || argument_type == DOUBLE) && (i < 4)) || ((argument_type == INT || argument_type == UNSIGNED) && (i < 4)))
 					{
-
+						if ((argument_type == FLOAT || argument_type == DOUBLE) && (i < 4))
+						{
+							context.output_store_operation(dst, argument_type, argument_integer_registers[i], "$30", argument_stack_pointer);	
+						}
+						else
+						{
+							context.output_store_operation(dst, argument_type, argument_integer_registers[i], "$30", argument_stack_pointer);	
+						}
 					}
 
-					context.make_new_argument((*parameter_list)[i]->get_parameter(), INT, NORMAL, argument_stack_pointer);
+					context.make_new_argument((*parameter_list)[i]->get_parameter(), (*parameter_list)[i]->get_type(), NORMAL, argument_stack_pointer);
 				}
 
 			}
@@ -422,7 +430,7 @@ class Function_Definition : public External_Declaration // Very basic
 				statements->compile(dst, context);
 			}
 			
-			
+			// Godbolt format for main functions
 			if (ID == "main")
 			{
             	dst << "\t" << "move" << "\t" << "$2, $0" << std::endl; 
