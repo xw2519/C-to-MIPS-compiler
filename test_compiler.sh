@@ -55,7 +55,7 @@ echo "==========================================================================
         TEST=$(basename $i _driver.c)
         TEST_FILE=${TEST_FOLDER}/${TEST}.c
 
-        # ${COMPILER} < ${TEST_FILE} > ${OUTPUT_DIR}/${TEST}.s
+        #${COMPILER} < ${TEST_FILE} > ${OUTPUT_DIR}/${TEST}.s
 
         # Compile test function with compiler under test 
         ${COMPILER} -S ${TEST_FILE} -o ${OUTPUT_DIR}/${TEST}.s

@@ -83,6 +83,8 @@ IS			(u|U|l|L)*
 [=]                                 { return (T_ASSIGN); }
 [+][+]				                      { return (T_INCREMENT); }
 [-][-]				                      { return (T_DECREMENT); }
+[+][=]				                      { return (T_ADD_ASSIGN); }
+[-][=]				                      { return (T_SUB_ASSIGN); }
 
  /* --------------- 			  			       Bitwise			 				      --------------- */
 [&]                                 { return (T_BITWISE_AND); }

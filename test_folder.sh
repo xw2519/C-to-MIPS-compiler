@@ -16,7 +16,7 @@ NC='\033[0m' # No Color
 
 
 #!/bin/bash
-INPUT_DIR="compiler_tests/float"
+INPUT_DIR="compiler_tests/programs"
 OUTPUT_DIR="temp"
 
 echo "=================================================================================="
@@ -50,7 +50,7 @@ for i in ${INPUT_DIR}/*_driver.c ; do
     TEST=$(basename $i _driver.c)
     TEST_FILE=${INPUT_DIR}/${TEST}.c
 
-    # ${COMPILER} < ${TEST_FILE} > ${OUTPUT_DIR}/${TEST}.s
+    #${COMPILER} < ${TEST_FILE} > ${OUTPUT_DIR}/${TEST}.s
 
     # Compile test function with compiler under test 
     ${COMPILER} -S ${TEST_FILE} -o ${OUTPUT_DIR}/${TEST}.s
@@ -78,5 +78,3 @@ for i in ${INPUT_DIR}/*_driver.c ; do
     fi
 
 done
-
-

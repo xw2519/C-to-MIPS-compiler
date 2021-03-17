@@ -47,7 +47,7 @@ https://www.lysator.liu.se/c/ANSI-C-grammar-y.html#constant-expressions
 // Logical Operators
 %token T_LOGICAL_AND T_LOGICAL_OR
 // Assignment Operators
-%token T_ASSIGN T_INCREMENT T_DECREMENT
+%token T_ASSIGN T_INCREMENT T_DECREMENT T_ADD_ASSIGN T_SUB_ASSIGN
 // Arithmetic Operators
 %token T_MULTIPLY T_DIVIDE T_PLUS T_MINUS T_MODULO
 // Characters Operators
@@ -252,6 +252,16 @@ unary_expression				: 	postfix_expression
 								|	T_MULTIPLY cast_expression
 									{ $$ = new Dereference_Expression($2); }
 
+								|	T_MINUS cast_expression
+									{ $$ = new Pre_Negative_Expression($2); }
+
+								|	T_INCREMENT unary_expression
+									{ $$ = new Direct_Assignment($2, new Add_Expression($2, new Integer(1))); }
+
+								|	T_DECREMENT unary_expression
+									{ $$ = new Direct_Assignment($2, new Sub_Expression($2, new Integer(1))); }
+
+
 cast_expression					: 	unary_expression 
 
 								| 	T_LBRACKET TYPE T_RBRACKET cast_expression
@@ -277,7 +287,7 @@ postfix_expression				:	primary_expression
 
 /* ------------------------------------						   Arthimetic Expression						------------------------------------ */
 
-multiply_expression				:	postfix_expression				 									
+multiply_expression				:	cast_expression				 									
 									{ $$ = $1; }
 
 								| 	multiply_expression T_MULTIPLY cast_expression 					
@@ -361,6 +371,12 @@ assignment_expression			: 	ternary_expression
 
 								|	unary_expression T_ASSIGN assignment_expression 					
 									{ $$ = new Direct_Assignment($1, $3); }	
+
+								|	unary_expression T_ADD_ASSIGN assignment_expression 					
+									{ $$ = new Direct_Assignment($1, new Add_Expression($1, $3)); }	
+
+								|	unary_expression T_SUB_ASSIGN assignment_expression 					
+									{ $$ = new Direct_Assignment($1, new Sub_Expression($1, $3)); }	
 
 argument_list					: 	assignment_expression
 									{ $$ = new std::vector<Expression*>(1, $1); }

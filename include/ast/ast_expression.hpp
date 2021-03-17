@@ -15,7 +15,7 @@ class Expression : public Node
 		// Primitive functions
 		virtual std::string get_variable_name() const { std::cout << "ERROR : Not and Identifier" << std::endl; };
 		virtual void load_variable_address(std::ostream &dst, Context& context) const {};
-		virtual type get_data_type(Context& context) const { return type(FLOAT); };
+		virtual type get_data_type(Context& context) const { return type(INT); };
 
 		// Evaluate the expression
 		virtual double evaluate() const { return 0; };
@@ -154,6 +154,45 @@ class Cast_Expression : public Unary_Expression
 			context.store_register(dst, cast_register, cast_address);
 		}
 };
+
+/* ------------------------------------						   	 Pre-fix Expression						------------------------------------ */
+
+class Pre_Negative_Expression : public Unary_Expression
+{
+	private:
+
+	public:
+		Pre_Negative_Expression (Expression* _expression) 
+		: Unary_Expression(_expression) {}
+
+		virtual void compile(std::ostream &dst, Context& context) const override
+		{
+			// Get stack pointer
+			std::string destination_register = "$2";
+			int stack_pointer = context.get_stack_pointer();
+
+			expression->compile(dst, context);
+
+			context.load_register(dst, destination_register, stack_pointer);
+			//std::cerr<<expression->get_data_type(context)<<std::endl;
+			if (expression->get_data_type(context) == INT )
+			{
+				dst << "\t" << "sub"  << "\t" << "\t" << destination_register << "," << "$0" << "," << destination_register << std::endl; 
+			}
+			else if (expression->get_data_type(context) == FLOAT)
+			{
+				context.shift_to_float_reg(dst, destination_register, "$f0");
+				context.shift_to_float_reg(dst, "$0", "$f2");
+
+				dst << "\t" << "sub.s"  << "\t" << "$f0" << "," << "$f2" << "," << "$f0" << std::endl; 
+
+				context.shift_from_float_reg(dst, destination_register, "$f0");
+			}
+
+			context.store_register(dst, destination_register, stack_pointer);
+		}
+};
+
 
 /* ------------------------------------						    Post-fix Expression						------------------------------------ */
 
@@ -539,6 +578,11 @@ class Operator : public Expression
 		}
 
 		virtual void execute(std::ostream &dst, Context& context, type type, std::string destination_register, std::string temprorary_register) const {}
+
+		virtual type get_data_type(Context& context) const 
+		{ 
+			return type(left->get_data_type(context)); 
+		};
 };
 
 /* ------------------------------------						  Arithmetic Expression						------------------------------------ */
@@ -971,7 +1015,5 @@ class Logical_OR_Expression : public Operator
 			context.store_register(dst, destination_name, destination_address);
 		}
 };
-
-
 
 #endif
