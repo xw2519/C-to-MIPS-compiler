@@ -401,19 +401,19 @@ class Function_Definition : public External_Declaration // Very basic
 				int temp_register = 4;
 				for(int i = 0; i < parameter_list->size(); i++)
 				{
+					argument_stack_pointer += 4;
 					type argument_type = (*parameter_list)[i]->get_type();
 
 					if ((argument_type == FLOAT) && (i < 2)) // Float can only store two arguments
 					{
-						argument_stack_pointer += 4;
 						context.store_float_register(dst, argument_float_registers[i], argument_stack_pointer);
 					}
 					else if ((argument_type == DOUBLE) && (i < 2))
 					{
-						// Conforms to GodBolt format for allocate double registers
+						// Conforms to GodBolt format for allocating double registers
 						int register_index = (i + 1)*2;
 
-						argument_stack_pointer += 8;
+						argument_stack_pointer += 4;
 						context.store_float_register(dst, argument_double_registers[register_index - 2], argument_stack_pointer);
 						
 						argument_stack_pointer -= 4;
@@ -423,14 +423,12 @@ class Function_Definition : public External_Declaration // Very basic
 					}
 					else if (((argument_type == FLOAT) && (i < 4)) || ((argument_type == INT || argument_type == UNSIGNED) && (i < 4)))
 					{
-						if ((argument_type == FLOAT) && (i < 4))
+						if (argument_type == FLOAT)
 						{
-							argument_stack_pointer += 4;
 							context.output_store_operation(dst, argument_type, argument_integer_registers[i], "$30", argument_stack_pointer);	
 						}
 						else
 						{
-							argument_stack_pointer += 4;
 							context.output_store_operation(dst, argument_type, argument_integer_registers[i], "$30", argument_stack_pointer);	
 						}
 					}
