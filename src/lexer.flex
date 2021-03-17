@@ -93,14 +93,18 @@ IS			(u|U|l|L)*
 [&][&]                              { return (T_LOGICAL_AND); }
 [|][|]                              { return (T_LOGICAL_OR); }
 
+ /* --------------- 			  		 Integer, Float, Double             --------------- */
+
+{D}+							                  { yylval.int_num = strtod(yytext, 0);       return (T_INT_CONSTANT); }
+[0-9]+[.][0-9]+[f|F|l|L]            { yylval.float_num = strtod(yytext, 0);     return (T_FLOAT_CONSTANT); }
+[0-9]+[.][0-9]+                     { yylval.float_num = strtod(yytext, 0);     return (T_DOUBLE_CONSTANT); }
+
  /* --------------- 			  			        Other			 				        --------------- */
 {L}({L}|{D})*                       { yylval.string  = new std::string(yytext); return (T_IDENTIFIER); }
-{D}+							                  { yylval.int_num = strtod(yytext, 0);       return (T_CONSTANT); }
+
 [L]?["](\\.|[^\\"\n])*["]		        { yylval.string  = new std::string(yytext);	return (T_LITERAL); }
 [ \t\r\n]+		                      { ; }
-.                                   { fprintf(stderr, "Invalid token\n"); exit(1); }
-
-[0-9]+[.][0-9]+[f|F|l|L]            { yylval.float_num = strtod(yytext, 0);     return(T_FLOAT_CONSTANT); }
+.                                   { fprintf(stderr, "Invalid token\n");       exit(1); }
 
 
 

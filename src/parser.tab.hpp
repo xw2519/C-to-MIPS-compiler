@@ -106,13 +106,14 @@ extern int yydebug;
     T_DEFAULT = 298,
     T_CASE = 299,
     T_IDENTIFIER = 300,
-    T_CONSTANT = 301,
+    T_INT_CONSTANT = 301,
     T_FLOAT_CONSTANT = 302,
-    T_BITWISE_AND = 303,
-    T_BITWISE_OR = 304,
-    T_BITWISE_XOR = 305,
-    T_ENUM = 306,
-    T_LITERAL = 307
+    T_DOUBLE_CONSTANT = 303,
+    T_BITWISE_AND = 304,
+    T_BITWISE_OR = 305,
+    T_BITWISE_XOR = 306,
+    T_ENUM = 307,
+    T_LITERAL = 308
   };
 #endif
 
@@ -130,6 +131,7 @@ union YYSTYPE
 	std::string 	*string;
 	int 			int_num;
 	float			float_num;
+	double 			double_num;
 	type_definition *type_node;
 
 	std::vector<Expression*>* 	argument_list_vector;
@@ -139,7 +141,7 @@ union YYSTYPE
 
 	std::vector<Expression*>* 	initialisation_list;
 
-#line 143 "src/parser.tab.hpp"
+#line 145 "src/parser.tab.hpp"
 
 };
 typedef union YYSTYPE YYSTYPE;

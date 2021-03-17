@@ -31,6 +31,7 @@ https://www.lysator.liu.se/c/ANSI-C-grammar-y.html#constant-expressions
 	std::string 	*string;
 	int 			int_num;
 	float			float_num;
+	double 			double_num;
 	type_definition *type_node;
 
 	std::vector<Expression*>* 	argument_list_vector;
@@ -60,7 +61,7 @@ https://www.lysator.liu.se/c/ANSI-C-grammar-y.html#constant-expressions
 // Structures Operators
 %token T_IF T_ELSE T_SWITCH T_WHILE T_FOR T_CONTINUE T_BREAK T_RETURN T_DEFAULT T_CASE
 // Rules
-%token T_IDENTIFIER T_CONSTANT T_FLOAT_CONSTANT
+%token T_IDENTIFIER T_INT_CONSTANT T_FLOAT_CONSTANT T_DOUBLE_CONSTANT
 // Bitwise
 %token T_BITWISE_AND T_BITWISE_OR T_BITWISE_XOR
 // Enumeration
@@ -112,9 +113,9 @@ https://www.lysator.liu.se/c/ANSI-C-grammar-y.html#constant-expressions
 
 %type <type_node> TYPE 
 
-%type <int_num> T_CONSTANT
-
+%type <int_num> T_INT_CONSTANT
 %type <float_num> T_FLOAT_CONSTANT
+%type <double_num> T_DOUBLE_CONSTANT
 
 %start ROOT
 
@@ -222,7 +223,7 @@ enumerator_list					: 	enumerator
 
 expression 						:	assignment_expression
 									
-primary_expression				: 	T_CONSTANT															
+primary_expression				: 	T_INT_CONSTANT															
 									{ $$ = new Integer($1); }
 
 								|	T_FLOAT_CONSTANT

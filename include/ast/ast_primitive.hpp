@@ -53,10 +53,30 @@ class Float : public Primitive
 
 		virtual type get_data_type(Context& context) const override { return type(FLOAT); };
 
-		virtual double evaluate() const override 
-		{ 
-			// return stof(value.substr(0, value.size() - 1)); 
-		};
+		virtual double evaluate() const override { return value; };
+};
+
+class Double : public Primitive
+{
+	private:
+		double value;
+
+	public: 
+		Double (float _value) : value(_value) {}
+
+		virtual void compile(std::ostream &dst, Context& context) const override
+		{
+			int stack_pointer = context.get_stack_pointer();
+			std::string destination_register = "$f0";
+
+			dst << "\t" << "li.d" << "\t" << "\t" << destination_register << ", " << value << std::endl;
+
+			context.store_float_register(dst, destination_register, stack_pointer);	
+		}
+
+		virtual type get_data_type(Context& context) const override { return type(DOUBLE); };
+
+		virtual double evaluate() const override { return value; };
 };
 
 class Identifier : public Primitive // Local variables with constant

@@ -393,6 +393,7 @@ class Function_Definition : public External_Declaration // Very basic
 
 				std::string argument_integer_registers[4]  = {"$4", "$5", "$6", "$7"};
 				std::string argument_float_registers[4]  = {"$f12", "$f14"};
+				std::string argument_double_registers[4]  = {"$f12", "$f13", "$f14", "$f15"};
 
 				// Check if parameters can fit into four argument register
 				// https://stackoverflow.com/questions/2298838/mips-function-call-with-more-than-four-arguments
@@ -400,21 +401,36 @@ class Function_Definition : public External_Declaration // Very basic
 				int temp_register = 4;
 				for(int i = 0; i < parameter_list->size(); i++)
 				{
-					argument_stack_pointer += 4;
 					type argument_type = (*parameter_list)[i]->get_type();
 
-					if ((argument_type == FLOAT || argument_type == DOUBLE) && (i < 2)) // Float can only store two arguments
+					if ((argument_type == FLOAT) && (i < 2)) // Float can only store two arguments
 					{
+						argument_stack_pointer += 4;
 						context.store_float_register(dst, argument_float_registers[i], argument_stack_pointer);
 					}
-					else if (((argument_type == FLOAT || argument_type == DOUBLE) && (i < 4)) || ((argument_type == INT || argument_type == UNSIGNED) && (i < 4)))
+					else if ((argument_type == DOUBLE) && (i < 2))
 					{
-						if ((argument_type == FLOAT || argument_type == DOUBLE) && (i < 4))
+						// Conforms to GodBolt format for allocate double registers
+						int register_index = (i + 1)*2;
+
+						argument_stack_pointer += 8;
+						context.store_float_register(dst, argument_double_registers[register_index - 2], argument_stack_pointer);
+						
+						argument_stack_pointer -= 4;
+						context.store_float_register(dst, argument_double_registers[register_index - 1], argument_stack_pointer);
+
+						argument_stack_pointer += 4;
+					}
+					else if (((argument_type == FLOAT) && (i < 4)) || ((argument_type == INT || argument_type == UNSIGNED) && (i < 4)))
+					{
+						if ((argument_type == FLOAT) && (i < 4))
 						{
+							argument_stack_pointer += 4;
 							context.output_store_operation(dst, argument_type, argument_integer_registers[i], "$30", argument_stack_pointer);	
 						}
 						else
 						{
+							argument_stack_pointer += 4;
 							context.output_store_operation(dst, argument_type, argument_integer_registers[i], "$30", argument_stack_pointer);	
 						}
 					}

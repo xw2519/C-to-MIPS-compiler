@@ -557,7 +557,7 @@ class Add_Expression : public Operator
 			{
 				dst << "\t" << "addu" << "\t" << destination_register << "," << destination_register << "," << temprorary_register << std::endl;
 			}
-			else if (type == FLOAT || type == DOUBLE)
+			else if (type == FLOAT)
 			{
 				// Declare float registers
 				std::string temp_float_reg_1 = "$f0";
@@ -572,6 +572,22 @@ class Add_Expression : public Operator
 
 				// Move result from float back to normal registers
 				context.shift_from_float_reg(dst, destination_register, temp_float_reg_1);
+			}
+			else if (type == DOUBLE)
+			{
+				// Declare float registers
+				std::string temp_float_reg_1 = "$f2";
+				std::string temp_float_reg_2 = "$f0";
+
+				// Shift to float registers
+				context.shift_to_float_reg(dst, destination_register, temp_float_reg_1);
+				context.shift_to_float_reg(dst, temprorary_register, temp_float_reg_2);
+
+				// Add float
+				dst << "\t" << "add.d" << "\t" << temp_float_reg_2 << "," << temp_float_reg_1 << "," << temp_float_reg_2 << std::endl;
+
+				// Move result from float back to normal registers
+				context.shift_from_float_reg(dst, destination_register, temp_float_reg_2);
 			}
 			else
 			{
@@ -595,7 +611,7 @@ class Sub_Expression : public Operator
 			{
 				dst << "\t" << "subu" << "\t" << destination_register << "," << destination_register << "," << temprorary_register << std::endl;
 			}
-			else if (type == FLOAT || type == DOUBLE)
+			else if (type == FLOAT)
 			{
 				// Declare float registers
 				std::string temp_float_reg_1 = "$f0";
@@ -610,6 +626,22 @@ class Sub_Expression : public Operator
 
 				// Move result from float back to normal registers
 				context.shift_from_float_reg(dst, destination_register, temp_float_reg_1);
+			}
+			else if (type == DOUBLE)
+			{
+				// Declare float registers
+				std::string temp_float_reg_1 = "$f2";
+				std::string temp_float_reg_2 = "$f0";
+
+				// Shift to float registers
+				context.shift_to_float_reg(dst, destination_register, temp_float_reg_1);
+				context.shift_to_float_reg(dst, temprorary_register, temp_float_reg_2);
+
+				// Add float
+				dst << "\t" << "sub.d" << "\t" << temp_float_reg_2 << "," << temp_float_reg_1 << "," << temp_float_reg_2 << std::endl;
+
+				// Move result from float back to normal registers
+				context.shift_from_float_reg(dst, destination_register, temp_float_reg_2);
 			}
 			else
 			{
@@ -636,7 +668,7 @@ class Multiply_Expression : public Operator
 				dst << "\t" << "multu" << "\t"  << destination_register << "," << temprorary_register << std::endl;
 				dst << "\t" << "mflo"  << "\t"  << destination_register << std::endl;
 			}
-			else if (type == FLOAT || type == DOUBLE)
+			else if (type == FLOAT)
 			{
 				// Declare float registers
 				std::string temp_float_reg_1 = "$f0";
@@ -651,6 +683,22 @@ class Multiply_Expression : public Operator
 
 				// Move result from float back to normal registers
 				context.shift_from_float_reg(dst, destination_register, temp_float_reg_1);
+			}
+			else if (type == DOUBLE)
+			{
+				// Declare float registers
+				std::string temp_float_reg_1 = "$f2";
+				std::string temp_float_reg_2 = "$f0";
+
+				// Shift to float registers
+				context.shift_to_float_reg(dst, destination_register, temp_float_reg_1);
+				context.shift_to_float_reg(dst, temprorary_register, temp_float_reg_2);
+
+				// Add float
+				dst << "\t" << "mul.d" << "\t" << temp_float_reg_2 << "," << temp_float_reg_1 << "," << temp_float_reg_2 << std::endl;
+
+				// Move result from float back to normal registers
+				context.shift_from_float_reg(dst, destination_register, temp_float_reg_2);
 			}
 			else
 			{
@@ -678,7 +726,7 @@ class Divide_Expression : public Operator
 				dst << "\t" << "mfhi" << "\t" << destination_register << std::endl;
 				dst << "\t" << "mflo" << "\t" << destination_register << std::endl;
 			}
-			else if (type == FLOAT || type == DOUBLE)
+			else if (type == FLOAT)
 			{
 				// Declare float registers
 				std::string temp_float_reg_1 = "$f0";
@@ -693,6 +741,22 @@ class Divide_Expression : public Operator
 
 				// Move result from float back to normal registers
 				context.shift_from_float_reg(dst, destination_register, temp_float_reg_1);
+			}
+			else if (type == DOUBLE)
+			{
+				// Declare float registers
+				std::string temp_float_reg_1 = "$f2";
+				std::string temp_float_reg_2 = "$f0";
+
+				// Shift to float registers
+				context.shift_to_float_reg(dst, destination_register, temp_float_reg_1);
+				context.shift_to_float_reg(dst, temprorary_register, temp_float_reg_2);
+
+				// Add float
+				dst << "\t" << "div.d" << "\t" << temp_float_reg_2 << "," << temp_float_reg_1 << "," << temp_float_reg_2 << std::endl;
+
+				// Move result from float back to normal registers
+				context.shift_from_float_reg(dst, destination_register, temp_float_reg_2);
 			}
 			else
 			{
