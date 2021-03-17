@@ -4,9 +4,9 @@
 #include <iomanip>
 #include <string>
 
-/* -------------------------------- 			      Base class		 			-------------------------------- */
+/* -------------------------------- 			       Base class		 			-------------------------------- */
 
-class Primitive : public Expression{};
+class Primitive : public Expression {};
 
 /* -------------------------------- 				Derivative class		 		-------------------------------- */
 
@@ -16,7 +16,7 @@ class Integer : public Primitive
 		int value;
 
 	public:
-		Integer (int _value) : value (_value) {}
+		Integer (int _value) : value(_value) {}
 
 		virtual void compile(std::ostream &dst, Context& context) const override
 		{
@@ -30,7 +30,7 @@ class Integer : public Primitive
 
 		virtual type get_data_type(Context& context) const override { return type(INT); };
 
-		virtual int evaluate() const override { return value; };
+		virtual double evaluate() const override { return value; };
 };
 
 class Float : public Primitive
@@ -39,24 +39,24 @@ class Float : public Primitive
 		float value;
 
 	public: 
-		Float (std::string _value) : value (stof(_value)) {}
+		Float (float _value) : value(_value) {}
 
 		virtual void compile(std::ostream &dst, Context& context) const override
 		{
-			// Generate float label
-			std::string float_label = context.make_label("FLOAT");
-
 			int stack_pointer = context.get_stack_pointer();
-			std::string temp_register = "$8";
+			std::string destination_register = "$f0";
 
-			dst << "\t" << "la" << "\t" << "\t" << temp_register << ", " << float_label << std::endl;
-			context.output_load_operation(dst, FLOAT, "$2", temp_register, 0);
-			context.store_register(dst, "$2", stack_pointer);	
+			dst << "\t" << "li.s" << "\t" << "\t" << destination_register << ", " << value << std::endl;
+
+			context.store_float_register(dst, destination_register, stack_pointer);	
 		}
 
 		virtual type get_data_type(Context& context) const override { return type(FLOAT); };
 
-		virtual int evaluate() const override { return value; };
+		virtual double evaluate() const override 
+		{ 
+			// return stof(value.substr(0, value.size() - 1)); 
+		};
 };
 
 class Identifier : public Primitive // Local variables with constant

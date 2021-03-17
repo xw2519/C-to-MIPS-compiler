@@ -8,6 +8,7 @@
 #include "ast_declaration.hpp"
 
 /* ------------------------------------						   Expression Base Class					------------------------------------ */
+
 class Expression : public Node 
 {
 	public:
@@ -17,7 +18,7 @@ class Expression : public Node
 		virtual type get_data_type(Context& context) const { return type(FLOAT); };
 
 		// Evaluate the expression
-		virtual int evaluate() const { return 0; };
+		virtual double evaluate() const { return 0; };
 };
 
 typedef const Expression *Expression_Ptr;
@@ -481,6 +482,7 @@ class Direct_Assignment : public Assignment_Expression
 };
 
 /* ------------------------------------						   Operator Expression						------------------------------------ */
+
 // Arithmetic types
 //	- Int and Unsigned types are executed the same
 // 	- Float and Double are handled the same
@@ -578,7 +580,7 @@ class Add_Expression : public Operator
 			}
 		}
 
-		virtual int evaluate() const override { return left->evaluate() + right->evaluate(); };
+		virtual double evaluate() const override { return left->evaluate() + right->evaluate(); };
 };
 
 class Sub_Expression : public Operator
@@ -616,7 +618,7 @@ class Sub_Expression : public Operator
 			}
 		}	
 
-		virtual int evaluate() const override { return left->evaluate() - right->evaluate(); };
+		virtual double evaluate() const override { return left->evaluate() - right->evaluate(); };
 };
 
 class Multiply_Expression : public Operator
@@ -657,7 +659,7 @@ class Multiply_Expression : public Operator
 			}
 		}	
 
-		virtual int evaluate() const override { return left->evaluate() * right->evaluate(); };
+		virtual double evaluate() const override { return left->evaluate() * right->evaluate(); };
 };
 
 class Divide_Expression : public Operator
@@ -699,7 +701,7 @@ class Divide_Expression : public Operator
 			}
 		}	
 
-		virtual int evaluate() const override { return left->evaluate() / right->evaluate(); };
+		virtual double evaluate() const override { return left->evaluate() / right->evaluate(); };
 };
 
 /* ------------------------------------					  Relational Operator Expressions				------------------------------------ */

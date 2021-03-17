@@ -68,6 +68,7 @@ for i in ${INPUT_DIR}/*_driver.c ; do
     # https://stackoverflow.com/questions/26130909/bash-output-column-formatting
 
     RETURN=$?
+
     if [[ $RETURN -ne 0 ]]; then
         RESULT="FAIL"
         printf  "${FORMAT_FAIL}" $INDEX $TEST $RESULT $RETURN    

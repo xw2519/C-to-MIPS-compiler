@@ -30,6 +30,7 @@ https://www.lysator.liu.se/c/ANSI-C-grammar-y.html#constant-expressions
 	Expression 		*expression_node;
 	std::string 	*string;
 	int 			int_num;
+	float			float_num;
 	type_definition *type_node;
 
 	std::vector<Expression*>* 	argument_list_vector;
@@ -107,11 +108,13 @@ https://www.lysator.liu.se/c/ANSI-C-grammar-y.html#constant-expressions
 
 %type <statement_list_vector> statement_list
 
-%type <string> 	T_IDENTIFIER T_INT T_RETURN T_LITERAL T_FLOAT_CONSTANT
+%type <string> 	T_IDENTIFIER T_INT T_RETURN T_LITERAL T_FLOAT T_UNSIGNED
+
 %type <type_node> TYPE 
 
 %type <int_num> T_CONSTANT
 
+%type <float_num> T_FLOAT_CONSTANT
 
 %start ROOT
 
@@ -223,7 +226,7 @@ primary_expression				: 	T_CONSTANT
 									{ $$ = new Integer($1); }
 
 								|	T_FLOAT_CONSTANT
-									{ $$ = new Float(*$1); }
+									{ $$ = new Float($1); }
 
 								| 	T_IDENTIFIER		 												
 									{ $$ = new Identifier(*$1);	}	

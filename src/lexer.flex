@@ -100,9 +100,8 @@ IS			(u|U|l|L)*
 [ \t\r\n]+		                      { ; }
 .                                   { fprintf(stderr, "Invalid token\n"); exit(1); }
 
-{D}+{E}{FS}?		                    { return(T_FLOAT_CONSTANT); }
-{D}*"."{D}+({E})?{FS}?	            { return(T_FLOAT_CONSTANT); }
-{D}+"."{D}*({E})?{FS}?	            { return(T_FLOAT_CONSTANT); }
+[0-9]+[.][0-9]+[f|F|l|L]            { yylval.float_num = strtod(yytext, 0);     return(T_FLOAT_CONSTANT); }
+
 
 
 %%
