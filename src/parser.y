@@ -30,6 +30,7 @@ https://www.lysator.liu.se/c/ANSI-C-grammar-y.html#constant-expressions
 	Expression 		*expression_node;
 	std::string 	*string;
 	int 			int_num;
+	unsigned int 	unsigned_num;
 	float			float_num;
 	double 			double_num;
 	type_definition *type_node;
@@ -45,7 +46,7 @@ https://www.lysator.liu.se/c/ANSI-C-grammar-y.html#constant-expressions
 /* ------------------------------------					Tokens					------------------------------------ */
 
 // Logical Operators
-%token T_LOGICAL_AND T_LOGICAL_OR
+%token T_LOGICAL_AND T_LOGICAL_OR T_RIGHT_SHIFT T_LEFT_SHIFT
 // Assignment Operators
 %token T_ASSIGN T_INCREMENT T_DECREMENT T_ADD_ASSIGN T_SUB_ASSIGN
 // Arithmetic Operators
@@ -61,7 +62,7 @@ https://www.lysator.liu.se/c/ANSI-C-grammar-y.html#constant-expressions
 // Structures Operators
 %token T_IF T_ELSE T_SWITCH T_WHILE T_FOR T_CONTINUE T_BREAK T_RETURN T_DEFAULT T_CASE
 // Rules
-%token T_IDENTIFIER T_INT_CONSTANT T_FLOAT_CONSTANT T_DOUBLE_CONSTANT
+%token T_IDENTIFIER T_INT_CONSTANT T_FLOAT_CONSTANT T_DOUBLE_CONSTANT T_UNSIGNED_CONSTANT
 // Bitwise
 %token T_BITWISE_AND T_BITWISE_OR T_BITWISE_XOR
 // Enumeration
@@ -96,7 +97,7 @@ https://www.lysator.liu.se/c/ANSI-C-grammar-y.html#constant-expressions
 // Pointer expressions
 %type <expression_node> cast_expression
 
-%type <expression_node> bw_shift_expression compare_expression equal_expression
+%type <expression_node> bitwise_shift_expression compare_expression equal_expression
 %type <expression_node> logical_expression ternary_expression 
 %type <expression_node> assignment_expression expression 
 
@@ -113,9 +114,10 @@ https://www.lysator.liu.se/c/ANSI-C-grammar-y.html#constant-expressions
 
 %type <type_node> TYPE 
 
-%type <int_num> T_INT_CONSTANT
-%type <float_num> T_FLOAT_CONSTANT
-%type <double_num> T_DOUBLE_CONSTANT
+%type <int_num> 	 T_INT_CONSTANT
+%type <float_num> 	 T_FLOAT_CONSTANT
+%type <double_num> 	 T_DOUBLE_CONSTANT
+%type <unsigned_num> T_UNSIGNED_CONSTANT
 
 %start ROOT
 
@@ -228,6 +230,9 @@ primary_expression				: 	T_INT_CONSTANT
 
 								|	T_FLOAT_CONSTANT
 									{ $$ = new Float($1); }
+								
+								|	T_UNSIGNED_CONSTANT
+									{ $$ = new Unsigned_Integer($1); }
 
 								| 	T_IDENTIFIER		 												
 									{ $$ = new Identifier(*$1);	}	
@@ -307,20 +312,26 @@ add_expression					: 	multiply_expression
 
 /* ------------------------------------					      Bitwise Shift Expression						------------------------------------ */
 
-bw_shift_expression				:	add_expression
+bitwise_shift_expression		:	add_expression
 
-compare_expression				: 	bw_shift_expression
+								|	bitwise_shift_expression T_LEFT_SHIFT add_expression 
+									{ $$ = new Left_Bitwise_Shift_Expression($1, $3); }
 
-								|	compare_expression T_LESS bw_shift_expression						
+								|	bitwise_shift_expression T_RIGHT_SHIFT add_expression
+									{ $$ = new Right_Bitwise_Shift_Expression($1, $3); }
+
+compare_expression				: 	bitwise_shift_expression
+
+								|	compare_expression T_LESS bitwise_shift_expression						
 									{ $$ = new Less_Than_Expression($1, $3); }
 
-								|	compare_expression T_LESS_EQUAL bw_shift_expression					
+								|	compare_expression T_LESS_EQUAL bitwise_shift_expression					
 									{ $$ = new Less_Than_Equal_Expression($1, $3); }
 
-								|	compare_expression T_GREATER bw_shift_expression					
+								|	compare_expression T_GREATER bitwise_shift_expression					
 									{ $$ = new More_Than_Expression($1, $3); }
 
-								|	compare_expression T_GREATER_EQUAL bw_shift_expression				
+								|	compare_expression T_GREATER_EQUAL bitwise_shift_expression				
 									{ $$ = new More_Than_Equal_Expression($1, $3); }
 
 equal_expression				: 	compare_expression 
@@ -480,8 +491,8 @@ TYPE							:	T_INT
 								|	T_FLOAT		
 									{ $$ = new type_definition(FLOAT); } 	
 
-								|	T_UNSIGNED	
-									{ $$ = new type_definition(UNSIGNED); } 	
+								|	T_UNSIGNED T_INT
+									{ $$ = new type_definition(UNSIGNED_INT); } 	
 
 								| 	TYPE T_MULTIPLY 
 									{ 									

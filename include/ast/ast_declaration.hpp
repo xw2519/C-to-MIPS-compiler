@@ -421,7 +421,7 @@ class Function_Definition : public External_Declaration // Very basic
 
 						argument_stack_pointer += 4;
 					}
-					else if (((argument_type == FLOAT) && (i < 4)) || ((argument_type == INT || argument_type == UNSIGNED) && (i < 4)))
+					else if (((argument_type == FLOAT) && (i < 4)) || ((argument_type == INT || argument_type == UNSIGNED_INT) && (i < 4)))
 					{
 						if (argument_type == FLOAT)
 						{

@@ -94,12 +94,15 @@ IS			(u|U|l|L)*
  /* --------------- 			  			       Logical			 				      --------------- */
 [&][&]                              { return (T_LOGICAL_AND); }
 [|][|]                              { return (T_LOGICAL_OR); }
+[>][>]                              { return (T_RIGHT_SHIFT); }
+[<][<]                              { return (T_LEFT_SHIFT); }
 
  /* --------------- 			  		 Integer, Float, Double             --------------- */
 
-{D}+							                  { yylval.int_num = strtod(yytext, 0);       return (T_INT_CONSTANT); }
+{D}+							                  { yylval.int_num   = strtod(yytext, 0);     return (T_INT_CONSTANT); }
 [0-9]+[.][0-9]+[f|F|l|L]            { yylval.float_num = strtod(yytext, 0);     return (T_FLOAT_CONSTANT); }
 [0-9]+[.][0-9]+                     { yylval.float_num = strtod(yytext, 0);     return (T_DOUBLE_CONSTANT); }
+[0-9]+[.][0-9]+[u|U]                { yylval.float_num = strtod(yytext, 0);     return (T_UNSIGNED_CONSTANT); }
 
  /* --------------- 			  			        Other			 				        --------------- */
 {L}({L}|{D})*                       { yylval.string  = new std::string(yytext); return (T_IDENTIFIER); }

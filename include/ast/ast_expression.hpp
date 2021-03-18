@@ -76,7 +76,7 @@ class Sizeof_Type_Expression : public Expression
 			{
 				dst << "\t" << "li" << "\t" << "\t" << "$2" << ", " << 8 << std::endl;
 			}
-			else if(sizeof_type == UNSIGNED)
+			else if(sizeof_type == UNSIGNED_INT)
 			{
 				dst << "\t" << "li" << "\t" << "\t" << "$2" << ", " << 8 << std::endl;
 			}
@@ -124,7 +124,7 @@ class Sizeof_Variable_Expression : public Expression
 			{
 				dst << "\t" << "li" << "\t" << "\t" << "$2" << ", " << 8 << std::endl;
 			}
-			else if(variable_type == UNSIGNED)
+			else if(variable_type == UNSIGNED_INT)
 			{
 				dst << "\t" << "li" << "\t" << "\t" << "$2" << ", " << 8 << std::endl;
 			}
@@ -192,7 +192,6 @@ class Pre_Negative_Expression : public Unary_Expression
 			context.store_register(dst, destination_register, stack_pointer);
 		}
 };
-
 
 /* ------------------------------------						    Post-fix Expression						------------------------------------ */
 
@@ -523,9 +522,10 @@ class Direct_Assignment : public Assignment_Expression
 /* ------------------------------------						   Operator Expression						------------------------------------ */
 
 // Arithmetic types
-//	- Int and Unsigned types are executed the same
-// 	- Float and Double are handled the same
-
+//	- Int  
+// 	- Float
+//	- Double 
+//
 // https://www.doc.ic.ac.uk/lab/secondyear/spim/node20.html
 // https://chortle.ccsu.edu/AssemblyTutorial/Chapter-31/ass31_2.html
 // http://ww2.cs.fsu.edu/~dennis/teaching/2013_summer_cda3100/week5/week5-day2.pdf
@@ -597,7 +597,7 @@ class Add_Expression : public Operator
 		virtual void execute(std::ostream &dst, Context& context, type type, std::string destination_register, std::string temprorary_register) const override
 		{
 			// Check types
-			if (type == INT || type == UNSIGNED)
+			if (type == INT || type == UNSIGNED_INT)
 			{
 				dst << "\t" << "addu" << "\t" << destination_register << "," << destination_register << "," << temprorary_register << std::endl;
 			}
@@ -651,7 +651,7 @@ class Sub_Expression : public Operator
 		virtual void execute(std::ostream &dst, Context& context, type type, std::string destination_register, std::string temprorary_register) const override
 		{
 			// Check types
-			if (type == INT || type == UNSIGNED)
+			if (type == INT || type == UNSIGNED_INT)
 			{
 				dst << "\t" << "subu" << "\t" << destination_register << "," << destination_register << "," << temprorary_register << std::endl;
 			}
@@ -707,7 +707,7 @@ class Multiply_Expression : public Operator
 		virtual void execute(std::ostream &dst, Context& context, type type, std::string destination_register, std::string temprorary_register) const override
 		{
 			// Check types
-			if (type == INT || type == UNSIGNED)
+			if (type == INT || type == UNSIGNED_INT)
 			{
 				dst << "\t" << "multu" << "\t"  << destination_register << "," << temprorary_register << std::endl;
 				dst << "\t" << "mflo"  << "\t"  << destination_register << std::endl;
@@ -764,7 +764,7 @@ class Divide_Expression : public Operator
 			// https://stackoverflow.com/questions/16050338/mips-integer-multiplication-and-division
 
 			// Check types
-			if (type == INT || type == UNSIGNED)
+			if (type == INT || type == UNSIGNED_INT)
 			{
 				dst << "\t" << "divu" << "\t" << destination_register << "," << destination_register << "," << temprorary_register << std::endl;
 				dst << "\t" << "mfhi" << "\t" << destination_register << std::endl;
@@ -1013,6 +1013,37 @@ class Logical_OR_Expression : public Operator
 			dst << "\t" << return_label_2 << ":" << std::endl; 
 
 			context.store_register(dst, destination_name, destination_address);
+		}
+};
+
+/* ------------------------------------					    	Bitwise Expressions						------------------------------------ */
+
+class Left_Bitwise_Shift_Expression : public Operator
+{
+	public:
+		Left_Bitwise_Shift_Expression(Expression* _left, Expression* _right) : Operator(_left, _right) {}
+
+		virtual void execute(std::ostream &dst, Context& context, type type, std::string destination_register, std::string temprorary_register) const override
+		{
+			dst << "\t" << "sllv " << "\t" << "\t" << destination_register << "," << destination_register << "," << temprorary_register << std::endl;
+		}
+};
+
+class Right_Bitwise_Shift_Expression : public Operator
+{
+	public:
+		Right_Bitwise_Shift_Expression(Expression* _left, Expression* _right) : Operator(_left, _right) {}
+
+		virtual void execute(std::ostream &dst, Context& context, type type, std::string destination_register, std::string temprorary_register) const override
+		{
+			if (type == INT)
+			{
+				dst << "\t" << "srav " << "\t" << "\t" << destination_register << "," << destination_register << "," << temprorary_register << std::endl;
+			}
+			else
+			{
+				dst << "\t" << "sral " << "\t" << "\t" << destination_register << "," << destination_register << "," << temprorary_register << std::endl;
+			}
 		}
 };
 

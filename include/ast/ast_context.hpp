@@ -71,7 +71,7 @@ enum type
 	STRING,
 	CHAR,
 	DOUBLE,
-	UNSIGNED,
+	UNSIGNED_INT,
 	NONE
 };
 

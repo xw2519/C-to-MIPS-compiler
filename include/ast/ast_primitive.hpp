@@ -33,6 +33,30 @@ class Integer : public Primitive
 		virtual double evaluate() const override { return value; };
 };
 
+// Converts to unsigend through casting
+class Unsigned_Integer : public Primitive
+{
+	private:
+		unsigned int value;
+
+	public:
+		Unsigned_Integer (int _value) : value(_value) {}
+
+		virtual void compile(std::ostream &dst, Context& context) const override
+		{
+			int stack_pointer = context.get_stack_pointer();
+			std::string destination_register = "$2";
+
+			dst << "\t" << "li" << "\t" << "\t" << "$2" << ", " << value << std::endl;
+
+			context.store_register(dst, destination_register, stack_pointer);	
+		}
+
+		virtual type get_data_type(Context& context) const override { return type(UNSIGNED_INT); };
+
+		virtual double evaluate() const override { return value; };
+};
+
 class Float : public Primitive
 {
 	private:
