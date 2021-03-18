@@ -164,8 +164,6 @@ declaration_list				: 	declaration
 parameter_declaration			:	TYPE declarator 													
 									{ $$ = new Declaration(*$1, new std::vector<Declarator*>(1, $2)); }	
 								
-								|	TYPE
-									{}
 
 parameter_list					:	parameter_declaration				     							
 									{ $$ = new std::vector<Declaration*>(1, $1); }
@@ -236,10 +234,7 @@ primary_expression				: 	T_INT_CONSTANT
 
 								| 	T_IDENTIFIER		 												
 									{ $$ = new Identifier(*$1);	}	
-
-								| 	T_LITERAL			 												
-									{ }	
-
+								
 								| 	T_LBRACKET expression T_RBRACKET									
 									{ $$ = $2; }		
 								
@@ -497,12 +492,9 @@ TYPE							:	T_INT
 								| 	TYPE T_MULTIPLY 
 									{ 									
 									  $$ = $1; 
-									  $1->increase_pointer_tracker(); 
 									}	
 								
-
 %%
-
 
 const Node *root; 
 

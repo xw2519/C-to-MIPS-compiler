@@ -107,7 +107,6 @@ IS			(u|U|l|L)*
  /* --------------- 			  			        Other			 				        --------------- */
 {L}({L}|{D})*                       { yylval.string  = new std::string(yytext); return (T_IDENTIFIER); }
 
-[L]?["](\\.|[^\\"\n])*["]		        { yylval.string  = new std::string(yytext);	return (T_LITERAL); }
 [ \t\r\n]+		                      { ; }
 .                                   { fprintf(stderr, "Invalid token\n");       exit(1); }
 
