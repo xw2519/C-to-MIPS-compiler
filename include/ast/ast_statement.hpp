@@ -278,10 +278,8 @@ class Jump_Statement : public Statement
 				// Allocate 
 				context.allocate_stack();
 				int destination_address = context.get_stack_pointer();
-
 				// Compile expression
 				expression->compile(dst, context);
-
 				// Deallocate
 				context.deallocate_stack();
 

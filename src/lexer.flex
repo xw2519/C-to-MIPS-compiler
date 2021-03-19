@@ -1,6 +1,6 @@
   /*
 
-  Contents and terms are derived from the ANSI C grammer specification (ANSI/ISO 9899/1990) specification
+  Contents and terms are mostly derived from the ANSI C grammer specification (ANSI/ISO 9899/1990) specification
   
   https://www.lysator.liu.se/c/ANSI-C-grammar-l.html
   

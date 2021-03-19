@@ -89,6 +89,16 @@ class Variable_Declarator : public Declarator
 				context.load_register(dst, temp_register_1, frame_pointer_1);
 				context.output_store_operation(dst, declarator_type, temp_register_1, "$30", declared_variable.get_variable_address());
 			}
+			else if(context.get_context_scope() == GLOBAL)
+			{
+				int expression = expressions->evaluate();
+
+				dst << "# ------------ Global declaration ------------ #" << std::endl;
+				dst << "\t" << ".globl" << "\t" << variable_name << std::endl;
+				dst << "\t" << ".data" << std::endl;
+				dst <<  variable_name  << ":" << std::endl;
+				dst << "\t" << "." << declared_variable.get_storage_type() << " " << expression << std::endl;
+			}
 		}
 };
 

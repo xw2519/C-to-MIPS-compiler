@@ -142,8 +142,15 @@ class Identifier : public Primitive // Local variables with constant
 
 			// std::cerr << variable_name << std::endl;
 			// std::cerr << compile_variable.get_variable_address() << std::endl;
-		
-			dst << "\t" << "addiu" << "\t" << destination_register << ",$30," << compile_variable.get_variable_address() << std::endl;
+
+			if (compile_variable.get_variable_scope() == GLOBAL)
+			{
+				dst << "\t" << "la" << "\t" << "\t" << destination_register << "," << variable_name << std::endl;
+			}
+			else 
+			{
+				dst << "\t" << "addiu" << "\t" << destination_register << ",$30," << compile_variable.get_variable_address() << std::endl;
+			}
 
 			context.store_register(dst, destination_register, destination_address);
 		}

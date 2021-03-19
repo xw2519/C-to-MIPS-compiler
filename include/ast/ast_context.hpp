@@ -63,6 +63,13 @@ enum context_scope
 	LOCAL
 };
 
+enum storage_type
+{
+	WORD,
+	HALF,
+	BYTE
+};	
+
 enum type
 {
 	VOID,
@@ -98,11 +105,18 @@ class variable
 		int get_variable_address() { return variable_address; }  					// return address of member, relative to beginning of struct
 		context_scope get_variable_scope() { return variable_scope; }				// return scope of member, relative to beginning of struct
 		type get_variable_type() { return variable_type; }							
-		declaration_type get_declaration_type() { return variable_declaration; }	
+		declaration_type get_declaration_type() { return variable_declaration; }
+
+		// Variable functions
+		std::string get_storage_type()
+		{
+			if (variable_type == INT || variable_type == FLOAT || variable_type == DOUBLE) { return "word"; }
+			else { return "word"; }
+		}	
 };
 
 /* ------------------------------------ 			      			    Type class		 						------------------------------------ */
-// Handles the properties of the variable types including:
+// Handles the properties of the variable, pointer, array types including:
 // 	- The type of variable e.g. int, void
 //	- Parameters or values attached with the variable type e.g. arrays
 //	- Array tracker variables 
@@ -125,13 +139,9 @@ class type_definition
 
 		// Array
 		int get_array_size() { return array_size_tracker; }
-		void increase_array_pointer() { pointer_tracker += 1;}
-		void decrease_array_pointer() { pointer_tracker -= 1;}
 
 		// Pointer 
 		int get_pointer_tracker() { return pointer_tracker; }
-		void increase_pointer_tracker() { pointer_tracker += 1;}
-		void decrease_pointer_tracker() { pointer_tracker -= 1;}
 };
 
 /* ------------------------------------								 Context Functions							------------------------------------ */

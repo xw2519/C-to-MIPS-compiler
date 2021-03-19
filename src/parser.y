@@ -1,6 +1,6 @@
 /*
 
-Contents and terms are derived from the ANSI C grammer specification (ANSI/ISO 9899/1990) specification
+Contents and terms are mostly derived from the ANSI C grammer specification (ANSI/ISO 9899/1990) specification
 
 https://www.lysator.liu.se/c/ANSI-C-grammar-y.html#constant-expressions
 
@@ -136,7 +136,7 @@ global_declaration				:	function_definition
 									{ $$ = $1; }
 
 								|	enumerator
-									{ std::cerr<<"GLOBAL ENUM"<<std::endl; }
+									{ $$ = $1; }
 
 function_definition				:	TYPE T_IDENTIFIER T_LBRACKET parameter_list T_RBRACKET compound_statement 
 									{ $$ = new Function_Definition(*$1, *$2, $4, $6); } 
@@ -201,25 +201,26 @@ initialisation_declarator_list	: 	initialisation_declarator
 								|	initialisation_declarator_list T_COMMA initialisation_declarator	
 									{ $1->push_back($3); $$ = $1; }
 
+
 /* ------------------------------------							   Enumerator									------------------------------------ */
 
 enumerator						:	TYPE T_IDENTIFIER T_CURLY_LBRACKET enumerator_list T_CURLY_RBRACKET T_SEMICOLON
-									{ std::cerr<<"ENUM declaration"<<std::endl; } 
+									{ $$ = new Declaration(*$1, $4); } 
 
 enumerator_list					: 	enumerator_initialisation
-									{ std::cerr<<"enumerator_list"<<std::endl; }
+									{ $$ = new std::vector<Declarator*>(1, $1); }
 
 								| 	enumerator_list T_COMMA enumerator_initialisation
-									{ std::cerr<<"enumerator_list"<<std::endl; }
+									{ $1->push_back($3); $$ = $1; }
 
-enumerator_initialisation		: 	T_IDENTIFIER T_ASSIGN assignment_expression
-									{ std::cerr<<"enumerator_declarator_list"<<std::endl;; }
+enumerator_initialisation		: 	enumerator_declarator T_ASSIGN assignment_expression
+									{  $$ = new Initialisation_Variable_Declarator($1, $3); }
 								
 								|	enumerator_declarator
 									{ $$ = $1; }
 
 enumerator_declarator			: 	T_IDENTIFIER
-									{ std::cerr<<"enumerator_declarator"<<std::endl; }
+									{ $$ = new Variable_Declarator(*$1); }
 
 
 /* ------------------------------------							 Expression Base								------------------------------------ */
@@ -489,11 +490,16 @@ TYPE							:	T_INT
 								|	T_FLOAT		
 									{ $$ = new type_definition(FLOAT); } 	
 
+								|	T_UNSIGNED
+									{ $$ = new type_definition(UNSIGNED_INT); } 	
+
 								|	T_UNSIGNED T_INT
 									{ $$ = new type_definition(UNSIGNED_INT); } 	
 								
+								/* https://en.cppreference.com/w/c/language/enum */
+
 								|	T_ENUM
-									{ std::cerr<<"ENUM TRIGGERED"<<std::endl;; } 
+									{ $$ = new type_definition(INT); } 
 
 								| 	TYPE T_MULTIPLY 
 									{ 									
