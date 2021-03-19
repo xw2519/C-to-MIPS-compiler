@@ -76,17 +76,21 @@ https://www.lysator.liu.se/c/ANSI-C-grammar-y.html#constant-expressions
 %type <node> global_declaration
 %type <node> enum_definition
 
-
+// Variables
 %type <declarator_node>	declarator initialisation_declarator
 %type <declarator_list_vector> initialisation_declarator_list
-
 %type <declaration_node> declaration parameter_declaration 
 %type <declaration_list_vector> declaration_list parameter_list
 
+%type <initialisation_list> initialisation_list
+%type <argument_list_vector> argument_list
+
+// Enum
 %type <declarator_node> enumerator_declarator enumerator_initialisation
 %type <declarator_list_vector> enumerator_list
 %type <declaration_node> enumerator
 
+// Expressions
 %type <expression_node> primary_expression unary_expression postfix_expression 
 %type <expression_node> multiply_expression add_expression 
 %type <expression_node> bitwise_AND_expression bitwise_XOR_expression bitwise_OR_expression
@@ -96,18 +100,14 @@ https://www.lysator.liu.se/c/ANSI-C-grammar-y.html#constant-expressions
 %type <expression_node> logical_expression ternary_expression 
 %type <expression_node> assignment_expression expression 
 
-%type <initialisation_list> initialisation_list
-
-%type <argument_list_vector> argument_list
-
+// Statements
 %type <statement_node> statement 
+%type <statement_list_vector> statement_list
 %type <statement_node> jump_statement compound_statement expression_statement condition_statement iteration_statement labeled_statement
 
-%type <statement_list_vector> statement_list
-
-%type <string> 	T_IDENTIFIER T_INT T_RETURN T_FLOAT T_UNSIGNED
-
+// Types
 %type <type_node> TYPE 
+%type <string> 	T_IDENTIFIER T_INT T_RETURN T_FLOAT T_UNSIGNED
 
 %type <int_num> 	 T_INT_CONSTANT
 %type <float_num> 	 T_FLOAT_CONSTANT
@@ -214,10 +214,10 @@ enumerator_list					: 	enumerator_initialisation
 									{ $1->push_back($3); $$ = $1; }
 
 enumerator_initialisation		: 	enumerator_declarator T_ASSIGN assignment_expression
-									{  $$ = new Initialisation_Variable_Declarator($1, $3); }
+									{ $$ = new Initialisation_Enum_Declarator($1, $3); }
 								
 								|	enumerator_declarator
-									{ $$ = $1; }
+									{ $$ = new Initialisation_Enum_Declarator($1); }
 
 enumerator_declarator			: 	T_IDENTIFIER
 									{ $$ = new Variable_Declarator(*$1); }

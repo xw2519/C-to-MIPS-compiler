@@ -91,8 +91,13 @@ class Variable_Declarator : public Declarator
 			}
 			else if(context.get_context_scope() == GLOBAL)
 			{
-				int expression = expressions->evaluate();
+				int expression = 0;
 
+				if (expressions != NULL)
+				{
+					expression = expressions->evaluate();
+				}
+			
 				dst << "# ------------ Global declaration ------------ #" << std::endl;
 				dst << "\t" << ".globl" << "\t" << variable_name << std::endl;
 				dst << "\t" << ".data" << std::endl;
@@ -505,30 +510,23 @@ class Function_Prototype_Declaration : public Declarator
 // https://stackoverflow.com/questions/8597426/enum-type-check-in-c-gcc
 // https://stackoverflow.com/questions/62437717/how-does-c-compiler-treat-enum
 
-class Enum_Definition : public External_Declaration
+class Initialisation_Enum_Declarator : public Declarator 
 {
-	private:
-		std::string ID;
-		std::vector<Declaration*>*	enum_declarations;
+	// Expressions like "int a = 4 + 7 + b"
+	private: 
+		Declarator* initialisation_declarator;
+		Expression* initialisation_expressions = NULL;
 
-	public:
-		Enum_Definition(std::string _ID, std::vector<Declaration*>* _enum_declarations) 
-		: ID(_ID), enum_declarations(_enum_declarations) {}
+	public: 
+		Initialisation_Enum_Declarator(Declarator* _initialisation_declarator, Expression* _initialisation_expressions)
+		: initialisation_declarator(_initialisation_declarator), initialisation_expressions(_initialisation_expressions) {}
 
-		virtual void compile(std::ostream& dst, Context& context) const override
+		Initialisation_Enum_Declarator(Declarator* _initialisation_declarator)
+		: initialisation_declarator(_initialisation_declarator) {}
+
+		virtual void compile_declaration(std::ostream &dst, Context& context, type declaration_type) const override
 		{
-			int argument_stack_pointer = 0;
-
-			for(int i = 0; i < enum_declarations->size(); i++)
-			{
-				argument_stack_pointer += 4;
-
-				context.make_new_argument((*enum_declarations)[i]->get_parameter(), (*enum_declarations)[i]->get_type(), NORMAL, argument_stack_pointer);
-			}
-
-			context.expand_context_scope();
-
-			context.set_GLOBAL();
+			initialisation_declarator->compile_declaration_initialisation(dst, context, declaration_type, initialisation_expressions);
 		}
 };
 
