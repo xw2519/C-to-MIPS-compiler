@@ -48,7 +48,7 @@ IS			(u|U|l|L)*
 "default"                           { return (T_DEFAULT); }
 
  /* --------------- 			  			  Sizeof Structure			 				  --------------- */
- "sizeof"                           { return (T_SIZEOF); }
+"sizeof"                            { return (T_SIZEOF); }
 
   /* --------------- 			  			Enumerator Structure			 				--------------- */
 "enum"                              { return (T_ENUM); }

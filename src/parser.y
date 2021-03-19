@@ -68,7 +68,6 @@ https://www.lysator.liu.se/c/ANSI-C-grammar-y.html#constant-expressions
 // Enumeration
 %token T_ENUM
 
-%token T_LITERAL
 
 /* ------------------------------------					Type					------------------------------------ */
 
@@ -84,19 +83,15 @@ https://www.lysator.liu.se/c/ANSI-C-grammar-y.html#constant-expressions
 %type <declaration_node> declaration parameter_declaration 
 %type <declaration_list_vector> declaration_list parameter_list
 
-%type <declaration_node> enumerator 
-%type <declaration_list_vector> enumerator_list
+%type <declarator_node> enumerator_declarator enumerator_initialisation
+%type <declarator_list_vector> enumerator_list
+%type <declaration_node> enumerator
 
 %type <expression_node> primary_expression unary_expression postfix_expression 
-// Arthmetic expressions
 %type <expression_node> multiply_expression add_expression 
-// Bitwse expressions
 %type <expression_node> bitwise_AND_expression bitwise_XOR_expression bitwise_OR_expression
-// Logical expressions
 %type <expression_node> logical_AND_expression logical_OR_expression
-// Pointer expressions
 %type <expression_node> cast_expression
-
 %type <expression_node> bitwise_shift_expression compare_expression equal_expression
 %type <expression_node> logical_expression ternary_expression 
 %type <expression_node> assignment_expression expression 
@@ -110,7 +105,7 @@ https://www.lysator.liu.se/c/ANSI-C-grammar-y.html#constant-expressions
 
 %type <statement_list_vector> statement_list
 
-%type <string> 	T_IDENTIFIER T_INT T_RETURN T_LITERAL T_FLOAT T_UNSIGNED
+%type <string> 	T_IDENTIFIER T_INT T_RETURN T_FLOAT T_UNSIGNED
 
 %type <type_node> TYPE 
 
@@ -140,8 +135,11 @@ global_declaration				:	function_definition
 								|	declaration 														
 									{ $$ = $1; }
 
+								|	enumerator
+									{ std::cerr<<"GLOBAL ENUM"<<std::endl; }
+
 function_definition				:	TYPE T_IDENTIFIER T_LBRACKET parameter_list T_RBRACKET compound_statement 
-									{ $$ = new Function_Definition(*$1, *$2, $4, $6); }
+									{ $$ = new Function_Definition(*$1, *$2, $4, $6); } 
 
 initialisation_list 			:   assignment_expression 												
 									{ $$ = new std::vector<Expression*>(1, $1);	}
@@ -205,19 +203,24 @@ initialisation_declarator_list	: 	initialisation_declarator
 
 /* ------------------------------------							   Enumerator									------------------------------------ */
 
-enum_definition					: 	T_ENUM T_IDENTIFIER T_CURLY_LBRACKET enumerator_list T_CURLY_RBRACKET
+enumerator						:	TYPE T_IDENTIFIER T_CURLY_LBRACKET enumerator_list T_CURLY_RBRACKET T_SEMICOLON
+									{ std::cerr<<"ENUM declaration"<<std::endl; } 
 
-enumerator						: 	T_IDENTIFIER
-									{ $$ = new Variable_Declarator(*$1); }
+enumerator_list					: 	enumerator_initialisation
+									{ std::cerr<<"enumerator_list"<<std::endl; }
 
-								| 	T_IDENTIFIER T_ASSIGN assignment_expression
-									{ $$ = new Initialisation_Variable_Declarator($1, $3); }
+								| 	enumerator_list T_COMMA enumerator_initialisation
+									{ std::cerr<<"enumerator_list"<<std::endl; }
 
-enumerator_list					: 	enumerator
-									{ $$ = new std::vector<Declarator*>(1, $1); }
+enumerator_initialisation		: 	T_IDENTIFIER T_ASSIGN assignment_expression
+									{ std::cerr<<"enumerator_declarator_list"<<std::endl;; }
+								
+								|	enumerator_declarator
+									{ $$ = $1; }
 
-								| 	enumerator_list T_COMMA enumerator
-									{ $1->push_back($3); $$ = $1; }
+enumerator_declarator			: 	T_IDENTIFIER
+									{ std::cerr<<"enumerator_declarator"<<std::endl; }
+
 
 /* ------------------------------------							 Expression Base								------------------------------------ */
 
@@ -488,6 +491,9 @@ TYPE							:	T_INT
 
 								|	T_UNSIGNED T_INT
 									{ $$ = new type_definition(UNSIGNED_INT); } 	
+								
+								|	T_ENUM
+									{ std::cerr<<"ENUM TRIGGERED"<<std::endl;; } 
 
 								| 	TYPE T_MULTIPLY 
 									{ 									

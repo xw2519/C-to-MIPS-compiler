@@ -495,6 +495,31 @@ class Function_Prototype_Declaration : public Declarator
 // https://stackoverflow.com/questions/8597426/enum-type-check-in-c-gcc
 // https://stackoverflow.com/questions/62437717/how-does-c-compiler-treat-enum
 
+class Enum_Definition : public External_Declaration
+{
+	private:
+		std::string ID;
+		std::vector<Declaration*>*	enum_declarations;
 
+	public:
+		Enum_Definition(std::string _ID, std::vector<Declaration*>* _enum_declarations) 
+		: ID(_ID), enum_declarations(_enum_declarations) {}
+
+		virtual void compile(std::ostream& dst, Context& context) const override
+		{
+			int argument_stack_pointer = 0;
+
+			for(int i = 0; i < enum_declarations->size(); i++)
+			{
+				argument_stack_pointer += 4;
+
+				context.make_new_argument((*enum_declarations)[i]->get_parameter(), (*enum_declarations)[i]->get_type(), NORMAL, argument_stack_pointer);
+			}
+
+			context.expand_context_scope();
+
+			context.set_GLOBAL();
+		}
+};
 
 #endif

@@ -22,7 +22,7 @@ echo "==========================================================================
 
 COMPILER=bin/c_compiler
 
-input_dir="compiler_tests/float/float_declare"
+input_dir="compiler_tests/misc/enum1"
 output_dir="temp/"
 rm -r ${output_dir}
 mkdir -p ${output_dir}
