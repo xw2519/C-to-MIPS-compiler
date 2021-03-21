@@ -40,8 +40,8 @@ class Declarator : public External_Declaration
 		virtual std::string get_variable_name() {}
 		virtual int get_variable_size() {}
 
-		virtual void compile_declaration(std::ostream &dst, Context& context, type declarator_type) const {}
-		virtual void compile_declaration_initialisation(std::ostream &dst, Context& context, type declarator_type, Expression* expressions) const {}
+		virtual void compile_declaration(std::ostream &dst, Context& context, type declarator_type, bool pointer_capable) const {}
+		virtual void compile_declaration_initialisation(std::ostream &dst, Context& context, type declarator_type, Expression* expressions, bool pointer_capable) const {}
 		virtual void compile_declaration_array_initialisation(std::ostream &dst, Context& context, type declarator_type, std::vector<Expression*>* expression_vector) const {}
 };
 
@@ -49,30 +49,46 @@ class Variable_Declarator : public Declarator
 {
 	private:
 		std::string variable_name;
+		bool pointer_capable;
 
 	public:
-		Variable_Declarator(std::string _variable_name) : variable_name(_variable_name) {}
+		Variable_Declarator(std::string _variable_name, bool _pointer_capable) 
+		: variable_name(_variable_name), pointer_capable(_pointer_capable) {}
+
+		Variable_Declarator(std::string _variable_name) 
+		: variable_name(_variable_name) {}
 
 		// Get functions
 		virtual std::string get_variable_name() { return variable_name; }
 		virtual int get_variable_size() { return 4; }
 
 		// Print MIPS
-		virtual void compile_declaration(std::ostream& dst, Context& context, type declaration_type) const override 
+		virtual void compile_declaration(std::ostream &dst, Context& context, type declarator_type, bool pointer_capable) const override 
 		{
-			// Get necessary information
-			variable compile_variable = context.new_variable(variable_name, declaration_type, NORMAL);
+			type variable_type;
+			int frame_pointer_1;
 
-			type variable_type = compile_variable.get_variable_type();
-			int frame_pointer_1 = compile_variable.get_variable_address();
+			if (pointer_capable)
+			{
+				variable compile_variable = context.new_variable(variable_name, declarator_type, NORMAL, pointer_capable);
+				variable_type = compile_variable.get_variable_type();
+				frame_pointer_1 = compile_variable.get_variable_address();
+			}
+			else
+			{
+				// Get necessary information
+				variable compile_variable = context.new_variable(variable_name, declarator_type, NORMAL);
+				variable_type = compile_variable.get_variable_type();
+				frame_pointer_1 = compile_variable.get_variable_address();
+			}
 
 			// Print MIPS
 			context.output_store_operation(dst, variable_type, "$0", "$30", frame_pointer_1);
 		}
 
-		virtual void compile_declaration_initialisation(std::ostream &dst, Context& context, type declarator_type, Expression* expressions) const override 
+		virtual void compile_declaration_initialisation(std::ostream &dst, Context& context, type declarator_type, Expression* expressions, bool pointer_capable) const override 
 		{
-			variable declared_variable = context.new_variable(variable_name, declarator_type, NORMAL);
+			variable declared_variable = context.new_variable(variable_name, declarator_type, NORMAL, pointer_capable);
 
 			if(context.get_context_scope() == LOCAL)
 			{
@@ -164,7 +180,7 @@ class Array_Declarator : public Declarator
 			
 		}
 
-		virtual void compile_declaration(std::ostream& dst, Context& context, type declaration_type) const override 
+		virtual void compile_declaration(std::ostream &dst, Context& context, type declarator_type, bool pointer_capable) const override 
 		{
 			// Get necessary information
 			variable array_variable = context.new_variable(variable_name, INT, ARRAY, array_size);
@@ -243,9 +259,9 @@ class Initialisation_Variable_Declarator : public Declarator
 		Initialisation_Variable_Declarator(Declarator* _initialisation_declarator, Expression* _initialisation_expressions)
 		: initialisation_declarator(_initialisation_declarator), initialisation_expressions(_initialisation_expressions) {}
 
-		virtual void compile_declaration(std::ostream &dst, Context& context, type declaration_type) const override
+		virtual void compile_declaration(std::ostream &dst, Context& context, type declarator_type, bool pointer_capable) const override
 		{
-			initialisation_declarator->compile_declaration_initialisation(dst, context, declaration_type, initialisation_expressions);
+			initialisation_declarator->compile_declaration_initialisation(dst, context, declarator_type, initialisation_expressions, pointer_capable);
 		}
 };
 
@@ -287,9 +303,9 @@ class Initialisation_Array_Declarator : public Declarator
 			}
 		}
 
-		virtual void compile_declaration(std::ostream &dst, Context& context, type declaration_type) const override
+		virtual void compile_declaration(std::ostream &dst, Context& context, type declarator_type, bool pointer_capable) const override
 		{
-			initialisation_declarator->compile_declaration_array_initialisation(dst, context, declaration_type, initialisation_vector);
+			initialisation_declarator->compile_declaration_array_initialisation(dst, context, declarator_type, initialisation_vector);
 		}
 };
 
@@ -299,16 +315,14 @@ class Declaration : public External_Declaration
 {
 	private:
 		type TYPE;
+		bool pointer_capable;
 		std::vector<Declarator*>* declaration_list;
 
 	public:
 		Declaration(type_definition _TYPE, std::vector<Declarator*>* _declaration_list = NULL) 
-		: TYPE(_TYPE.get_variable_type()), declaration_list(_declaration_list) {}
+		: TYPE(_TYPE.get_variable_type()), pointer_capable(_TYPE.get_pointer_capability()), declaration_list(_declaration_list) { }
 
-		virtual std::string get_parameter()
-		{
-			return (*declaration_list)[0]->get_variable_name();
-		}
+		virtual std::string get_parameter() { return (*declaration_list)[0]->get_variable_name(); }
 
 		type get_type() { return TYPE; }
 
@@ -317,10 +331,10 @@ class Declaration : public External_Declaration
 			if (declaration_list != NULL)
 			{				
 				for (int i = 0; i < declaration_list->size(); i++)
-				{
+				{					
 					Declarator* temp_declarator = declaration_list->at(i);
-					
-					(*temp_declarator).compile_declaration(dst, context, TYPE);
+
+					(*temp_declarator).compile_declaration(dst, context, TYPE, pointer_capable);
 					
 				}
 			}
@@ -356,6 +370,7 @@ class Function_Definition : public External_Declaration // Very basic
 		std::string ID;
 		std::vector<Declaration*>*	parameter_list;
 		Statement* statements;
+
 
 	public:
 		Function_Definition (type_definition _TYPE, std::string _ID, std::vector<Declaration*>* _parameter_list, Statement *_statements) 
@@ -524,9 +539,9 @@ class Initialisation_Enum_Declarator : public Declarator
 		Initialisation_Enum_Declarator(Declarator* _initialisation_declarator)
 		: initialisation_declarator(_initialisation_declarator) {}
 
-		virtual void compile_declaration(std::ostream &dst, Context& context, type declaration_type) const override
+		virtual void compile_declaration(std::ostream &dst, Context& context, type declarator_type, bool pointer_capable) const override
 		{
-			initialisation_declarator->compile_declaration_initialisation(dst, context, declaration_type, initialisation_expressions);
+			initialisation_declarator->compile_declaration_initialisation(dst, context, declarator_type, initialisation_expressions, false);
 		}
 };
 

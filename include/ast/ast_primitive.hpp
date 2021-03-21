@@ -103,7 +103,7 @@ class Double : public Primitive
 		virtual double evaluate() const override { return value; };
 };
 
-class Identifier : public Primitive // Local variables with constant
+class Identifier : public Primitive
 {
 	private:
 		std::string variable_name;
@@ -156,6 +156,8 @@ class Identifier : public Primitive // Local variables with constant
 		}
 
 		virtual type get_data_type(Context& context) const { return context.get_variable(variable_name).get_variable_type(); };
+
+		virtual bool get_pointer_capability(Context& context) const { return context.get_variable(variable_name).get_pointer_capability(); };
 };
 
 // https://stackoverflow.com/questions/42183471/declaring-a-pointer-in-mips

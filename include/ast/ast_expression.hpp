@@ -13,9 +13,10 @@ class Expression : public Node
 {
 	public:
 		// Primitive functions
-		virtual std::string get_variable_name() const { std::cout << "ERROR : Not and Identifier" << std::endl; };
+		virtual std::string get_variable_name() const { std::cout << "ERROR : Not and Identifier" << std::endl; exit(1); };
 		virtual void load_variable_address(std::ostream &dst, Context& context) const {};
 		virtual type get_data_type(Context& context) const { return type(INT); };
+		virtual bool get_pointer_capability(Context& context) const { return 0; };
 
 		// Evaluate the expression
 		virtual double evaluate() const { return 0; };
@@ -404,7 +405,7 @@ class Array_Access_Expression : public Unary_Expression
 			context.load_register(dst, array_register, array_frame_pointer);
 			context.load_register(dst, temp_array_register, temp_array_stack_pointer);
 
-			dst << "\t" << "sll" << "\t" << "\t" << temp_array_register << "," << temp_array_register << "," << 8 << std::endl;
+			dst << "\t" << "sll" << "\t" << "\t" << temp_array_register << "," << temp_array_register << "," << 2 << std::endl;
 			dst << "\t" << "addu" << "\t" << array_register << "," << array_register << "," << temp_array_register << std::endl;
 
 			context.store_register(dst, array_register, array_frame_pointer);
@@ -441,10 +442,6 @@ class Reference_Expression : public Unary_Expression
 		{
 			expression->load_variable_address(dst, context);
 		}
-
-		virtual void declare_pointer(std::ostream &dst, Context& context) const
-		{
-		}
 };
 
 // https://courses.cs.washington.edu/courses/cse378/09wi/lectures/lec03.pdf
@@ -459,9 +456,12 @@ class Dereference_Expression : public Unary_Expression
 			std::string pointer_register = "$2";
 			int pointer_address = context.get_stack_pointer();
 
+			
+
 			expression->compile(dst, context);
 
 			context.load_register(dst, pointer_register, pointer_address);
+			context.output_load_operation(dst, INT, pointer_register, pointer_register, pointer_address);
 			context.store_register(dst, pointer_register, pointer_address);
 		}
 };
@@ -583,6 +583,8 @@ class Operator : public Expression
 		{ 
 			return type(left->get_data_type(context)); 
 		};
+
+		virtual bool get_pointer_capability(Context& context) const { return left->get_pointer_capability(context); };
 };
 
 /* ------------------------------------						  Arithmetic Expression						------------------------------------ */

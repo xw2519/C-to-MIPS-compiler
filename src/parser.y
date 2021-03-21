@@ -502,9 +502,7 @@ TYPE							:	T_INT
 									{ $$ = new type_definition(INT); } 
 
 								| 	TYPE T_MULTIPLY 
-									{ 									
-									  $$ = $1; 
-									}	
+									{ $$ = new type_definition("POINTER", *$1); }	
 								
 %%
 

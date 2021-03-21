@@ -275,14 +275,24 @@ class Jump_Statement : public Statement
 			// Check if there is an expression attached
 			if(expression != NULL)
 			{
-				// Allocate 
 				context.allocate_stack();
+
 				int destination_address = context.get_stack_pointer();
 				// Compile expression
 				expression->compile(dst, context);
-				// Deallocate
+
 				context.deallocate_stack();
 
+				destination_address = context.get_stack_pointer();
+
+				// Return classification 
+				// context.get_variable().get_pointer_capability()
+
+				if(context.get_variable_address(destination_address).get_pointer_capability())
+				{
+					//context.load_register(dst, "$2", destination_address);
+				}
+				
 				// Branch 
 				dst << "\t" << "b " << "\t"  << "\t" << context.get_function_return_label() << std::endl;
 			}
