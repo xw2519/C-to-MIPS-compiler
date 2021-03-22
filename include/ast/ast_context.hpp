@@ -82,6 +82,58 @@ enum type
 	NONE
 };
 
+/* ------------------------------------ 			      			    Type class		 						------------------------------------ */
+// Handles the properties of the variable, pointer, array types including:
+// 	- The type of variable e.g. int, void
+//	- Parameters or values attached with the variable type e.g. arrays
+//	- Array tracker variables 
+//	- Pointer capability
+
+class type_definition
+{
+	private: 
+		// Variable type set to NONE by default
+		type variable_type;
+		bool pointer_capable = 0;
+
+		// Trackers (default set to 0)
+		unsigned int pointer_tracker = 0;
+		unsigned int array_tracker = 0;
+
+	public:
+		type_definition(type _variable_type) : variable_type(_variable_type) {}
+		type_definition(std::string _pointer_flag, type_definition _pointer_type) 
+		{
+			if (_pointer_flag == "POINTER")
+			{
+				pointer_capable = 1;
+				variable_type = _pointer_type.get_variable_type();
+				pointer_tracker++;
+			}
+		}
+
+		// Variable type operators
+		type get_variable_type() { return variable_type; }
+		
+		// Trackers
+		unsigned int get_array_tracker() { return array_tracker; }
+		unsigned int get_pointer_tracker() { return pointer_tracker; }
+
+		void increment_array_tracker() { array_tracker++; };
+		void increment_pointer_tracker() { pointer_tracker++; };
+
+		void decrement_array_tracker() { array_tracker--; };
+		void decrement_pointer_tracker() 
+		{ 
+			if (pointer_tracker != 0) { array_tracker--; }
+			else { pointer_tracker--; }
+		};
+
+		// Pointer operators
+		void set_pointer_capability() { pointer_capable = 1; }
+		bool get_pointer_capability() { return pointer_capable; }
+};
+
 /* ------------------------------------ 			      			  Variable class		 					------------------------------------ */
 // Handles the properties of the variable including:
 // 	- Context scope
@@ -95,70 +147,29 @@ class variable
 		int variable_address;
 		context_scope variable_scope = GLOBAL;
 		declaration_type variable_declaration;
-		type variable_type;
+		type_definition variable_type;
 		bool pointer_capable;
 
 	public:
-		variable (int _variable_address, context_scope _variable_scope, declaration_type _variable_declaration, type _variable_type) 
+		variable (int _variable_address, context_scope _variable_scope, declaration_type _variable_declaration, type_definition _variable_type) 
 		: variable_address(_variable_address), variable_scope(_variable_scope), variable_declaration(_variable_declaration), variable_type(_variable_type) {}
 
-		variable (int _variable_address, context_scope _variable_scope, declaration_type _variable_declaration, type _variable_type, bool _pointer_capable) 
+		variable (int _variable_address, context_scope _variable_scope, declaration_type _variable_declaration, type_definition _variable_type, bool _pointer_capable) 
 		: variable_address(_variable_address), variable_scope(_variable_scope), variable_declaration(_variable_declaration), variable_type(_variable_type), pointer_capable(_pointer_capable) {}
 
 		// Get attributes
 		int get_variable_address() { return variable_address; }  					// return address of member, relative to beginning of struct
 		context_scope get_variable_scope() { return variable_scope; }				// return scope of member, relative to beginning of struct
-		type get_variable_type() { return variable_type; }							
+		type get_variable_type() { return variable_type.get_variable_type(); }							
 		declaration_type get_declaration_type() { return variable_declaration; }
 		bool get_pointer_capability() { return pointer_capable; }
 
 		// Variable functions
 		std::string get_storage_type()
 		{
-			if (variable_type == INT || variable_type == FLOAT || variable_type == DOUBLE) { return "word"; }
+			if (variable_type.get_variable_type() == INT || variable_type.get_variable_type() == FLOAT || variable_type.get_variable_type() == DOUBLE) { return "word"; }
 			else { return "word"; }
 		}	
-};
-
-/* ------------------------------------ 			      			    Type class		 						------------------------------------ */
-// Handles the properties of the variable, pointer, array types including:
-// 	- The type of variable e.g. int, void
-//	- Parameters or values attached with the variable type e.g. arrays
-//	- Array tracker variables 
-//	- Pointer capability
-
-class type_definition
-{
-	private: 
-		// Variable type set to NONE by default
-		type variable_type = NONE;
-
-		bool pointer_capable = 0;
-
-		// Array trackers (default set to 0)
-		int pointer_tracker = 0;
-		int array_size_tracker = 0;
-
-	public:
-		type_definition(type _variable_type) : variable_type(_variable_type) {}
-		type_definition(std::string _pointer_flag, type_definition _pointer_type) 
-		{
-			if (_pointer_flag == "POINTER")
-			{
-				pointer_capable = 1;
-				variable_type = _pointer_type.get_variable_type();
-			}
-		}
-
-		// Variable type operators
-		type get_variable_type() { return variable_type; }
-		
-		// Array
-		int get_array_size() { return array_size_tracker; }
-
-		// Pointer operators
-		void set_pointer_capability() { pointer_capable = 1; }
-		bool get_pointer_capability() { return pointer_capable; }
 };
 
 /* ------------------------------------								 Context Functions							------------------------------------ */
@@ -370,11 +381,12 @@ class Context
 
 		/* ------------------------------------						  	Variable Functions						------------------------------------ */
 		
-		variable new_variable(std::string variable_name, type variable_type, declaration_type variable_declaration_type, bool pointer_capable = 0, int variable_size = 1)
+		variable new_variable(std::string variable_name, type_definition variable_type, declaration_type variable_declaration_type, bool pointer_capable = 0, int variable_size = 1)
 		{
 			// Set of multiples of 4
-			if(scope_tracker == LOCAL)
+			if (scope_tracker == LOCAL)
 			{
+				if (variable_declaration_type == ARRAY) { variable_type.decrement_pointer_tracker(); }
 				stack_pointer -= variable_size*(4);
 			}
 
@@ -417,7 +429,7 @@ class Context
 
 		/* ------------------------------------						  	Argument Functions						------------------------------------ */
 
-		void make_new_argument(std::string argument_name, type argument_type, declaration_type argument_declaration, int argument_address, bool pointer_capable = 0)
+		void make_new_argument(std::string argument_name, type_definition argument_type, declaration_type argument_declaration, int argument_address, bool pointer_capable = 0)
 		{ 
 			(*context_tracker)[argument_name] = new variable(argument_address, LOCAL, argument_declaration, argument_type, pointer_capable);
 		}

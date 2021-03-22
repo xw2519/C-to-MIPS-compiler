@@ -12,3 +12,5 @@ EXEC
 temp/ 
 .vscode/settings.json
 NAME=DESKTOP-DPEP186
+.vagrant/*
+

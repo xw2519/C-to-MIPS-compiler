@@ -133,11 +133,11 @@ union YYSTYPE
 	Statement 		*statement_node;
 	Expression 		*expression_node;
 	std::string 	*string;
+	type_definition *type_node;
 	int 			int_num;
 	unsigned int 	unsigned_num;
 	float			float_num;
 	double 			double_num;
-	type_definition *type_node;
 
 	std::vector<Expression*>* 	argument_list_vector;
 	std::vector<Statement*>* 	statement_list_vector;

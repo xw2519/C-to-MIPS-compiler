@@ -40,9 +40,9 @@ class Declarator : public External_Declaration
 		virtual std::string get_variable_name() {}
 		virtual int get_variable_size() {}
 
-		virtual void compile_declaration(std::ostream &dst, Context& context, type declarator_type, bool pointer_capable) const {}
-		virtual void compile_declaration_initialisation(std::ostream &dst, Context& context, type declarator_type, Expression* expressions, bool pointer_capable) const {}
-		virtual void compile_declaration_array_initialisation(std::ostream &dst, Context& context, type declarator_type, std::vector<Expression*>* expression_vector) const {}
+		virtual void compile_declaration(std::ostream &dst, Context& context, type_definition declarator_type, bool pointer_capable) const {}
+		virtual void compile_declaration_initialisation(std::ostream &dst, Context& context, type_definition declarator_type, Expression* expressions, bool pointer_capable) const {}
+		virtual void compile_declaration_array_initialisation(std::ostream &dst, Context& context, type_definition declarator_type, std::vector<Expression*>* expression_vector) const {}
 };
 
 class Variable_Declarator : public Declarator
@@ -63,7 +63,7 @@ class Variable_Declarator : public Declarator
 		virtual int get_variable_size() { return 4; }
 
 		// Print MIPS
-		virtual void compile_declaration(std::ostream &dst, Context& context, type declarator_type, bool pointer_capable) const override 
+		virtual void compile_declaration(std::ostream &dst, Context& context, type_definition declarator_type, bool pointer_capable) const override 
 		{
 			type variable_type;
 			int frame_pointer_1;
@@ -86,7 +86,7 @@ class Variable_Declarator : public Declarator
 			context.output_store_operation(dst, variable_type, "$0", "$30", frame_pointer_1);
 		}
 
-		virtual void compile_declaration_initialisation(std::ostream &dst, Context& context, type declarator_type, Expression* expressions, bool pointer_capable) const override 
+		virtual void compile_declaration_initialisation(std::ostream &dst, Context& context, type_definition declarator_type, Expression* expressions, bool pointer_capable) const override 
 		{
 			variable declared_variable = context.new_variable(variable_name, declarator_type, NORMAL, pointer_capable);
 
@@ -103,7 +103,7 @@ class Variable_Declarator : public Declarator
 				context.deallocate_stack();
 
 				context.load_register(dst, temp_register_1, frame_pointer_1);
-				context.output_store_operation(dst, declarator_type, temp_register_1, "$30", declared_variable.get_variable_address());
+				context.output_store_operation(dst, declarator_type.get_variable_type(), temp_register_1, "$30", declared_variable.get_variable_address());
 			}
 			else if(context.get_context_scope() == GLOBAL)
 			{
@@ -150,6 +150,8 @@ class Array_Declarator : public Declarator
 		{
 			int array_frame_pointer = 0;
 
+			variable array_variable = context.get_variable(variable_name);
+
 			if(context.get_context_scope() == LOCAL)
 			{
 				dst << "\t" << "# Store array content locally" << std::endl; 
@@ -159,13 +161,12 @@ class Array_Declarator : public Declarator
 					array_frame_pointer =  array_size + (i*4);
 
 					// Print MIPS
-					context.output_store_operation(dst, INT, "$0", "$30", array_frame_pointer);
+					context.output_store_operation(dst, array_variable.get_variable_type(), "$0", "$30", array_frame_pointer);
 				}
 			}
 			else
 			{
 				dst << "\t" << "# Store array content globally" << std::endl; 
-
 				dst << "\t" << ".globl" << "\t" << variable_name << std::endl;
 				dst << "\t" << ".data"  << std::endl;
 
@@ -180,10 +181,12 @@ class Array_Declarator : public Declarator
 			
 		}
 
-		virtual void compile_declaration(std::ostream &dst, Context& context, type declarator_type, bool pointer_capable) const override 
+		virtual void compile_declaration(std::ostream &dst, Context& context, type_definition declarator_type, bool pointer_capable) const override 
 		{
+			declarator_type.increment_array_tracker();
+
 			// Get necessary information
-			variable array_variable = context.new_variable(variable_name, INT, ARRAY, array_size);
+			variable array_variable = context.new_variable(variable_name, declarator_type, ARRAY, 0, array_size);
 			
 			int array_frame_pointer = 0;
 
@@ -193,21 +196,18 @@ class Array_Declarator : public Declarator
 
 				for(int i = 0; i < array_size; i++)
 				{
-					array_frame_pointer =  array_variable.get_variable_address() + (i*4);
-
-					// Print MIPS	
-					context.output_store_operation(dst, INT, "$0", "$30", array_frame_pointer);
+					array_frame_pointer = array_variable.get_variable_address() + (i*4);
+					context.output_store_operation(dst, declarator_type.get_variable_type(), "$0", "$30", array_frame_pointer);
 				}
 			}
 			else
 			{
 				dst << "\t" << "# Store array content globally" << std::endl; 
-		
 				dst << "\t" << ".comm " << variable_name << " " << array_size*4 << std::endl;
 			}
 		}	
 
-		virtual void compile_declaration_array_initialisation(std::ostream &dst, Context& context, type declarator_type, std::vector<Expression*>* expression_vector) const 
+		virtual void compile_declaration_array_initialisation(std::ostream &dst, Context& context, type_definition declarator_type, std::vector<Expression*>* expression_vector) const 
 		{
 			// Get array parameters
 			int initialisation_vector_size = expression_vector->size();
@@ -217,7 +217,7 @@ class Array_Declarator : public Declarator
 			for(int i = 0; i < array_size; i++)
 			{
 				// Handle initialisations 
-				if(i < initialisation_vector_size)
+				if (i < initialisation_vector_size)
 				{
 					// Find offset relative to the array
 					int array_offset = array_variable.get_variable_address() + (i*4);
@@ -233,14 +233,13 @@ class Array_Declarator : public Declarator
 
 					// Output assembly instructions for loading and storage
 					context.load_register(dst, init_register, stack_pointer);
-					context.output_store_operation(dst, INT, init_register, "$30", array_offset);
+					context.output_store_operation(dst, declarator_type.get_variable_type(), init_register, "$30", array_offset);
 				}
 				else
 				{
 					// Find offset relative to the array
 					int array_offset = array_variable.get_variable_address() + (i*4);
-
-					context.output_store_operation(dst, INT, "$0", "$30", array_offset);
+					context.output_store_operation(dst, declarator_type.get_variable_type(), "$0", "$30", array_offset);
 				}
 			}
 		}
@@ -259,7 +258,7 @@ class Initialisation_Variable_Declarator : public Declarator
 		Initialisation_Variable_Declarator(Declarator* _initialisation_declarator, Expression* _initialisation_expressions)
 		: initialisation_declarator(_initialisation_declarator), initialisation_expressions(_initialisation_expressions) {}
 
-		virtual void compile_declaration(std::ostream &dst, Context& context, type declarator_type, bool pointer_capable) const override
+		virtual void compile_declaration(std::ostream &dst, Context& context, type_definition declarator_type, bool pointer_capable) const override
 		{
 			initialisation_declarator->compile_declaration_initialisation(dst, context, declarator_type, initialisation_expressions, pointer_capable);
 		}
@@ -299,11 +298,11 @@ class Initialisation_Array_Declarator : public Declarator
 
 				// Output assembly instructions for loading and storage
 				context.load_register(dst, init_register, stack_pointer);
-				context.output_store_operation(dst, INT, init_register, "$30", array_offset);
+				context.output_store_operation(dst, array_variable.get_variable_type(), init_register, "$30", array_offset);
 			}
 		}
 
-		virtual void compile_declaration(std::ostream &dst, Context& context, type declarator_type, bool pointer_capable) const override
+		virtual void compile_declaration(std::ostream &dst, Context& context, type_definition declarator_type, bool pointer_capable) const override
 		{
 			initialisation_declarator->compile_declaration_array_initialisation(dst, context, declarator_type, initialisation_vector);
 		}
@@ -314,17 +313,17 @@ class Initialisation_Array_Declarator : public Declarator
 class Declaration : public External_Declaration
 {
 	private:
-		type TYPE;
+		type_definition TYPE;
 		bool pointer_capable;
 		std::vector<Declarator*>* declaration_list;
 
 	public:
 		Declaration(type_definition _TYPE, std::vector<Declarator*>* _declaration_list = NULL) 
-		: TYPE(_TYPE.get_variable_type()), pointer_capable(_TYPE.get_pointer_capability()), declaration_list(_declaration_list) { }
+		: TYPE(_TYPE), pointer_capable(_TYPE.get_pointer_capability()), declaration_list(_declaration_list) { }
 
 		virtual std::string get_parameter() { return (*declaration_list)[0]->get_variable_name(); }
 
-		type get_type() { return TYPE; }
+		type get_type() { return TYPE.get_variable_type(); }
 
 		virtual void compile(std::ostream &dst, Context& context) const override
 		{
@@ -334,12 +333,10 @@ class Declaration : public External_Declaration
 				{					
 					Declarator* temp_declarator = declaration_list->at(i);
 
-					(*temp_declarator).compile_declaration(dst, context, TYPE, pointer_capable);
-					
+					(*temp_declarator).compile_declaration(dst, context, TYPE, pointer_capable);					
 				}
 			}
 		}
-
 };
 
 /*
@@ -366,15 +363,15 @@ pointer at the beginning of execution is taken as zero.
 class Function_Definition : public External_Declaration // Very basic
 {
 	private:
-		type TYPE;
+		type_definition* TYPE;
 		std::string ID;
 		std::vector<Declaration*>*	parameter_list;
 		Statement* statements;
 
 
 	public:
-		Function_Definition (type_definition _TYPE, std::string _ID, std::vector<Declaration*>* _parameter_list, Statement *_statements) 
-		: TYPE(_TYPE.get_variable_type()), ID(_ID), parameter_list(_parameter_list), statements(_statements) {}
+		Function_Definition (type_definition* _TYPE, std::string _ID, std::vector<Declaration*>* _parameter_list, Statement* _statements) 
+		: TYPE(_TYPE), ID(_ID), parameter_list(_parameter_list), statements(_statements) {}
 
 		virtual void compile(std::ostream& dst, Context& context) const override
 		{
@@ -422,8 +419,8 @@ class Function_Definition : public External_Declaration // Very basic
 				int argument_stack_pointer = 4; // Set to 4 to ANSI spec
 
 				std::string argument_integer_registers[4]  = {"$4", "$5", "$6", "$7"};
-				std::string argument_float_registers[4]  = {"$f12", "$f14"};
-				std::string argument_double_registers[4]  = {"$f12", "$f13", "$f14", "$f15"};
+				std::string argument_float_registers[4]    = {"$f12", "$f14"};
+				std::string argument_double_registers[4]   = {"$f12", "$f13", "$f14", "$f15"};
 
 				// Check if parameters can fit into four argument register
 				// https://stackoverflow.com/questions/2298838/mips-function-call-with-more-than-four-arguments
@@ -514,10 +511,8 @@ class Function_Prototype_Declaration : public Declarator
 		Function_Prototype_Declaration(std::string _function_name, std::vector<Declaration*>* _parameter_list)
 		: function_name(_function_name), parameter_list(_parameter_list) {}
 
-		virtual void compile(std::ostream &dst, Context& context) const override
-		{
-			context.new_variable(function_name, INT, FUNCTION);
-		}
+		virtual void compile_declaration(std::ostream &dst, Context& context, type_definition declarator_type, bool pointer_capable) const override
+		{ context.new_variable(function_name, declarator_type, FUNCTION); }
 };
 
 /* ------------------------------------						    Enumeration Class					------------------------------------ */
@@ -539,10 +534,8 @@ class Initialisation_Enum_Declarator : public Declarator
 		Initialisation_Enum_Declarator(Declarator* _initialisation_declarator)
 		: initialisation_declarator(_initialisation_declarator) {}
 
-		virtual void compile_declaration(std::ostream &dst, Context& context, type declarator_type, bool pointer_capable) const override
-		{
-			initialisation_declarator->compile_declaration_initialisation(dst, context, declarator_type, initialisation_expressions, false);
-		}
+		virtual void compile_declaration(std::ostream &dst, Context& context, type_definition declarator_type, bool pointer_capable) const override
+		{ initialisation_declarator->compile_declaration_initialisation(dst, context, declarator_type, initialisation_expressions, false); }
 };
 
 #endif

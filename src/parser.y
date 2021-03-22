@@ -29,11 +29,11 @@ https://www.lysator.liu.se/c/ANSI-C-grammar-y.html#constant-expressions
 	Statement 		*statement_node;
 	Expression 		*expression_node;
 	std::string 	*string;
+	type_definition *type_node;
 	int 			int_num;
 	unsigned int 	unsigned_num;
 	float			float_num;
 	double 			double_num;
-	type_definition *type_node;
 
 	std::vector<Expression*>* 	argument_list_vector;
 	std::vector<Statement*>* 	statement_list_vector;
@@ -139,7 +139,7 @@ global_declaration				:	function_definition
 									{ $$ = $1; }
 
 function_definition				:	TYPE T_IDENTIFIER T_LBRACKET parameter_list T_RBRACKET compound_statement 
-									{ $$ = new Function_Definition(*$1, *$2, $4, $6); } 
+									{ $$ = new Function_Definition($1, *$2, $4, $6); } 
 
 initialisation_list 			:   assignment_expression 												
 									{ $$ = new std::vector<Expression*>(1, $1);	}
@@ -232,6 +232,9 @@ primary_expression				: 	T_INT_CONSTANT
 
 								|	T_FLOAT_CONSTANT
 									{ $$ = new Float($1); }
+
+								|	T_DOUBLE_CONSTANT
+									{ $$ = new Double($1); }
 								
 								|	T_UNSIGNED_CONSTANT
 									{ $$ = new Unsigned_Integer($1); }

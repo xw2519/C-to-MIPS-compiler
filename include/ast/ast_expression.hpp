@@ -35,9 +35,7 @@ class Unary_Expression : public Expression
 		Unary_Expression(Expression* _expression) : expression(_expression) {}
 
 		virtual void compile(std::ostream &dst, Context& context) const override
-		{
-			dst << "Triggered 1" << std::endl;
-		}
+		{ dst << "Triggered 1" << std::endl; }
 };
 
 /* ------------------------------------					    	 Sizeof Expressions						------------------------------------ */
@@ -517,6 +515,8 @@ class Direct_Assignment : public Assignment_Expression
 			// Store results
 			context.store_register(dst, temp_register_1, frame_pointer_1);
 		}
+
+		virtual type get_data_type(Context& context) const override { left_value->get_data_type(context); };
 };
 
 /* ------------------------------------						   Operator Expression						------------------------------------ */
@@ -542,7 +542,6 @@ class Operator : public Expression
 
 		virtual void compile(std::ostream &dst, Context& context) const override
 		{
-			// Only supports INT for now
 			type operator_type = right->get_data_type(context);
 
 			// std::cerr<<right->get_data_type(context)<<std::endl;
@@ -580,9 +579,7 @@ class Operator : public Expression
 		virtual void execute(std::ostream &dst, Context& context, type type, std::string destination_register, std::string temprorary_register) const {}
 
 		virtual type get_data_type(Context& context) const 
-		{ 
-			return type(left->get_data_type(context)); 
-		};
+		{ return type(left->get_data_type(context)); };
 
 		virtual bool get_pointer_capability(Context& context) const { return left->get_pointer_capability(context); };
 };
