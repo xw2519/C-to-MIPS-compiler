@@ -325,6 +325,8 @@ class Declaration : public External_Declaration
 
 		type get_type() { return TYPE.get_variable_type(); }
 
+		bool get_pointer_capable() {return pointer_capable; }
+
 		virtual void compile(std::ostream &dst, Context& context) const override
 		{
 			if (declaration_list != NULL)
@@ -460,7 +462,7 @@ class Function_Definition : public External_Declaration // Very basic
 						}
 					}
 
-					context.make_new_argument((*parameter_list)[i]->get_parameter(), (*parameter_list)[i]->get_type(), NORMAL, argument_stack_pointer);
+					context.make_new_argument((*parameter_list)[i]->get_parameter(), (*parameter_list)[i]->get_type(), NORMAL, argument_stack_pointer, (*parameter_list)[i]->get_pointer_capable());
 				}
 
 			}

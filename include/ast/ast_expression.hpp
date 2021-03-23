@@ -454,12 +454,10 @@ class Dereference_Expression : public Unary_Expression
 			std::string pointer_register = "$2";
 			int pointer_address = context.get_stack_pointer();
 
-			
-
 			expression->compile(dst, context);
 
 			context.load_register(dst, pointer_register, pointer_address);
-			context.output_load_operation(dst, INT, pointer_register, pointer_register, pointer_address);
+			context.output_load_operation(dst, INT, pointer_register, pointer_register, 0);
 			context.store_register(dst, pointer_register, pointer_address);
 		}
 };
@@ -558,7 +556,10 @@ class Operator : public Expression
 			right->compile(dst, context);
 
 			context.deallocate_stack(); // Reduce frame pointer as temproray register done
-			
+
+			// Handle data types 
+			context.pointer_shift(dst, context.get_pointer_capability(left->get_variable_name()), left->get_data_type(context), frame_pointer_2);
+
 			// Load registers 
 			context.load_register(dst, destination_register, frame_pointer_1);
 			context.load_register(dst, temp_register, frame_pointer_2);

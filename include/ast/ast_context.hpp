@@ -94,7 +94,7 @@ class type_definition
 	private: 
 		// Variable type set to NONE by default
 		type variable_type;
-		bool pointer_capable = 0;
+		bool pointer_capable;
 
 		// Trackers (default set to 0)
 		unsigned int pointer_tracker = 0;
@@ -104,6 +104,7 @@ class type_definition
 		type_definition(type _variable_type) : variable_type(_variable_type) {}
 		type_definition(std::string _pointer_flag, type_definition _pointer_type) 
 		{
+			
 			if (_pointer_flag == "POINTER")
 			{
 				pointer_capable = 1;
@@ -425,6 +426,16 @@ class Context
 		bool get_pointer_capability(std::string variable_name)
 		{
 			return (*context_tracker)[variable_name]->get_pointer_capability();
+		}
+
+		void pointer_shift(std::ostream& dst, bool pointer_capable, type pointer_type, int stack_pointer)
+		{
+			if (pointer_capable && (pointer_type == INT))
+			{
+				dst << "\t" << "sll" << "\t" << "\t" << "$2" << "," << "$2" << "," << 2 << std::endl;
+				store_register(dst, "$2", stack_pointer);
+			}
+			
 		}
 
 		/* ------------------------------------						  	Argument Functions						------------------------------------ */
