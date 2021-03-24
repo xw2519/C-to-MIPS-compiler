@@ -157,6 +157,8 @@ class Identifier : public Primitive
 
 		virtual type get_data_type(Context& context) const { return context.get_variable(variable_name).get_variable_type(); };
 
+		virtual type_definition get_type_definition(Context& context) const override { return context.get_variable(variable_name).get_type_definition(); };
+
 		virtual bool get_pointer_capability(Context& context) const { return context.get_variable(variable_name).get_pointer_capability(); };
 };
 

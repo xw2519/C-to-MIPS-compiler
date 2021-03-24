@@ -13,10 +13,11 @@ class Expression : public Node
 {
 	public:
 		// Primitive functions
-		virtual std::string get_variable_name() const { std::cout << "ERROR : Not and Identifier" << std::endl; exit(1); };
+		virtual std::string get_variable_name() const { return 0; };
 		virtual void load_variable_address(std::ostream &dst, Context& context) const {};
 		virtual type get_data_type(Context& context) const { return type(INT); };
 		virtual bool get_pointer_capability(Context& context) const { return 0; };
+		virtual type_definition get_type_definition(Context& context) const {};
 
 		// Evaluate the expression
 		virtual double evaluate() const { return 0; };
@@ -152,6 +153,8 @@ class Cast_Expression : public Unary_Expression
 
 			context.store_register(dst, cast_register, cast_address);
 		}
+
+		virtual type get_data_type(Context& context) const override { return casting_type; };
 };
 
 /* ------------------------------------						   	 Pre-fix Expression						------------------------------------ */
@@ -210,6 +213,8 @@ class Post_Increment_Expression : public Unary_Expression
 			increment_expression->compile(dst, context);
 			context.deallocate_stack();
 		}
+
+		virtual type get_data_type(Context& context) const override { return increment_expression->get_data_type(context); };
 };
 
 class Post_Decrement_Expression : public Unary_Expression
@@ -228,6 +233,8 @@ class Post_Decrement_Expression : public Unary_Expression
 			decrement_expression->compile(dst, context);
 			context.deallocate_stack();
 		}
+
+		virtual type get_data_type(Context& context) const override { decrement_expression->get_data_type(context); };
 };
 
 class Decrement_Expression : public Expression
@@ -291,7 +298,6 @@ class Function_Call_Expression : public Unary_Expression
 		{
 			
 			// Get function parameters
-			type function_type;
 			std::string variable_ID = expression->get_variable_name();
 			int argument_size;
 
@@ -371,6 +377,13 @@ class Function_Call_Expression : public Unary_Expression
 			context.store_register(dst, function_register, function_register_address);
 		}
 
+		virtual type get_data_type(Context& context) const override
+		{
+			std::string variable_ID = expression->get_variable_name();
+
+			if (context.check_function_declared(variable_ID)) { return (context.get_variable(variable_ID)).get_variable_type(); }
+			else { return type(INT); }
+		}
 };
 
 // https://stackoverflow.com/questions/54721000/c-array-indexing-in-mips-assembly
@@ -427,6 +440,8 @@ class Array_Access_Expression : public Unary_Expression
 			// Array expression
 			context.store_register(dst, array_register, array_frame_pointer);
 		}
+
+		virtual type get_data_type(Context& context) const override { return array_expression->get_data_type(context); }
 };
 
 /* ------------------------------------					    	Pointer Expressions						------------------------------------ */
@@ -440,6 +455,8 @@ class Reference_Expression : public Unary_Expression
 		{
 			expression->load_variable_address(dst, context);
 		}
+
+		virtual type get_data_type(Context& context) const override { return expression->get_data_type(context); }
 };
 
 // https://courses.cs.washington.edu/courses/cse378/09wi/lectures/lec03.pdf
@@ -460,6 +477,8 @@ class Dereference_Expression : public Unary_Expression
 			context.output_load_operation(dst, INT, pointer_register, pointer_register, 0);
 			context.store_register(dst, pointer_register, pointer_address);
 		}
+
+		virtual type get_data_type(Context& context) const override { return expression->get_data_type(context); }
 };
 
 /* ------------------------------------						  Assignment Expressions					------------------------------------ */
@@ -540,9 +559,7 @@ class Operator : public Expression
 
 		virtual void compile(std::ostream &dst, Context& context) const override
 		{
-			type operator_type = right->get_data_type(context);
-
-			// std::cerr<<right->get_data_type(context)<<std::endl;
+			type operator_type = left->get_data_type(context);
 
 			// Select registers and allocate frame pointers
 			int frame_pointer_1 = context.get_stack_pointer(); // Find current frame pointer 
@@ -556,9 +573,6 @@ class Operator : public Expression
 			right->compile(dst, context);
 
 			context.deallocate_stack(); // Reduce frame pointer as temproray register done
-
-			// Handle data types 
-			context.pointer_shift(dst, context.get_pointer_capability(left->get_variable_name()), left->get_data_type(context), frame_pointer_2);
 
 			// Load registers 
 			context.load_register(dst, destination_register, frame_pointer_1);
@@ -579,8 +593,7 @@ class Operator : public Expression
 
 		virtual void execute(std::ostream &dst, Context& context, type type, std::string destination_register, std::string temprorary_register) const {}
 
-		virtual type get_data_type(Context& context) const 
-		{ return type(left->get_data_type(context)); };
+		virtual type get_data_type(Context& context) const override { return type(left->get_data_type(context)); };
 
 		virtual bool get_pointer_capability(Context& context) const { return left->get_pointer_capability(context); };
 };
@@ -635,7 +648,7 @@ class Add_Expression : public Operator
 			}
 			else
 			{
-				std::cerr<<'Unsupported data types'<<std::endl;
+				std::cerr<<"Unsupported data types"<<std::endl;
 				exit(1);
 			}
 		}
@@ -689,7 +702,7 @@ class Sub_Expression : public Operator
 			}
 			else
 			{
-				std::cerr<<'Unsupported data types'<<std::endl;
+				std::cerr<<"Unsupported data types"<<std::endl;
 				exit(1);
 			}
 		}	
@@ -746,7 +759,7 @@ class Multiply_Expression : public Operator
 			}
 			else
 			{
-				std::cerr<<'Unsupported data types'<<std::endl;
+				std::cerr<<"Unsupported data types"<<std::endl;
 				exit(1);
 			}
 		}	
@@ -804,7 +817,7 @@ class Divide_Expression : public Operator
 			}
 			else
 			{
-				std::cerr<<'Unsupported data types'<<std::endl;
+				std::cerr<<"Unsupported data types"<<std::endl;
 				exit(1);
 			}
 		}	

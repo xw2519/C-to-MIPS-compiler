@@ -79,8 +79,7 @@ class Condition_If_Statement : public Statement
 			// Allocate temporary registers
 			context.allocate_stack();
 			std::string temp_register_1 = "$2";
-			int frame_pointer_1 = context.get_stack_pointer();
-
+			
 			// Execute the conditional statement
 			condition_expression->compile(dst, context);
 
@@ -212,10 +211,7 @@ class For_Statement : public Statement
 			if(initialisation_expression != NULL)
 			{
 				context.allocate_stack();
-				int stack_pointer_1 = context.get_stack_pointer();
-
 				initialisation_expression->compile(dst, context);
-
 				context.deallocate_stack();
 			}
 

@@ -37,8 +37,8 @@ class External_Declaration : public Node {};
 class Declarator : public External_Declaration 
 {
 	public:
-		virtual std::string get_variable_name() {}
-		virtual int get_variable_size() {}
+		virtual std::string get_variable_name() { return ""; }
+		virtual int get_variable_size() { return 0; }
 
 		virtual void compile_declaration(std::ostream &dst, Context& context, type_definition declarator_type, bool pointer_capable) const {}
 		virtual void compile_declaration_initialisation(std::ostream &dst, Context& context, type_definition declarator_type, Expression* expressions, bool pointer_capable) const {}
@@ -427,7 +427,6 @@ class Function_Definition : public External_Declaration // Very basic
 				// Check if parameters can fit into four argument register
 				// https://stackoverflow.com/questions/2298838/mips-function-call-with-more-than-four-arguments
 
-				int temp_register = 4;
 				for(int i = 0; i < parameter_list->size(); i++)
 				{
 					argument_stack_pointer += 4;

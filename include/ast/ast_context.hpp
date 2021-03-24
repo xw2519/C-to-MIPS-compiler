@@ -94,7 +94,7 @@ class type_definition
 	private: 
 		// Variable type set to NONE by default
 		type variable_type;
-		bool pointer_capable;
+		bool pointer_capable=0;
 
 		// Trackers (default set to 0)
 		unsigned int pointer_tracker = 0;
@@ -149,7 +149,7 @@ class variable
 		context_scope variable_scope = GLOBAL;
 		declaration_type variable_declaration;
 		type_definition variable_type;
-		bool pointer_capable;
+		bool pointer_capable=0;
 
 	public:
 		variable (int _variable_address, context_scope _variable_scope, declaration_type _variable_declaration, type_definition _variable_type) 
@@ -161,7 +161,8 @@ class variable
 		// Get attributes
 		int get_variable_address() { return variable_address; }  					// return address of member, relative to beginning of struct
 		context_scope get_variable_scope() { return variable_scope; }				// return scope of member, relative to beginning of struct
-		type get_variable_type() { return variable_type.get_variable_type(); }							
+		type get_variable_type() { return variable_type.get_variable_type(); }		
+		type_definition get_type_definition() { return variable_type; }					
 		declaration_type get_declaration_type() { return variable_declaration; }
 		bool get_pointer_capability() { return pointer_capable; }
 
@@ -378,8 +379,6 @@ class Context
 			dst << "\t" << "sw" << "\t" << "\t" << register_1 << "," << frame_offset << "(" << register_2 << ")" << std::endl;
 		}
 
-		// Float operations not done yet
-
 		/* ------------------------------------						  	Variable Functions						------------------------------------ */
 		
 		variable new_variable(std::string variable_name, type_definition variable_type, declaration_type variable_declaration_type, bool pointer_capable = 0, int variable_size = 1)
@@ -407,6 +406,7 @@ class Context
 
 		variable get_variable_address(int address)
 		{
+			// std::cerr<< address <<std::endl;
 			// Return variable
 			if((*address_tracker).count(address))
 			{
@@ -428,9 +428,13 @@ class Context
 			return (*context_tracker)[variable_name]->get_pointer_capability();
 		}
 
-		void pointer_shift(std::ostream& dst, bool pointer_capable, type pointer_type, int stack_pointer)
+		void pointer_shift(std::ostream& dst, type_definition variable_type, int stack_pointer)
 		{
-			if (pointer_capable && (pointer_type == INT))
+			std::cerr<< variable_type.get_pointer_capability() <<std::endl;
+			
+			//std::cerr<< variable_type.get_variable_type() <<std::endl;
+
+			if ((variable_type.get_pointer_capability()) && (variable_type.get_variable_type() == INT))
 			{
 				dst << "\t" << "sll" << "\t" << "\t" << "$2" << "," << "$2" << "," << 2 << std::endl;
 				store_register(dst, "$2", stack_pointer);
