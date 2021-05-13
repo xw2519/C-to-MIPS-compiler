@@ -1,5 +1,5 @@
 float f()
 {
-    float x = 12.0f;
+    float x = 12.2f;
     return x;
 }

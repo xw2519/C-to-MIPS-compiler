@@ -16,7 +16,7 @@ NC='\033[0m' # No Color
 
 
 #!/bin/bash
-INPUT_DIR="compiler_tests/pointer"
+INPUT_DIR="compiler_tests/float"
 OUTPUT_DIR="temp"
 
 echo "=================================================================================="
